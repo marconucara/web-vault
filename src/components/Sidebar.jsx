@@ -1,0 +1,51 @@
+import React from 'react';
+import Icon from './Icon.jsx';
+
+export default function Sidebar({ views, types, typeMeta, counts = {}, selection, onSelect }) {
+  const isSel = (kind, id) => selection.kind === kind && selection.id === id;
+  const Count = ({ n }) =>
+    n != null ? <span className="count-badge">{n}</span> : null;
+
+  return (
+    <nav className="sidebar">
+      <div className="brand">Vault</div>
+
+      <div className="group-label">Views</div>
+      <button
+        className={'nav-item' + (selection.kind === 'all' ? ' active' : '')}
+        onClick={() => onSelect({ kind: 'all' })}
+      >
+        <Icon name="filter" size={15} />
+        <span className="nav-label">All notes</span>
+        <Count n={counts.all} />
+      </button>
+      {views.map((v) => (
+        <button
+          key={v.id}
+          className={'nav-item' + (isSel('view', v.id) ? ' active' : '')}
+          onClick={() => onSelect({ kind: 'view', id: v.id })}
+        >
+          <Icon name="filter" size={15} />
+          <span className="nav-label">{v.name || v.id}</span>
+          <Count n={counts[`view:${v.id}`]} />
+        </button>
+      ))}
+
+      <div className="group-label">Types</div>
+      {types.map((t) => {
+        const meta = typeMeta[t] || {};
+        return (
+          <button
+            key={t}
+            className={'nav-item' + (isSel('type', t) ? ' active' : '')}
+            onClick={() => onSelect({ kind: 'type', id: t })}
+          >
+            <Icon name={meta.icon} color={meta.color} size={15} />
+            <span className="nav-label">{t}</span>
+            <Count n={counts[`type:${t}`]} />
+          </button>
+        );
+      })}
+    </nav>
+  );
+}

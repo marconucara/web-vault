@@ -1,0 +1,119 @@
+---
+adr: 0028
+title: Google Maps places — keyless build-time resolution, place cards, and map view
+status: Implemented
+date: 2026-07-29
+owner: marco
+supersedes:
+superseded-by:
+depends-on: [0002, 0015, 0016]
+tags: [maps, editor, ui, build, cache]
+---
+
+# ADR 0028 — Google Maps places — keyless build-time resolution, place cards, and map view
+
+## Context
+
+Notes often contain Google Maps links to places. Shown as raw links they carry no
+context; as rich cards and on a map they become useful. This must stay **keyless**
+(no Maps API key) and must not break the markdown round-trip
+(`adr/0015-durable-markdown-round-trip.md`). Short Maps links are opaque and the
+browser can't follow them (CORS), so the place data is resolved at build time in
+Node; the rendering (cards, map) then consumes that resolved data. From CI/
+datacenter IPs Google sometimes answers `429`, which would ship unresolved links
+until the next build, so a cache that survives between builds makes that
+transient.
+
+## Capability statement
+
+**Build-time resolution (keyless).** `scripts/resolve-maps.mjs` resolves each Maps
+link into `{ title, address, image, ratingStars, category, lat, lng }` baked into
+the content artifact (`adr/0002-build-time-content-pipeline.md`). It reads Google's
+Open Graph with a social-crawler User-Agent plus a pre-accepted consent cookie (so
+datacenter/CI IPs get the preview, not a consent shell); coordinates come from the
+resolved URL, else the `og:image` static-map `center=`, else an OpenStreetMap
+**Nominatim** geocode (serialised, ~1 req/s). Fetches run with bounded concurrency
+(`MAPS_CONCURRENCY`) and retry `429`/network errors with jittered backoff
+(`MAPS_RETRIES`). Resolution must happen in CI so notes edited from the web editor
+— which never pass through a local machine — also resolve.
+
+**Persistent cross-build cache.** A transient CI `429` is made non-fatal: with
+`MAP_CACHE_KEY` set, each build writes an **encrypted** (AES-256-GCM) cache to
+`dist/maps-cache.json` — a public static file, opaque without the key (no key = it
+is never written, never plaintext). The build reads the previous build's cache
+first (from `SITE_URL`, auto-detected from `CF_PAGES_URL` / Vercel / Netlify, or an
+explicit `MAP_CACHE_URL`) and re-fetches only the missing links. The cache is
+provider-agnostic and never committed.
+
+**Body place cards.** A Maps link that starts its own line (paragraph or list item,
+bare or `[title](url)`, with optional trailing text as a description) becomes a
+compact place-preview card (photo, name, address, rating, category) via a custom
+BlockNote `mapcard` block, with an in-place floating editor (URL + description,
+Enter/Esc, Cmd/Ctrl+click to open). The markdown round-trips **exactly**: the block
+carries a token, and the grouped card is derived on render and stripped on export.
+
+**Map view.** A toolbar toggle replaces the note body with a fullscreen **Leaflet +
+OpenStreetMap** map (keyless raster tiles) of all the note's points; a headings
+sidebar filters markers to one section (exclusive, default "All markers") and
+recenters; pins are coloured per list (shared palette, assigned in order of
+appearance), with duplicates spread apart.
+
+## User stories / scenarios
+
+- As a vault owner, my Maps links render as cards with photos and coordinates, with
+  no API key.
+- As a reader, I toggle a map view to see all of a note's places at once and filter
+  them by section.
+- As an operator, a transient Google `429` on CI does not wipe already-resolved
+  places, because the previous build's cache is reused.
+- As a vault owner editing from the web, my newly added Maps links resolve on the CI
+  build without ever touching my machine.
+- As a vault owner, adding or editing a place card does not churn the note's
+  markdown beyond the intended change.
+
+## Acceptance criteria
+
+1. The build resolves each Maps link to `{title, address, image, ratingStars,
+   category, lat, lng}` in the content artifact, keyless; coordinates resolve from
+   the URL, else the `og:image` static-map center, else a serialised OSM Nominatim
+   geocode; fetches use bounded concurrency and retry transient errors.
+2. With `MAP_CACHE_KEY` set, the build writes an encrypted `dist/maps-cache.json`
+   and, on the next build, reads the prior deploy's cache and re-fetches only
+   missing links; with no key nothing is written (never plaintext). Neither the
+   local nor the deployed cache is committed.
+3. A Maps link starting its own line renders as a `mapcard` place card (photo,
+   name, address, rating, category) with an in-place editor; other Maps links stay
+   inline. The block round-trips to the original markdown exactly (token-based).
+4. A toolbar toggle shows a keyless Leaflet + OpenStreetMap map of the note's
+   points, with a headings filter and per-list coloured pins.
+5. No Google Maps API key is required at build or runtime.
+
+## Out of scope
+
+- Non-Google map providers.
+
+## Open questions
+
+- Moving resolution to an on-demand Pages Function + KV cache, only if the
+  build-time approach ever becomes a bottleneck (the persistent cross-build cache
+  already covers the common case; raise `MAPS_CONCURRENCY` for a big first build).
+
+## References
+
+- scripts/resolve-maps.mjs, scripts/maps-cache.mjs, scripts/build-maps-cache.mjs,
+  scripts/maps-genkey.mjs
+- src/components/MapCard.jsx, src/components/MapView.jsx, src/lib/mdLinks.js
+- adr/0002-build-time-content-pipeline.md, adr/0015-durable-markdown-round-trip.md,
+  adr/0016-wikilink-and-media-blocks.md
+
+## Revision History
+
+| Date | Revision | Author | Change |
+|------|----------|--------|--------|
+| 2026-07-29 | r1 | marco | Recorded after the fact; merges the keyless build-time resolver, the persistent encrypted cache, the body place-cards, and the map view into one ADR (backfill). |
+
+## Approvals
+
+| Role | Name | Date | Signature |
+|------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-07-29 | — |

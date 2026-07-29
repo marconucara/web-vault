@@ -1,0 +1,36 @@
+# ADR Index
+
+Regenerated from each ADR's metadata block. Sorted by ADR number. Do not
+hand-edit rows out of sync with the ADR files.
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [0001](adr/0001-record-architecture-decisions.md) | Record architecture decisions as ADRs | Implemented | 2026-07-29 |
+| [0002](adr/0002-build-time-content-pipeline.md) | Build-time content pipeline, no backend for reading | Implemented | 2026-07-29 |
+| [0003](adr/0003-stack-react-vite.md) | Application stack — React and Vite | Implemented | 2026-07-29 |
+| [0004](adr/0004-vault-compatibility-target.md) | Purpose and compatibility target — private viewing, public sharing, any Markdown vault | Implemented | 2026-07-29 |
+| [0005](adr/0005-framework-package.md) | Framework package with a thin config-only consumer and generated deploy functions | Implemented | 2026-07-29 |
+| [0006](adr/0006-hash-based-routing.md) | Hash-based routing, no server SPA fallback | Implemented | 2026-07-29 |
+| [0007](adr/0007-tolaria-views-evaluator.md) | Tolaria views/*.yml evaluator, Obsidian .base ignored | Implemented | 2026-07-29 |
+| [0008](adr/0008-wikilink-resolution.md) | Wikilink resolution by title and filename | Implemented | 2026-07-29 |
+| [0009](adr/0009-three-panel-ui-note-list.md) | Three-panel responsive UI with a Tolaria-style note list | Implemented | 2026-07-29 |
+| [0010](adr/0010-git-derived-dates.md) | Reliable created/modified dates derived from git | Implemented | 2026-07-29 |
+| [0011](adr/0011-read-only-properties-panel.md) | Read-only Properties panel | Implemented | 2026-07-29 |
+| [0012](adr/0012-build-version-chip.md) | Build/version chip in the toolbar | Implemented | 2026-07-29 |
+| [0013](adr/0013-copy-vault-attachments.md) | Copy vault attachments into the build output | Implemented | 2026-07-29 |
+| [0014](adr/0014-wysiwyg-blocknote-editor.md) | Inline WYSIWYG editor on BlockNote, CodeMirror raw fallback | Implemented | 2026-07-29 |
+| [0015](adr/0015-durable-markdown-round-trip.md) | Durable-markdown round-trip layer for the block editor | Implemented | 2026-07-29 |
+| [0016](adr/0016-wikilink-and-media-blocks.md) | Wikilinks and media as interactive blocks/chips in the editor | Implemented | 2026-07-29 |
+| [0017](adr/0017-deployment-model.md) | Deployment model — deployment-agnostic core, Cloudflare Pages as the first target | Implemented | 2026-07-29 |
+| [0018](adr/0018-edit-commit-via-pages-function.md) | Edit-to-commit via a Cloudflare Pages Function, token as a server secret | Implemented | 2026-07-29 |
+| [0019](adr/0019-atomic-commit-git-data-api.md) | Atomic multi-file commit via the GitHub Git Data API | Implemented | 2026-07-29 |
+| [0020](adr/0020-commit-target-deployment-branch.md) | Commit to the deployment's own branch by default | Implemented | 2026-07-29 |
+| [0021](adr/0021-draft-state-optimistic-ui.md) | Draft state in localStorage with optimistic commit UI | Implemented | 2026-07-29 |
+| [0022](adr/0022-frontmatter-preserved-line-ops.md) | Preserve frontmatter with line-level operations, no YAML re-serialization | Implemented | 2026-07-29 |
+| [0023](adr/0023-note-create-delete.md) | Create and delete notes from the client | Implemented | 2026-07-29 |
+| [0024](adr/0024-share-unshare-from-app.md) | Share and unshare a note from the app | Implemented | 2026-07-29 |
+| [0025](adr/0025-public-share-pages.md) | Isolated public share pages | Implemented | 2026-07-29 |
+| [0026](adr/0026-cloudflare-pages-access.md) | Cloudflare Pages deployment — configurable access, versioned config, runbook setup | Implemented | 2026-07-29 |
+| [0027](adr/0027-real-404-and-share-marker.md) | Real 404 page and a share-page marker | Implemented | 2026-07-29 |
+| [0028](adr/0028-google-maps-places.md) | Google Maps places — keyless build-time resolution, place cards, and map view | Implemented | 2026-07-29 |
+| [0029](adr/0029-cli-setup-and-distribution.md) | Delivery — wv CLI, agent-driven setup, and git-repo distribution | Accepted | 2026-07-29 |

@@ -1,0 +1,1304 @@
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f6f7f9;
+  --bg-active: #e9eef5;
+  --border: #e2e5ea;
+  --text: #1b1d21;
+  --text-dim: #6b7280;
+  --accent: #2f6fed;
+  --radius: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181d;
+    --bg-alt: #1d2027;
+    --bg-active: #262b34;
+    --border: #2c313a;
+    --text: #e6e8ec;
+    --text-dim: #9aa1ac;
+    --accent: #6a9bff;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 15px;
+  line-height: 1.5;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Lazy-loaded Type icons fade in on mount instead of swapping from a
+   placeholder icon (see Icon.jsx). The placeholder reserves layout space
+   while the icon chunk loads, showing nothing. */
+@keyframes icon-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.icon-fade-in { animation: icon-fade-in 0.18s ease-out; }
+.icon-placeholder { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .icon-fade-in { animation: none; }
+}
+
+/* Shell: content on top, thin status bar at the bottom */
+.shell { display: flex; flex-direction: column; height: 100%; }
+
+/* Desktop: 3 columns */
+.app {
+  display: grid;
+  grid-template-columns: 240px 320px 1fr;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.app > * { overflow-y: auto; height: 100%; }
+
+/* Sidebar */
+.sidebar {
+  background: var(--bg-alt);
+  border-right: 1px solid var(--border);
+  padding: 12px 8px;
+}
+.brand { font-weight: 700; padding: 6px 10px 12px; font-size: 17px; }
+.group-label {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--text-dim);
+  padding: 14px 10px 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.nav-item .icon { flex: none; opacity: 0.9; }
+.nav-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* On active/hover the row bg equals the badge's default (--bg-active), so swap
+   the badge to --bg there to keep it visible. */
+.nav-item.active .count-badge,
+.nav-item:hover .count-badge { background: var(--bg); }
+.nav-item:hover { background: var(--bg-active); }
+.nav-item.active { background: var(--bg-active); font-weight: 600; }
+
+/* Note list */
+.notelist { border-right: 1px solid var(--border); }
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg);
+}
+.list-title {
+  font-weight: 600;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Round count balloon: subtle fill (a touch darker in dark, lighter in light).
+   Reused later for per-view/per-type counters in the sidebar. */
+.count-badge {
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--bg-active);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* List header actions: sort + search, between the name and the counter */
+.list-actions { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.sort-wrap { position: relative; }
+.list-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.list-btn:hover { background: var(--bg-active); color: var(--text); }
+.list-btn.active { background: var(--bg-active); color: var(--text); }
+.list-btn.icon-only { padding: 5px; }
+.sort-dir { font-size: 13px; }
+.sort-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  z-index: 5;
+}
+.sort-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.sort-row:hover { background: var(--bg-alt); }
+.sort-row.active .lbl { color: var(--accent); font-weight: 600; }
+.sort-row .lbl { font-size: 14px; }
+.sort-dirs { display: inline-flex; gap: 2px; }
+.sort-arrow {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.sort-arrow:hover { background: var(--bg-active); color: var(--text); }
+.sort-arrow.active { color: var(--accent); background: var(--bg-active); }
+
+.list-search { padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.search-field { position: relative; }
+.list-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 36px 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-alt);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+.list-search input:focus { border-color: var(--accent); }
+.scope-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+/* The button is already absolute (context for the tooltip's ::after): the .tt
+   class must not bring it back to relative. */
+.scope-toggle.tt { position: absolute; }
+.scope-toggle:hover { background: var(--bg-active); }
+.scope-toggle.active { color: var(--accent); }
+
+.notelist ul { list-style: none; margin: 0; padding: 0; }
+.list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+}
+.list-item:hover { background: var(--bg-alt); }
+.list-item.active { background: var(--bg-active); }
+.item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.item-title { font-weight: 500; line-height: 1.35; }
+.item-top .icon { flex: none; margin-top: 2px; opacity: 0.9; }
+.item-snippet {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.item-dates {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.item-dates .created { opacity: 0.85; }
+.empty { padding: 16px 14px; color: var(--text-dim); }
+
+/* Note view: .noteview scrolls at full width, .note-inner centers the content */
+.noteview { width: 100%; }
+/* On desktop (3 columns) leave a few px on the left so the editor's drag-handles
+   "+/⠿", which stick out ~6px beyond .note-inner, don't end up over the note list
+   when the note column is narrow. Not on mobile (single column). */
+.app:not(.mobile) .noteview { padding-left: 12px; }
+/* That left padding must not push the header in: it would inset the header's
+   bottom border by 12px and leave a gap in the line that separates the header
+   from the body at the column divider. Pull the header back to the full column
+   width so its border meets the note list's border. Body keeps the padding. */
+.app:not(.mobile) .note-header { margin-left: -12px; }
+.note-inner { max-width: 860px; margin: 0 auto; padding: 28px 40px 96px; }
+.noteview.empty { display: flex; align-items: center; justify-content: center; padding: 40px; }
+.empty-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 40px 52px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-alt);
+  color: var(--text-dim);
+  text-align: center;
+}
+.empty-note .icon { opacity: 0.5; }
+.empty-note p { margin: 0; font-size: 15px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 24px; }
+.badge {
+  font-size: 12px;
+  background: var(--bg-active);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 2px 10px;
+}
+.badge.status { color: var(--accent); }
+.share { position: relative; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.badge.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.badge.share-btn:hover,
+.badge.share-btn.active { border-color: var(--accent); color: var(--accent); }
+.badge.share-btn .icon { flex: none; }
+.badge.share-btn.shared { border-color: var(--accent); }
+.share-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2f9e57;
+  flex: none;
+}
+@media (prefers-color-scheme: dark) { .share-dot { background: #4ac57e; } }
+
+/* Share sheet: popover below the Share/Publish button */
+.sharesheet {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(320px, calc(100vw - 24px));
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22);
+  padding: 12px;
+  z-index: 30;
+}
+.ss-intro { margin: 0 0 8px; font-size: 13px; }
+.ss-note { margin: 0 0 10px; font-size: 12px; color: var(--text-dim); }
+.ss-hint { margin: -2px 0 10px; font-size: 12px; color: var(--text-dim); }
+.ss-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.ss-status .icon { flex: none; }
+.ss-status.ok { color: #2f9e57; }
+@media (prefers-color-scheme: dark) { .ss-status.ok { color: #4ac57e; } }
+.ss-status.wait { color: var(--text-dim); }
+.ss-url {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-alt);
+  color: var(--text);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.ss-actions { display: flex; align-items: center; gap: 8px; }
+.ss-publish,
+.ss-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ss-publish .icon, .ss-copy .icon { flex: none; }
+.ss-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  padding: 7px 10px;
+}
+.ss-open .icon { flex: none; }
+.ss-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #e5484d;
+  margin-bottom: 10px;
+}
+.ss-error .icon { flex: none; }
+.ss-unshare {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ss-unshare:hover { color: #e5484d; text-decoration: underline; }
+.ss-confirm {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.ss-confirm-actions { display: flex; gap: 8px; margin-top: 8px; }
+.ss-danger {
+  background: #e5484d;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ss-cancel {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.spin {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ss-spin 0.7s linear infinite;
+}
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+.rel { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.rel-key { color: var(--text-dim); }
+.chip {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 2px 10px;
+  font-size: 13px;
+}
+.chip.dead { color: var(--text-dim); }
+.back {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  margin-bottom: 14px;
+}
+
+/* Markdown */
+.markdown { font-size: 16px; line-height: 1.7; }
+.markdown > *:first-child { margin-top: 0; }
+.markdown h1 { font-size: 32px; line-height: 1.25; margin: 0 0 20px; }
+.markdown h2 { font-size: 23px; line-height: 1.25; margin: 36px 0 12px; }
+.markdown h3 { font-size: 19px; line-height: 1.25; margin: 26px 0 10px; }
+.markdown p { margin: 0 0 16px; }
+.markdown ul, .markdown ol { margin: 0 0 18px; padding-left: 24px; }
+.markdown li { margin: 6px 0; }
+.markdown li > p { margin: 0; }
+.markdown hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+.markdown table { border-collapse: collapse; width: 100%; margin: 16px 0 20px; display: block; overflow-x: auto; }
+.markdown th, .markdown td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+.markdown code {
+  background: var(--bg-alt);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.markdown pre {
+  background: var(--bg-alt);
+  padding: 12px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.markdown pre code { background: none; padding: 0; }
+.markdown blockquote {
+  border-left: 3px solid var(--border);
+  margin: 12px 0;
+  padding: 2px 14px;
+  color: var(--text-dim);
+}
+.markdown img { max-width: 100%; border-radius: 8px; }
+.md-video {
+  display: block;
+  max-width: 100%;
+  margin: 14px 0;
+  border-radius: 8px;
+  background: #000;
+}
+.md-audio { display: block; width: 100%; margin: 14px 0; }
+.file-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 4px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-alt);
+  color: var(--text);
+}
+.file-card:hover { border-color: var(--accent); text-decoration: none; }
+.file-card .icon { flex: none; color: var(--text-dim); }
+.file-card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Google Maps link that starts its own line (paragraph or list item) ->
+   compact place-preview card: pin + title/description + photo thumbnail. */
+/* margin lives on the wrap (not the card) so BlockNote's 4px block-selection
+   outline — drawn on the wrap — hugs the card instead of leaving a gap. */
+.mapcard-wrap { position: relative; display: block; width: 100%; margin: 8px 0; border-radius: 9px; }
+.mapcard {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 10px 12px 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-alt);
+  color: var(--text);
+  user-select: none;
+}
+.mapcard:hover { text-decoration: none; }
+/* No separate focus ring on the card: the block-selection outline is the single
+   indicator. Match that outline's corner radius to the card. */
+.mapcard:focus,
+.mapcard:focus-visible { outline: none; }
+.ProseMirror-selectednode > .bn-block-content > .mapcard-wrap { border-radius: 9px; }
+/* Red map pin (teardrop). Carries the item number in ordered lists, a white
+   dot otherwise. The inner element counter-rotates so it stays upright. */
+.mapcard-pin {
+  position: absolute;
+  top: 10px;
+  left: -12px;
+  width: 24px;
+  height: 24px;
+  background: #d9534f;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.mapcard-pin-in {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(45deg);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.mapcard-pin-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+}
+.mapcard-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+}
+.mapcard-title {
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.mapcard-sub {
+  color: var(--text-dim);
+  font-size: 0.88em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+/* Description that comes from the note markdown: primary text color to set it
+   apart from the (dimmed) Maps metadata line. */
+.mapcard-note { color: var(--text); }
+.mapcard-rating { color: #f5a623; font-size: 0.85em; letter-spacing: 1px; }
+.mapcard-thumb {
+  flex: none;
+  align-self: flex-start;
+  width: 88px;
+  height: 68px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-active);
+}
+.mapcard-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Bigger thumbnail on wide desktop viewports. */
+@media (min-width: 1100px) {
+  .mapcard-thumb { width: 126px; height: 96px; }
+}
+
+/* Floating edit popover (does not shift the page layout). */
+.mapcard-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.mapcard-edit {
+  position: absolute;
+  z-index: 41;
+  top: calc(100% + 4px);
+  left: 0;
+  width: min(360px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.mapcard-edit-row { display: flex; flex-direction: column; gap: 4px; }
+.mapcard-edit-row > span { font-size: 0.78em; color: var(--text-dim); }
+.mapcard-edit-row input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt);
+  color: var(--text);
+  font: inherit;
+}
+.mapcard-edit-row input:focus { outline: none; border-color: var(--accent); }
+.mapcard-edit-actions { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.mapcard-edit-actions .spacer { flex: 1; }
+.mapcard-edit-actions button {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.mapcard-edit-actions button:hover { background: var(--bg-active); }
+.mapcard-edit-actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mapcard-edit-actions button.danger { color: #d9534f; }
+
+/* Map view: a fullscreen Leaflet map replacing the note body. */
+.noteview.mapmode { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+/* z-index:0 makes .mapview its own stacking context so Leaflet's internal
+   z-indexes (panes/controls up to ~1000) stay contained BELOW the note header
+   (z-index:3) — otherwise the header's tooltip renders under the map. */
+.mapview { position: relative; flex: 1 1 auto; min-height: 0; z-index: 0; }
+.mapview-map { position: absolute; inset: 0; }
+.mapview-empty,
+.mapview-missing {
+  position: absolute;
+  z-index: 500;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.mapview-empty { top: 50%; transform: translate(-50%, -50%); }
+.mapview-missing { bottom: 12px; }
+
+/* Headings sidebar (lives inside the map): a right-side panel toggled from a
+   floating button. z-index above Leaflet's panes/controls (contained in the
+   .mapview stacking context). */
+.mapview-panel-toggle {
+  position: absolute;
+  z-index: 1000;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.mapview-panel-toggle:hover { background: var(--bg-active); }
+.mapview-panel {
+  position: absolute;
+  z-index: 1000;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 220px;
+  max-width: 60%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.mapview-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 8px;
+}
+.mapview-panel-head button {
+  display: inline-flex;
+  padding: 3px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+}
+.mapview-panel-head button:hover { background: var(--bg-active); color: var(--text); }
+.mapview-panel-list { list-style: none; margin: 0; padding: 6px; overflow-y: auto; }
+.mapview-panel-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 9px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mapview-panel-list button:hover { background: var(--bg-alt); }
+.mapview-panel-list button.active { background: var(--bg-active); font-weight: 600; }
+.mapview-panel-dots { display: inline-flex; gap: 2px; margin-right: 7px; vertical-align: middle; }
+.mapview-panel-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+/* Leaflet div-icon reset + the pin (same teardrop as the card). */
+.mapview-pin-icon { background: none; border: none; }
+.mapview-pin {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  background: #d9534f;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Popup: photo + name + address. Scoped under .mapview so these win over
+   Leaflet's own CSS (which loads later in the lazy chunk and would otherwise
+   keep the wrapper white — illegible with the theme's light text in dark mode). */
+.mapview .leaflet-popup-content { margin: 0; }
+.mapview .leaflet-popup-content-wrapper,
+.mapview .leaflet-popup-tip { background: var(--bg); color: var(--text); }
+.mapview .leaflet-popup-content-wrapper { border: 1px solid var(--border); }
+.mapview .leaflet-popup-close-button { color: var(--text-dim); }
+.mapview-popup { display: flex; gap: 10px; color: var(--text); max-width: 280px; }
+.mapview-popup:hover { text-decoration: none; }
+.mapview-popup-img {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 8px 0 0 8px;
+}
+.mapview-popup-body { padding: 8px 10px 8px 0; min-width: 0; }
+.mapview-popup-title { font-weight: 700; line-height: 1.25; }
+.mapview-popup-sub { color: var(--text-dim); font-size: 0.85em; margin-top: 2px; }
+.mapview-popup-note { color: var(--text); font-size: 0.85em; margin-top: 3px; }
+
+/* Mobile */
+.app.mobile { display: block; flex: 1 1 auto; min-height: 0; }
+.mobile-list { height: 100%; display: flex; flex-direction: column; }
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg);
+}
+.hamburger { background: none; border: none; font-size: 20px; padding: 2px 6px; }
+.topbar-title {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app.mobile .notelist { border-right: none; }
+.app.mobile .noteview { height: 100%; overflow-y: auto; }
+.app.mobile .note-inner { padding: 16px 18px 88px; }
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+.drawer {
+  width: 78%;
+  max-width: 300px;
+  height: 100%;
+  background: var(--bg-alt);
+  overflow-y: auto;
+}
+
+/* Note toolbar: back + change state + editor toggle */
+/* Note column header: full-width bar, as tall as the list column's .list-header
+   (same padding/border), with the icon-only actions on the right. */
+.note-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.note-header .back { margin-bottom: 0; }
+.mod-flag { font-size: 12px; color: var(--accent); }
+.note-header-actions { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
+.note-hbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+  line-height: 1;
+}
+.note-hbtn:hover { background: var(--bg-active); color: var(--text); }
+.note-hbtn.active { background: var(--bg-active); color: var(--text); }
+.note-hbtn .icon { flex: none; }
+
+/* Custom tooltip (not the native title): bubble below the element, aligned to
+   the right so it doesn't overflow the edge. Active on hover and keyboard focus. */
+.tt { position: relative; }
+.tt::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  transform: translateY(-3px);
+  pointer-events: none;
+  transition: opacity 0.12s ease 0.3s, transform 0.12s ease 0.3s;
+  z-index: 60;
+}
+.tt:hover::after, .tt:focus-visible::after { opacity: 1; transform: none; }
+
+/* CodeMirror editor */
+.editor-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.editor-wrap .cm-editor { background: var(--bg); }
+.editor-wrap .cm-editor.cm-focused { outline: none; }
+.editor-wrap .cm-content {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.6;
+  padding: 12px 4px;
+}
+.editor-wrap .cm-gutters { background: var(--bg-alt); border: none; }
+
+/* Block editor (BlockNote): it must blend with the app, no different box/background.
+   The left gutter of the drag-handles (+/⠿) stays INSIDE the editor as padding,
+   so the handles fall in a hoverable area and don't disappear when you hover over
+   them; the negative margin equal to the gutter brings the text back in line with
+   the rest of the note. NB: the alignment depends only on margin-left == -padding-left,
+   not on .note-inner's padding. */
+.blockeditor {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: var(--text);
+  margin-left: -48px;
+}
+.blockeditor .bn-container,
+.blockeditor .bn-editor,
+.blockeditor .ProseMirror { background: transparent; }
+.blockeditor .bn-editor { padding-left: 48px; padding-right: 0; }
+.blockeditor .bn-block-outer { padding-left: 0; }
+/* Vertical rhythm like Tolaria: more air between blocks (lists, paragraphs) and a
+   "section" space above the headings, so titles breathe. The body line-height
+   stays the default (1.5). */
+.blockeditor .bn-block-content { padding-block: 6px; }
+/* Heading: font-sizes aligned to the read-mode markdown (.markdown h1/h2/h3 =
+   28/21/17px) instead of BlockNote's huge defaults (3em/2em/1.3em). This way
+   editor and reading match and the titles are in line with Tolaria.
+   Tight line-height (1.5 would be too wide when they wrap). */
+.blockeditor [data-content-type="heading"] { --level: 32px; line-height: 1.25; }
+.blockeditor [data-content-type="heading"][data-level="2"] { --level: 23px; }
+.blockeditor [data-content-type="heading"][data-level="3"] { --level: 19px; }
+/* Section space above the headings (never above the title, which is the 1st block). */
+.blockeditor .bn-block-outer:not(:first-child):has(> .bn-block > [data-content-type="heading"]) {
+  margin-top: 1.2em;
+}
+/* Vertical alignment of the drag-handles: BlockNote positions the side-menu with
+   FIXED heights per block type (calibrated on the default fonts) and centers the
+   button in it. With our smaller fonts/line-height the blocks are shorter, so we
+   redefine the heights = the block's real height (= padding-block*2 +
+   line-height*font), so the button is centered on the first line again.
+   p/lists: 12 + 1.5*16 = 36; h1: 12 + 1.25*32 = 52; h2: 12 + 1.25*23 ≈ 41;
+   h3: 12 + 1.25*19 ≈ 36. */
+.blockeditor .bn-side-menu { height: 36px; }
+.blockeditor .bn-side-menu[data-block-type="heading"][data-level="1"] { height: 52px; }
+.blockeditor .bn-side-menu[data-block-type="heading"][data-level="2"] { height: 41px; }
+.blockeditor .bn-side-menu[data-block-type="heading"][data-level="3"] { height: 36px; }
+/* Block editor skeleton during the lazy-load (see EditorSkeleton). */
+.editor-skeleton { padding-top: 6px; }
+.editor-skeleton .sk-line {
+  height: 0.85em;
+  margin: 0.7em 0;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--bg-alt) 25%, var(--border) 37%, var(--bg-alt) 63%);
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+}
+.editor-skeleton .sk-h { height: 1.5em; width: 45%; margin-bottom: 1.1em; }
+@keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .editor-skeleton .sk-line { animation: none; } }
+.raw-only { font-size: 12px; color: var(--text-dim); }
+.wl-chip {
+  display: inline;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 6px;
+  color: var(--accent);
+  font-size: 0.92em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.wl-chip:hover { background: var(--border); }
+.wl-chip.dead { color: var(--text-dim); cursor: default; }
+.wl-chip.dead:hover { background: var(--bg-alt); }
+
+/* Chip for media/file links in the block editor (video, audio, file). */
+.media-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: baseline;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 6px;
+  color: var(--text);
+  font-size: 0.92em;
+  white-space: nowrap;
+}
+
+.media-chip svg { opacity: 0.7; flex: none; }
+.media-chip.video { color: #d9534f; }
+.media-chip.audio { color: #9b59b6; }
+.media-chip.file  { color: var(--accent); }
+
+@media (max-width: 900px) {
+  /* Narrower gutter so it doesn't overflow the narrow viewport (note-inner has
+     less padding on mobile); the text stays aligned because the negative margin
+     always equals the editor's padding-left. */
+  .blockeditor { margin-left: -18px; }
+  .blockeditor .bn-editor { padding-left: 18px; }
+  .blockeditor .bn-block-outer { padding-left: 0; }
+}
+
+/* Thin full-width status bar (VS Code / Tolaria style) */
+.statusbar {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--bg-alt);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.statusbar-spacer { flex: 1 1 auto; }
+.sb-build {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.sb-build:hover { background: var(--bg-active); color: var(--text); }
+.sb-build .icon { flex: none; opacity: 0.7; }
+.sb-build-sha { letter-spacing: 0.2px; }
+.sb-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 6px;
+  font-size: 12px;
+  color: #2f9e57;
+}
+@media (prefers-color-scheme: dark) { .sb-toast { color: #4ac57e; } }
+.sb-toast .icon { flex: none; }
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1;
+}
+.status-item .icon { flex: none; }
+.status-item.sync { color: #2f9e57; }
+@media (prefers-color-scheme: dark) { .status-item.sync { color: #4ac57e; } }
+.status-item.dirty { color: var(--accent); cursor: pointer; }
+.status-item.dirty:hover,
+.status-item.dirty.active { background: var(--bg-active); }
+.status-item.dirty .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
+/* Pop-up panel above the status bar */
+.statuspanel {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  width: min(380px, calc(100vw - 24px));
+  /* Never exceed the window: header and footer stay fixed, the list in the
+     middle scrolls. 34px = status bar (28) + gap (6); +12 of margin. */
+  max-height: calc(100dvh - 46px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22);
+  padding: 10px 12px;
+  z-index: 30;
+}
+.sp-head {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.link-btn { background: none; border: none; color: var(--accent); padding: 0; font-size: 12px; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+.sp-list { list-style: none; margin: 0 0 8px; padding: 0; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.sp-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.sp-list input[type="checkbox"] { flex: none; margin: 0; cursor: pointer; }
+.sp-title {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sp-title:hover { background: var(--bg-active); color: var(--accent); }
+.sp-tag {
+  margin-left: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0 4px;
+  vertical-align: middle;
+}
+.sp-discard {
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 4px;
+  border-radius: 6px;
+  display: inline-flex;
+  cursor: pointer;
+}
+.sp-discard:hover { color: #e5484d; background: var(--bg-active); }
+.sp-message {
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-alt);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 8px;
+}
+.sp-message:focus { border-color: var(--accent); }
+.sp-error {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #e5484d;
+  margin-bottom: 8px;
+}
+.sp-error .icon { flex: none; }
+.sp-actions { flex: none; display: flex; align-items: center; gap: 10px; }
+.sp-commit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sp-commit:disabled { opacity: 0.45; cursor: not-allowed; }
+.sp-commit .icon { flex: none; }
+
+/* Properties panel (right-side drawer, Tolaria style) */
+.props-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: transparent;
+}
+.props-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 41;
+  width: 320px;
+  max-width: 88vw;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-alt);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+  animation: props-slide 0.16s ease-out;
+}
+@keyframes props-slide { from { transform: translateX(12px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+.props-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.props-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.props-title .icon { opacity: 0.7; }
+.props-close {
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.props-close:hover { background: var(--bg-active); color: var(--text); }
+.props-body { flex: 1 1 auto; overflow-y: auto; padding: 12px 16px 40px; }
+.props-group { display: flex; flex-direction: column; gap: 2px; }
+.props-sep { height: 1px; background: var(--border); margin: 14px 0; }
+.props-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 0;
+  font-size: 13.5px;
+}
+.props-key { color: var(--text-dim); }
+.props-val { color: var(--text); word-break: break-word; }
+.type-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.type-badge .icon { flex: none; }
+.props-link { display: inline-flex; align-items: center; gap: 4px; word-break: break-all; }
+.props-link .icon { flex: none; opacity: 0.7; }
+.props-rel { padding: 6px 0; }
+.props-rel-key { display: block; color: var(--text-dim); font-size: 13px; margin-bottom: 6px; }
+.props-rel-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.props-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+.props-section-title .icon { opacity: 0.7; }
+.props-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  font-size: 13.5px;
+}
+.props-info span:nth-child(odd) { color: var(--text-dim); }
+.props-info span:nth-child(even) { text-align: right; }
+.props-commit { display: flex; flex-direction: column; gap: 3px; padding-left: 10px; border-left: 2px solid var(--border); }
+.props-commit-sha { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.props-commit-subject {
+  font-size: 13px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Delete (danger zone) */
+.props-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+  background: none;
+  border: 1px solid color-mix(in srgb, #e5484d 45%, var(--border));
+  color: #e5484d;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.props-delete:hover { background: color-mix(in srgb, #e5484d 12%, transparent); }
+.props-delete-confirm { display: flex; flex-direction: column; gap: 8px; }
+.pdc-text { font-size: 13px; color: var(--text); }
+.pdc-actions { display: flex; gap: 8px; }
+.pdc-cancel,
+.pdc-confirm {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pdc-cancel { background: var(--bg-active); border: 1px solid var(--border); color: var(--text); }
+.pdc-confirm { background: #e5484d; border: 1px solid #e5484d; color: #fff; }
+.pdc-confirm:disabled,
+.pdc-cancel:disabled { opacity: 0.6; cursor: default; }
+.props-del-error { color: #e5484d; font-size: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
