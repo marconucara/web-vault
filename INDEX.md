@@ -37,3 +37,4 @@ hand-edit rows out of sync with the ADR files.
 | [0030](adr/0030-background-freshness-detection.md) | Background freshness detection and soft content re-fetch | Proposed | 2026-07-30 |
 | [0031](adr/0031-edit-time-drift-policy.md) | Edit-time drift policy — warn on a stale base, no auto-merge | Proposed | 2026-07-30 |
 | [0032](adr/0032-dual-format-views-base-yml.md) | Dual-format saved views — Obsidian .base and Tolaria .yml with dedup | Proposed | 2026-07-30 |
+| [0033](adr/0033-builtin-sidebar-views.md) | Built-in vault-independent sidebar views — All notes, Inbox, Shared | Proposed | 2026-07-30 |
