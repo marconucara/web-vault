@@ -35,3 +35,4 @@ hand-edit rows out of sync with the ADR files.
 | [0028](adr/0028-google-maps-places.md) | Google Maps places — keyless build-time resolution, place cards, and map view | Implemented | 2026-07-29 |
 | [0029](adr/0029-cli-setup-and-distribution.md) | Delivery — wv CLI, agent-driven setup, and git-repo distribution | Implemented | 2026-07-29 |
 | [0030](adr/0030-background-freshness-detection.md) | Background freshness detection and soft content re-fetch | Proposed | 2026-07-30 |
+| [0031](adr/0031-edit-time-drift-policy.md) | Edit-time drift policy — warn on a stale base, no auto-merge | Proposed | 2026-07-30 |
