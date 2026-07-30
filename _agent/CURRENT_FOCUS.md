@@ -15,35 +15,23 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
-- Initial import (this commit, tag **`v0.1.0`**): the web-vault framework package
-  + the docflow catalogue. ADRs `0001`–`0029` — all Implemented except `0029`
-  (Accepted). See `INDEX.md`.
-- Distribution validated outside this repo (recorded here since git can't show
-  it): the package installs as a git dependency
-  (`github:marconucara/web-vault#v0.1.0` → `wv build` yields a full `dist/`), and
-  the reference consumer (the `marconucaravault` vault's `.web`) builds green on
-  Cloudflare Pages, preview and production.
+- **`v0.3.0`** — dev-server CJS/ESM interop fix for the editor stack: `wv dev`
+  was blanking with "does not provide an export named ..." for plain-CJS
+  transitive deps (`style-to-js` via react-markdown; `use-sync-external-store`
+  via zustand/BlockNote). Fixed by pre-bundling the affected libraries in Vite
+  `optimizeDeps.include` (`lib/vite-config.mjs`). Dev-only; the Rollup build was
+  never affected. Verified in-browser on a real install. See
+  `plan/done/2026-07-30-dev-editor-cjs-interop.md`.
+- **`v0.2.0`** — ADR `0029` delivery: agent-driven onboarding spec (`SETUP.md`),
+  user-facing `README.md`, single-source `DEPLOY.md`; product name **WebVault**;
+  AGPL-3.0. The build now generates `dist/_headers` (ADR `0026` r2,
+  consumer-overridable) rather than scaffolding it. Onboarding UX validated on a
+  clean vault.
+- All ADRs `0001`–`0029` are **Implemented**. See `INDEX.md`.
 
 ## Next item
 
-Two queued items, both under ADR `0029` (Accepted):
-
-1. `plan/todo/0001-agent-driven-setup.md` — the **onboarding spec** an agent
-   follows to install web-vault into *any* Markdown vault: point at the vault, add
-   the `github:` dependency at a tag, write the thin consumer config (`package.json`
-   scripts → `wv`, `wrangler.toml`, `public/_headers`, `.env.example`, and a
-   `.gitignore` for `.wv/` + `functions/` + `dist/`). No wizard, no interactive
-   `npx`. Reference implementation = the `.web` consumer in the `marconucaravault`
-   repo; generalise it (strip vault-specific identity; `VAULT_DIR` defaults to
-   `../`).
-2. `plan/todo/0002-public-repo-distribution.md` — install-from-public-repo is
-   already proven; the remaining piece is **documenting** it: the repo **README**
-   (what web-vault is, install as a git dependency at a tag, the `wv` commands, the
-   Cloudflare deploy + Zero-Trust runbook). Keep ADR numbers/titles out of the
-   user-facing README prose (CONVENTIONS §ADR Privacy) — name behaviours instead.
-
-On ship: `git mv` the todo to `plan/done/`, advance ADR `0029` → Implemented when
-both are done, regenerate `INDEX.md`, append a `WORKLOG.md` row.
+- Queue empty (`plan/todo/` has no items). No work in flight.
 
 ## Environment notes for a fresh agent
 
