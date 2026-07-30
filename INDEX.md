@@ -34,3 +34,4 @@ hand-edit rows out of sync with the ADR files.
 | [0027](adr/0027-real-404-and-share-marker.md) | Real 404 page and a share-page marker | Implemented | 2026-07-29 |
 | [0028](adr/0028-google-maps-places.md) | Google Maps places — keyless build-time resolution, place cards, and map view | Implemented | 2026-07-29 |
 | [0029](adr/0029-cli-setup-and-distribution.md) | Delivery — wv CLI, agent-driven setup, and git-repo distribution | Implemented | 2026-07-29 |
+| [0030](adr/0030-background-freshness-detection.md) | Background freshness detection and soft content re-fetch | Proposed | 2026-07-30 |
