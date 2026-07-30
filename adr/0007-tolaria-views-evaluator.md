@@ -75,6 +75,7 @@ formats) remains the objective.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact from existing implementation (backfill). |
+| 2026-07-30 | r2 | marco | Superseding ADR 0032 (dual-format views with `.base` support) proposed; supersession pending its implementation — this ADR stays Implemented and live until then. |
 
 ## Approvals
 
