@@ -1,6 +1,6 @@
 {
   "name": "web-vault",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A static web viewer/editor for Markdown knowledge vaults. Strongly inspired by and compatible with Tolaria vaults.",
   "type": "module",
   "bin": {
