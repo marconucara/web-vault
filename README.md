@@ -6,9 +6,31 @@ editor, and publish isolated public share links. WebVault works with generic
 Markdown vaults and is compatible with
 [Tolaria](https://github.com/refactoringhq/tolaria) and Obsidian vaults.
 
+## Why
+
+WebVault started from a vault I already kept in
+[Tolaria](https://github.com/refactoringhq/tolaria). Its opinionated
+organization solved most of how I capture and structure notes — but two things I
+relied on were out of reach: reading my vault comfortably on mobile, and sharing
+a handful of notes with other people. WebVault fills exactly those gaps — a
+browser-based reader and editor that works on a phone, and isolated public share
+links — while leaving the plain-Markdown vault and the way it's organized
+untouched.
+
+WebVault is one way to work with your vault, not the only one — and not
+necessarily the main one. Because the vault is just a git repository of Markdown
+files, you can keep editing it however you like: I do most of my editing through
+coding agents (Claude Code, Jules, Codex…), which also makes it comfortable to
+work from a phone. WebVault adds a visual reader, a WYSIWYG editor, and public
+sharing on top of that — use as much or as little of it as you want.
+
 ## Get started
 
 ### Configure in your existing vault
+
+Don't have a vault yet? I recommend creating one with
+[Tolaria](https://github.com/refactoringhq/tolaria), but any repository of mixed
+Markdown files works reasonably well.
 
 Hand this one-line prompt to any coding agent working inside your vault:
 
