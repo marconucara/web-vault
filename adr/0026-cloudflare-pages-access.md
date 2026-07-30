@@ -40,11 +40,15 @@ configurable:
   endpoint at `/api/commit` (`adr/0018-edit-commit-via-pages-function.md`) inherits
   the gate.
 
-Hosting/build config is **versioned in the repo**: `wrangler.toml` (project name,
-build output dir, compatibility date) and `public/_headers` (security headers +
-immutable caching for fingerprinted assets); there is **no `_redirects`**, because
-hash routing needs no SPA rewrite (`adr/0006-hash-based-routing.md`). Secrets and
-the build command stay out of these files (dashboard/host settings).
+Hosting/build config is **versioned in the repo** where it carries owner-specific
+values: `wrangler.toml` (project name, build output dir, compatibility date). The
+response-header rules (`_headers`: security headers + immutable caching for
+fingerprinted assets) are boilerplate with no owner-specific values, so the
+**package generates `dist/_headers` at build time** — like the Pages Functions —
+rather than the consumer scaffolding it; a consumer `public/_headers` overrides
+the default. There is **no `_redirects`**, because hash routing needs no SPA
+rewrite (`adr/0006-hash-based-routing.md`). Secrets and the build command stay out
+of these files (dashboard/host settings).
 
 The step-by-step deploy + Zero Trust setup is delivered as a **documented
 runbook** (a README or a dedicated section), not Terraform / IaC: connecting the
@@ -78,9 +82,11 @@ step, not part of this release.
    while the rest is gated, and the commit endpoint inherits the gate.
 4. When public, editing is advisably disabled by not configuring the GitHub token;
    enabling it remains technically possible if the owner accepts the exposure.
-5. Hosting/build config is versioned in the repo: `wrangler.toml` (name, output
-   dir, compatibility date) and `public/_headers` (security + asset caching); no
-   `_redirects`. Secrets and the build command are not in these files.
+5. Owner-specific hosting config is versioned in the repo: `wrangler.toml` (name,
+   output dir, compatibility date). The boilerplate `_headers` (security + asset
+   caching) is generated into `dist/` by the build, not scaffolded, and is
+   overridable by a consumer `public/_headers`; there is no `_redirects`. Secrets
+   and the build command are not in these files.
 6. A runbook (README or dedicated section) documents: repo→Pages connection, build
    command, secrets, and — for private — the Access `Allow` policy plus the
    `/shared/*` `Bypass`. No Terraform / IaC dependency is introduced.
@@ -100,7 +106,7 @@ step, not part of this release.
 
 ## References
 
-- wrangler.toml, public/_headers
+- wrangler.toml, scripts/build-headers.mjs (generated dist/_headers)
 - adr/0017-deployment-model.md, adr/0025-public-share-pages.md
 - adr/0018-edit-commit-via-pages-function.md
 
@@ -109,9 +115,10 @@ step, not part of this release.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact; folds the versioned deploy config and the documented runbook setup into this ADR and states the configurable public/private posture (backfill). |
+| 2026-07-30 | r2 | marco | `_headers` is now generated into `dist/` by the build (package-owned boilerplate, consumer-overridable) instead of being scaffolded/versioned; updated criterion 5 accordingly. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Maintainer | Marco Nucara | 2026-07-29 | — |
+| Maintainer | Marco Nucara | 2026-07-30 | — |

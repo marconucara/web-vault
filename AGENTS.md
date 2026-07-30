@@ -12,7 +12,7 @@ as a **framework** — a single npm package exposing a `wv` CLI (`dev` / `build`
 adopter's project keeps only a thin shell (config + dependency). It is strongly
 inspired by and compatible with [Tolaria](https://github.com/refactoringhq/tolaria)
 vaults and targets generic Markdown vaults; compatibility is verified against
-Tolaria and intended for Obsidian (not yet verified). The `adr/` catalogue is
+Tolaria and Obsidian. The `adr/` catalogue is
 the source of truth for the decisions this system embodies.
 
 ## Repository structure

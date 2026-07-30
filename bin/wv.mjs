@@ -70,6 +70,7 @@ async function main() {
       await runNode('build-shared.mjs');
       await runNode('build-maps-cache.mjs');
       await runNode('build-404.mjs');
+      await runNode('build-headers.mjs');
       await runNode('generate-functions.mjs');
       break;
     case 'preview':

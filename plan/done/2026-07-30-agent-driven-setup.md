@@ -7,3 +7,6 @@ no wizard, no interactive `npx`. Flow: point at a vault, add the dependency, wri
 the minimal config.
 
 Exit criteria: a documented setup spec an agent can follow end-to-end.
+
+Shipped in v0.2.0: SETUP.md is the agent-driven onboarding spec (any vault),
+no-toolchain scaffolding; verified end-to-end on marconucaravault.

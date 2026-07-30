@@ -1,7 +1,7 @@
 ---
 adr: 0029
 title: Delivery — wv CLI, agent-driven setup, and git-repo distribution
-status: Accepted
+status: Implemented
 date: 2026-07-29
 owner: marco
 supersedes:
@@ -36,6 +36,10 @@ spec file** the coding agent reads — not a separate skill, prompt, or interact
 `npx` wizard. The flow is: create/point at a vault, add the dependency, and write the
 minimal config; the agent performs it from the spec, consistent with the product's
 primary editing path being coding agents (`adr/0004-vault-compatibility-target.md`).
+Scaffolding the shell is **pure file-writing and requires no local toolchain** — no
+Node, Yarn, or install — so a vault owner who is not a developer can be onboarded.
+Node and Yarn are needed only to *test the site locally* (optional); the deploy
+build runs in the cloud, so it needs no local toolchain either.
 
 **Distribution: public git repo.** The package is distributed as a **git dependency
 from a public GitHub repository**, not an npm publish (for now). This keeps the first
@@ -62,6 +66,9 @@ remains open as a later addition.
    separate skill/prompt and no interactive `npx` wizard.
 4. The package is installable as a git dependency from a public GitHub repo without
    an npm publish, and the design does not preclude npm/other hosts later.
+5. Scaffolding the consumer shell into a vault requires no local toolchain (no
+   Node, Yarn, or install step); Node and Yarn are needed only for optional local
+   testing, and the deploy build runs in the cloud.
 
 ## Out of scope
 
@@ -86,9 +93,11 @@ remains open as a later addition.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded the delivery model: `wv` CLI (implemented), agent-driven setup and public git-repo distribution (accepted, not yet realised) merged into one ADR (backfill). |
+| 2026-07-30 | r2 | marco | Clarified that shell scaffolding requires no local toolchain (non-developers can onboard); Node/Yarn only for optional local testing, deploy builds in the cloud. Added acceptance criterion 5. |
+| 2026-07-30 | r3 | marco | Implemented: shipped SETUP.md onboarding spec and README (public git-repo distribution) in v0.2.0; status Accepted → Implemented. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Maintainer | Marco Nucara | 2026-07-29 | — |
+| Maintainer | Marco Nucara | 2026-07-30 | — |
