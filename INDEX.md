@@ -41,3 +41,4 @@ hand-edit rows out of sync with the ADR files.
 | [0034](adr/0034-client-settings-modal.md) | Client-side settings modal — token status, editor gating, Inbox toggle, language | Proposed | 2026-07-30 |
 | [0035](adr/0035-cloudflare-template-onboarding.md) | Second delivery path — Cloudflare starter template for near-one-click onboarding | Proposed | 2026-07-30 |
 | [0036](adr/0036-local-dev-edit-write-to-disk.md) | Local dev edit persistence — write to disk, no commit | Implemented | 2026-07-30 |
+| [0037](adr/0037-versioning-and-release-policy.md) | Versioning and release policy — semver, 1.0.0, GitHub Releases | Proposed | 2026-07-30 |
