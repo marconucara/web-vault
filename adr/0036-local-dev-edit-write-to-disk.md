@@ -1,7 +1,7 @@
 ---
 adr: 0036
 title: Local dev edit persistence — write to disk, no commit
-status: Proposed
+status: Implemented
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -92,8 +92,10 @@ testing, so a developer sees how editing behaves before deploying.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
+| 2026-07-30 | r2 | marco | Approved and implemented: dev-only /api/commit middleware writes .md to disk (commitDev in scripts/commit-dev.mjs). Status Proposed → Implemented. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-07-30 | — |
