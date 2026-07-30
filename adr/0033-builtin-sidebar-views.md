@@ -1,7 +1,7 @@
 ---
 adr: 0033
 title: Built-in vault-independent sidebar views — All notes, Inbox, Shared
-status: Proposed
+status: Implemented
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -100,8 +100,10 @@ view is not duplicated. All three are shown unconditionally and in a fixed order
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
+| 2026-07-30 | r2 | marco | Approved and implemented: built-in All notes / Inbox / Shared with reserved-stem dedup. Status Proposed → Implemented. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-07-30 | — |

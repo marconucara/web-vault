@@ -82,6 +82,7 @@ a:hover { text-decoration: underline; }
   color: var(--text);
 }
 .nav-item .icon { flex: none; opacity: 0.9; }
+.nav-sep { height: 1px; background: var(--border); margin: 8px 10px; }
 .nav-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* On active/hover the row bg equals the badge's default (--bg-active), so swap
    the badge to --bg there to keep it visible. */

@@ -19,6 +19,23 @@ export default function Sidebar({ views, types, typeMeta, counts = {}, selection
         <span className="nav-label">All notes</span>
         <Count n={counts.all} />
       </button>
+      <button
+        className={'nav-item' + (selection.kind === 'inbox' ? ' active' : '')}
+        onClick={() => onSelect({ kind: 'inbox' })}
+      >
+        <Icon name="inbox" size={15} />
+        <span className="nav-label">Inbox</span>
+        <Count n={counts.inbox} />
+      </button>
+      <button
+        className={'nav-item' + (selection.kind === 'shared' ? ' active' : '')}
+        onClick={() => onSelect({ kind: 'shared' })}
+      >
+        <Icon name="share" size={15} />
+        <span className="nav-label">Shared</span>
+        <Count n={counts.shared} />
+      </button>
+      {views.length > 0 && <div className="nav-sep" />}
       {views.map((v) => (
         <button
           key={v.id}

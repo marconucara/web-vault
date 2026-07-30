@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { notes, contentNotes, views, types, typeMeta, titleIndex, notesById } from './content.js';
 import { filterNotes, sortNotes } from './lib/views.js';
+import { RESERVED_VIEW_IDS, isInboxNote, isSharedNote } from './lib/builtins.js';
 import Sidebar from './components/Sidebar.jsx';
 import NoteList from './components/NoteList.jsx';
 import NoteView from './components/NoteView.jsx';
@@ -9,6 +10,9 @@ import { usePending } from './lib/pending.js';
 import { useDrafts, createDraft, draftToNote } from './lib/drafts.js';
 import { useDeleted, reconcileDeleted } from './lib/deleted.js';
 import { useCreated, reconcileCreated } from './lib/created.js';
+
+// Vault saved views minus those whose id is owned by a built-in view (adr/0033).
+const vaultViews = views.filter((v) => !RESERVED_VIEW_IDS.includes(v.id));
 
 function parseHash() {
   const m = window.location.hash.match(/^#\/n\/(.+)$/);
@@ -72,11 +76,15 @@ export default function App() {
   // notes" and their matching type, but not inside views (whose filter stays pure).
   const counts = useMemo(() => {
     const c = { all: liveNotes.length + draftNotes.length };
+    // Built-in views: drafts are unorganized, so they count under Inbox (like All
+    // notes) but never under Shared.
+    c.inbox = liveNotes.filter(isInboxNote).length + draftNotes.length;
+    c.shared = liveNotes.filter(isSharedNote).length;
     for (const t of types) {
       c[`type:${t}`] =
         liveNotes.filter((n) => n.type === t).length + draftNotes.filter((n) => n.type === t).length;
     }
-    for (const v of views) {
+    for (const v of vaultViews) {
       c[`view:${v.id}`] = filterNotes(liveNotes, v).length;
     }
     return c;
@@ -107,12 +115,21 @@ export default function App() {
     // Contextual drafts pinned at the top of the list: all of them under "All
     // notes", the matching type under a type view. Views keep their filter pure.
     let draftsForList = [];
-    if (selection.kind === 'all') draftsForList = draftNotes;
+    if (selection.kind === 'all' || selection.kind === 'inbox') draftsForList = draftNotes;
     else if (selection.kind === 'type') draftsForList = draftNotes.filter((n) => n.type === selection.id);
 
     if (selection.kind === 'view') {
-      const v = views.find((x) => x.id === selection.id);
+      const v = vaultViews.find((x) => x.id === selection.id);
       return { list: v ? filterNotes(liveNotes, v) : [], title: v?.name || selection.id };
+    }
+    if (selection.kind === 'inbox') {
+      return {
+        list: [...draftsForList, ...sortNotes(liveNotes.filter(isInboxNote), 'modified:desc')],
+        title: 'Inbox',
+      };
+    }
+    if (selection.kind === 'shared') {
+      return { list: sortNotes(liveNotes.filter(isSharedNote), 'modified:desc'), title: 'Shared' };
     }
     if (selection.kind === 'type') {
       return {
@@ -136,7 +153,7 @@ export default function App() {
   };
 
   const sidebar = (
-    <Sidebar views={views} types={types} typeMeta={typeMeta} counts={counts} selection={selection} onSelect={onSelect} />
+    <Sidebar views={vaultViews} types={types} typeMeta={typeMeta} counts={counts} selection={selection} onSelect={onSelect} />
   );
 
   const main = isDesktop ? (
