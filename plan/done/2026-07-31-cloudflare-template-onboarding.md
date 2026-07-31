@@ -1,5 +1,12 @@
 # Cloudflare starter template — near-one-click onboarding
 
+> **Superseded in part by `plan/todo/0001-template-separate-repo.md`.** The
+> same-repo `templates/base/` location recorded below did not survive contact
+> with the deploy button: it rejects a subfolder that has no root-level
+> `wrangler.toml`, before the screen where Path is set. The template returns to
+> the standalone `web-vault-template` repository. Everything else here — the
+> sample vault, the `.web` shape, the README's two onboarding paths — stands.
+
 Owning ADR: `adr/0035-cloudflare-template-onboarding.md` (depends on
 `adr/0040-cloudflare-workers-deploy-substrate.md`, `adr/0029`, `adr/0005`).
 

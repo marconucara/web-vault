@@ -1,7 +1,7 @@
 ---
 adr: 0035
 title: Second delivery path — Cloudflare starter template for near-one-click onboarding
-status: Implemented
+status: Accepted
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -22,7 +22,7 @@ has a vault and a coding agent.
 
 A second audience wants to start from near-zero: no existing vault, no agent
 walkthrough — just a **starter/template repository** they can instantiate and
-deploy to Cloudflare Pages in roughly one click, getting a working web-vault with a
+deploy to Cloudflare in roughly one click, getting a working web-vault with a
 sample vault immediately, then repoint it at their own content. `adr/0005-framework-package.md`
 considered a "template" only as a *package architecture* (and chose the dependency
 shape); this is different — a template as an **onboarding and deploy path**, not a
@@ -32,7 +32,7 @@ replace it.
 ## Capability statement
 
 web-vault provides a public template/starter repository that a user can instantiate
-and deploy to Cloudflare Pages with near-one-click (a "Deploy to Cloudflare" flow),
+and deploy to Cloudflare Workers with near-one-click (a "Deploy to Cloudflare" flow),
 producing a running instance with minimal manual steps. The template carries the
 thin consumer shell — config plus the web-vault dependency, per
 `adr/0005-framework-package.md` — and a minimal starter vault, so a new user gets a
@@ -53,7 +53,7 @@ template. The README documents **both** delivery paths and when to use each.
 1. A public template/starter repository exists that instantiates the consumer shell
    (config + web-vault dependency, per `adr/0005-framework-package.md`) plus a
    minimal starter vault.
-2. The template supports a near-one-click Cloudflare Pages deploy (a "Deploy to
+2. The template supports a near-one-click Cloudflare Workers deploy (a "Deploy to
    Cloudflare" button/flow) yielding a running instance with minimal manual
    configuration.
 3. The deployed instance runs the viewer/editor against the starter vault out of the
@@ -64,6 +64,16 @@ template. The README documents **both** delivery paths and when to use each.
 5. **The README is updated** to document both delivery paths — agent-driven setup
    into an existing vault (`adr/0029-cli-setup-and-distribution.md`) and the
    one-click template — and when to use each.
+6. **The one-click path does not reshape the product.** No change to the vault
+   layout, the `.web` shell, or the repository structure is made for the sole
+   purpose of satisfying the one-click deploy flow. Where the flow's constraints
+   conflict with the structure the product has chosen, the flow yields: the
+   onboarding path absorbs the extra manual step, or is delivered differently.
+   This is scoped to this ADR — other tooling may well deserve accommodation.
+7. **The template is a real vault.** The template repository is shaped exactly
+   like an ordinary vault an adopter would keep: sample notes at the root, the
+   shell in `.web/`, no structural variant that exists only to make the one-click
+   flow work. What the newcomer deploys is what they keep working in afterwards.
 
 ## Out of scope
 
@@ -74,18 +84,31 @@ template. The README documents **both** delivery paths and when to use each.
 
 ## Open questions
 
-Resolved during implementation (see Revision History r3):
+Resolved during implementation (see Revision History r3, r4):
 
-- **Location:** the template lives in the **same repository**, at
-  `templates/base/` (not a separate starter repo). The "Deploy to Cloudflare"
-  button clones that subfolder as the new repo's root, so it ships self-contained.
+- **Location: a separate repository** — `marconucara/web-vault-template`, not a
+  subfolder of this one. A same-repo `templates/base/` was tried and reverted.
+  The "Deploy to Cloudflare" button accepts a subfolder URL and its UI does show
+  the folder, but the flow then fails with a generic monorepo error *before*
+  reaching the configuration screen, because the pointed folder has no
+  `wrangler.toml` at its root. With the `.web` shape it never will — and the
+  **Path** setting that would point the build at `.web/` is only reachable after
+  the step that fails. The same folder as the root of its own repository is
+  accepted, despite having no root-level `wrangler.toml` either. The entry point
+  must therefore be a repository root.
+
+  Flattening the template — hoisting the shell so a `wrangler.toml` sits at the
+  pointed folder's root — is the obvious way to make the subfolder acceptable,
+  and was not pursued: acceptance criteria 6 and 7 rule it out regardless of
+  whether it would have worked. It would bend the vault layout around one deploy
+  flow and hand the newcomer a template that is not shaped like the vault they go
+  on to keep.
 - **Starter vault:** a **curated minimal sample** — `welcome.md` (a setup
   checklist plus a live feature demo with map pins) and one saved view.
-- **Shape:** the `.web` layout (identical to a real vault), so `templates/base/`
-  holds the sample vault at its root with the shell in `.web/`. The button points
-  at `templates/base`; the adopter sets **Path = `/.web/`** in the flow (the one
-  manual step inherent to the `.web` shape — the button's subdirectory model
-  clones only the pointed folder, which is why the folder must be self-contained).
+- **Shape:** the `.web` layout, identical to a real vault: the sample vault at
+  the repository root with the shell in `.web/`. The adopter sets **Path =
+  `/.web/`** in the flow — the one manual step inherent to the `.web` shape, and
+  the cost this ADR accepts rather than reshaping the vault (criterion 6).
 
 ## References
 
@@ -103,6 +126,7 @@ Resolved during implementation (see Revision History r3):
 | 2026-07-30 | r1 | marco | Initial draft. |
 | 2026-07-31 | r2 | marco | The substrate is now Workers (`adr/0040-*`), which is what makes the one-click button viable (the button supports only Workers). Added the template-shape open question (`.web` subdirectory vs flat repo) deferred to this ADR's implementation. |
 | 2026-07-31 | r3 | marco | Implemented. Template lives at `templates/base/` in this repo (same-repo, self-contained folder the button clones as root); curated sample vault with a `welcome.md` demo; `.web` shape with a manual `Path = /.web/` step. README documents both onboarding paths. Live button test confirmed the subfolder-as-root clone behaviour. |
+| 2026-07-31 | r4 | marco | Reverted the same-repo location: the button rejects a subfolder without a root `wrangler.toml`, failing before the screen where Path would be set, so the entry point must be a repository root. Template returns to the standalone `web-vault-template` repository and `templates/base/` is removed. Added acceptance criteria 6 and 7 — the one-click path does not reshape the product, and the template is a real vault — the principles under which reshaping the template to fit the button was rejected. |
 
 ## Approvals
 

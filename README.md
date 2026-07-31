@@ -32,9 +32,9 @@ Two onboarding paths — pick the one that fits.
 
 No vault yet, and want the fastest path? Deploy the starter template to
 **Cloudflare Workers** in a few clicks — you get a running instance with a small
-sample vault, then point it at your own notes. See
-[`templates/base/`](templates/base/) for the **Deploy to Cloudflare** button and
-its setup steps.
+sample vault, then point it at your own notes. See the
+[starter template](https://github.com/marconucara/web-vault-template) for the
+**Deploy to Cloudflare** button and its setup steps.
 
 ### Add WebVault to your existing vault
 
