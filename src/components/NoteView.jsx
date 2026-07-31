@@ -30,7 +30,7 @@ function EditorSkeleton() {
 // (view+edit together). "Raw" toggle to view/edit the markdown source
 // (CodeMirror). The react-markdown read rendering is still used for the public
 // share pages.
-export default function NoteView({ note, titleIndex, onBack }) {
+export default function NoteView({ note, titleIndex, onBack = null }) {
   const [raw, setRaw] = useState(false);
   const [mapView, setMapView] = useState(false);
   const [propsOpen, setPropsOpen] = useState(false);
@@ -62,6 +62,7 @@ export default function NoteView({ note, titleIndex, onBack }) {
   const newNote = isDraft && /^\s*#\s*$/.test(note.body || '');
   const status = note.frontmatter.status ?? note.frontmatter.Status;
 
+  /** @type {[string, { text: string, id: string | null }[]][]} */
   const rels = [];
   for (const [key, val] of Object.entries(note.frontmatter)) {
     if (key.startsWith('_')) continue;

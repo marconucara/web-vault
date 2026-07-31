@@ -146,7 +146,7 @@ const PATHS = {
   ),
 };
 
-function Svg({ content, color, size }) {
+function Svg({ content, color = 'currentColor', size }) {
   return (
     <svg
       className="icon"
@@ -165,7 +165,7 @@ function Svg({ content, color, size }) {
   );
 }
 
-export default function Icon({ name, color, size = 16 }) {
+export default function Icon({ name, color = 'currentColor', size = 16 }) {
   // 1) App UI icons (local set, takes precedence over lucide names).
   if (name && PATHS[name]) {
     return <Svg content={PATHS[name]} color={color} size={size} />;

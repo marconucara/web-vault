@@ -40,6 +40,7 @@ export default function StatusBar({ pending, onOpen }) {
     path: it.path,
     body: it.body,
   }));
+  /** @type {any[]} */
   const items = [...draftItems, ...editItems];
   const n = items.length;
   const inSync = n === 0;

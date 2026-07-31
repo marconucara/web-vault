@@ -4,6 +4,7 @@ node_modules/
 !.yarn/releases
 .pnp.*
 dist/
+.wv/
 .DS_Store
 # Local map-resolver cache (also written consumer-side into .wv/).
 .maps-cache.json

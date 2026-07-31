@@ -121,7 +121,21 @@ footer for any commit that touches an ADR.
 - Co-Authored-By trailer on agent commits: no.
 
 Integration is **direct-to-main, fast-forward only**: changes are
-fast-forwarded onto `main` with no merge commits. The verify gate
-(`wv build`, plus a manual dev-server smoke of `/` and `/shared/<id>/`) runs
-locally and must pass before push. A change is "shipped" when it is on `main`
-and pushed.
+fast-forwarded onto `main` with no merge commits. The verify gate runs locally
+and must pass before push:
+
+1. `yarn typecheck` (`tsc --noEmit` with `allowJs`/`checkJs`).
+2. `yarn test` (Vitest unit and logic-level tests).
+
+Both are bundled as `yarn verify`. The gate is **self-contained in this repo**:
+it must stay runnable with nothing but a clone and an install, so it can move to
+a hosted CI unchanged. Nothing that depends on a vault outside the repo belongs
+in it.
+
+`wv build` is therefore **not** a gate step. It only runs from a consumer `.web`
+project — `wv` resolves the vault as `process.cwd()/..`, so from this repo's
+root it would treat the parent directory as a vault and build unrelated notes.
+Linking a local vault (`"web-vault": "portal:../../web-vault"`) to smoke changes
+in a browser is a useful development aid, not a precondition for pushing.
+
+A change is "shipped" when it is on `main` and pushed.

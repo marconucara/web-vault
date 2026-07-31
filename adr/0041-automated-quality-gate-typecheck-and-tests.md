@@ -1,7 +1,7 @@
 ---
 adr: 41
 title: Automated quality gate — typechecking and tests
-status: Proposed
+status: Implemented
 date: 2026-07-31
 owner: Marco Nucara
 supersedes:
@@ -92,6 +92,11 @@ human smoke of two routes.
 5. Both the type-check and the test run are wired into the **verify gate** in
    `CONVENTIONS.md` and `AGENTS.md`, and a red result blocks the fast-forward to
    `main`.
+6. The gate is **self-contained in this repository**: it runs from a bare clone
+   plus an install, with no dependency on a vault outside the repo, so the same
+   commands can move to a hosted CI unchanged. `wv build` and the dev-server
+   smoke are consequently not gate steps — they require a consumer `.web`
+   project, since `wv` resolves the vault as `process.cwd()/..`.
 
 ## Out of scope
 
@@ -99,8 +104,12 @@ human smoke of two routes.
   ADR adopts *type checking* via `checkJs`; a later ADR may decide on a
   per-file conversion informed by the spike, but that is a separate decision.
 - End-to-end / browser automation (Playwright and the like). This ADR covers
-  typechecking and unit/logic-level tests; the manual dev-server smoke of `/`
-  and `/shared/<id>/` remains until an E2E decision is taken.
+  typechecking and unit/logic-level tests. Browser-level verification stays a
+  manual development aid against a linked consumer vault, outside the gate,
+  until an E2E decision is taken.
+- Build-level verification inside this repo. Covering `wv build` mechanically
+  would need an example vault committed here (a self-installing `.web` under a
+  subdirectory); that is a separate decision, not taken.
 - Coverage thresholds or a mandate that every ADR acceptance criterion have a
   test. Comprehensive coverage is a later tightening, not this ADR's bar.
 - CI service configuration. The verify gate runs locally per the current Git
@@ -108,11 +117,26 @@ human smoke of two routes.
 
 ## Open questions
 
-- Which test runner — Vitest (native to the existing Vite pipeline) is the
-  presumptive choice; confirm against any adopter-facing packaging constraint.
-- Does the type-check run against the build scripts (`scripts/*.mjs`,
-  `functions/commit.js`, `lib/vite-config.mjs`) from day one, or only `src/`
-  first? The spike's error counts inform this.
+Both questions below were settled during implementation:
+
+- **Test runner: Vitest**, as presumed. It reuses the existing Vite pipeline and
+  is a `devDependency`, so it does not affect the adopter-facing package (the
+  `files` allowlist ships no tests or config).
+- **Scope of the type-check: the whole tree from day one** — `src/`, plus the
+  build scripts, `functions/`, and `lib/`. The spike's 67 errors proved
+  mechanical enough to clear in one pass, so no staged `src/`-only rollout was
+  needed.
+
+Remaining, deferred to later work:
+
+- Whether to commit a **small example vault** into this repo (a self-installing
+  `.web` under a subdirectory) so `wv build` becomes mechanically verifiable
+  inside the gate. It would close the one hole the gate leaves, but it pulls a
+  nested install and build output into the repo; not attempted here.
+- The **588 round-trip failures** the full-vault spike reported are not
+  addressed by this ADR. `yarn roundtrip:spike` stays a diagnostic outside the
+  fast gate; a focused ADR should triage that number against
+  `adr/0015-durable-markdown-round-trip.md`.
 
 ## References
 
@@ -123,14 +147,21 @@ human smoke of two routes.
 - CONVENTIONS.md — Git Contract / verify gate this ADR extends.
 - AGENTS.md — "Acceptance criteria are testable" / "Map tests back to ADR
   acceptance criteria" intent this ADR operationalises.
+- ../plan/todo/0002-automated-quality-gate.md — measured spike findings and
+  rollout priority order.
 
 ## Revision History
 
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-31 | r1 | Marco Nucara | Initial draft. |
+| 2026-07-31 | r2 | Marco Nucara | Accepted after spike; rollout priority recorded in the owning plan item. |
+| 2026-07-31 | r3 | Marco Nucara | Implemented: `yarn typecheck` clean (67 → 0), 14 Vitest tests, gate wired into AGENTS/CONVENTIONS. Open questions resolved (Vitest; whole-tree checking); round-trip triage deferred. |
+| 2026-07-31 | r4 | Marco Nucara | Added criterion 6: the gate is self-contained in this repo (CI-portable). `wv build` and the browser smoke are removed from the gate — they need a consumer vault. Example-vault option recorded as an open question. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Owner | Marco Nucara | 2026-07-31 | Accepted for implementation |
+| Owner | Marco Nucara | 2026-07-31 | Implementation verified (r3) |

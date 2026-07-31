@@ -1,7 +1,7 @@
 import React from 'react';
 import Icon from './Icon.jsx';
 
-export default function Sidebar({ views, types, typeMeta, counts = {}, selection, onSelect }) {
+export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, onSelect }) {
   const isSel = (kind, id) => selection.kind === kind && selection.id === id;
   const Count = ({ n }) =>
     n != null ? <span className="count-badge">{n}</span> : null;

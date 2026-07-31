@@ -29,7 +29,9 @@ async function runVite(mode) {
   // Imported lazily so `wv genkey`/`wv gen` don't pay Vite's startup cost.
   const { createServer, build, preview } = await import('vite');
   const { createViteConfig } = await import('../lib/vite-config.mjs');
-  const config = { configFile: false, ...createViteConfig() };
+  const config = /** @type {import('vite').InlineConfig} */ (
+    /** @type {unknown} */ ({ ...createViteConfig(), configFile: false })
+  );
   if (mode === 'dev') {
     const server = await createServer(config);
     await server.listen();

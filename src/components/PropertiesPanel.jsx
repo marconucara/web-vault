@@ -88,7 +88,9 @@ export default function PropertiesPanel({ note, onClose }) {
   };
 
   const fm = note.frontmatter || {};
+  /** @type {[string, unknown][]} */
   const scalars = []; // [key, value] non-relationship, non-`_`, non-`type`
+  /** @type {[string, { text: string, id: string | null }[]][]} */
   const rels = []; // [key, targets]
   for (const [key, val] of Object.entries(fm)) {
     if (key.startsWith('_') || key === 'type') continue;
@@ -129,7 +131,7 @@ export default function PropertiesPanel({ note, onClose }) {
               <span className="props-key">{humanize(key)}</span>
               <span className="props-val">
                 {isUrl(val) ? (
-                  <a href={val} target="_blank" rel="noopener noreferrer" className="props-link">
+                  <a href={String(val)} target="_blank" rel="noopener noreferrer" className="props-link">
                     {String(val)} <Icon name="external" size={12} />
                   </a>
                 ) : (

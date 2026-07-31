@@ -31,7 +31,7 @@ function useMediaQuery(q) {
 }
 
 export default function App() {
-  const [selection, setSelection] = useState({ kind: 'all' });
+  const [selection, setSelection] = useState(/** @type {{ kind: string, id?: string }} */ ({ kind: 'all' }));
   const [openId, setOpenId] = useState(parseHash);
   const [navOpen, setNavOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 900px)');
@@ -160,7 +160,7 @@ export default function App() {
     <div className="app">
       {sidebar}
       <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNew} typeMeta={typeMeta} />
-      <NoteView note={note} titleIndex={titleIndex} />
+      <NoteView note={note} titleIndex={titleIndex} onBack={null} />
     </div>
   ) : (
     // Mobile: one panel at a time, collapsible sidebar.

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import CodeMirror, { EditorView } from '@uiw/react-codemirror';
+import CodeMirror from '@uiw/react-codemirror';
+import { EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 
 // Markdown source editor (body only; the frontmatter stays intact and is not

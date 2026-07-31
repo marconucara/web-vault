@@ -107,6 +107,14 @@ history; LOCKS discipline is not in use.
 - Co-Authored-By trailer: no.
 - Cross-references between ADRs use relative paths (`adr/NNNN-*.md`).
 - **Integration:** direct-to-main, **fast-forward only**. No merge commits on
-  `main`. The verify gate (`wv build`, plus a manual dev-server smoke of `/`
-  and `/shared/<id>/`) runs locally and must pass before push. Completion
-  event: fast-forwarded to `main` + remote push succeeded.
+  `main`. The verify gate is `yarn verify` (`yarn typecheck` + `yarn test`); it
+  must pass before push. Completion event: fast-forwarded to `main` + remote
+  push succeeded.
+- **The gate is self-contained in this repo.** It must stay runnable from a bare
+  clone + install so it can move to a hosted CI unchanged. Never add a step that
+  needs a vault outside the repo.
+- **Never run `wv build`/`wv dev` from this repo's root.** `wv` resolves the
+  vault as `process.cwd()/..`, so from here it treats the parent directory as a
+  vault and builds unrelated notes into a stray `dist/`. Those commands belong
+  to a consumer `.web` project; linking one with `portal:` is a development aid,
+  not a gate step.
