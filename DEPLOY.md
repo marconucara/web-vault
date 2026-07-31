@@ -25,6 +25,16 @@ repository**. Select the vault's GitHub repo and set:
 - **Deploy command:** `npx wrangler deploy` *(default — production branch)*
 - **Non-production branch deploy command:** `npx wrangler versions upload`
 - **Worker name:** must match `name` in `.web/wrangler.toml`.
+- **Build watch paths → Include:** `../*`
+
+The build watch path is easy to get wrong and fails silently. Watch paths are
+evaluated **relative to the Root directory** (`.web`), not the repository root —
+so the default `*` only matches changes *inside* `.web`, and an editor commit
+(which changes vault notes at the repo root, e.g. `ricette/foo.md`) would **never
+trigger a rebuild**. The edit lands in git and the optimistic UI shows it, but the
+deployed static site stays stale. Set the include to `../*` so changes to the
+vault (the parent of `.web`) trigger a build. This is the one setting Pages did not
+need (its watch paths defaulted to the whole repo).
 
 The two deploy commands matter: on Workers Builds **every branch runs the deploy
 command**, so a non-production branch left on `npx wrangler deploy` would overwrite
