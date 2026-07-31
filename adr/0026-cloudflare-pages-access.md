@@ -1,11 +1,11 @@
 ---
 adr: 0026
 title: Cloudflare Pages deployment — configurable access, versioned config, runbook setup
-status: Implemented
+status: Superseded
 date: 2026-07-29
 owner: marco
 supersedes:
-superseded-by:
+superseded-by: [0040]
 depends-on: [0017]
 tags: [deploy, cloudflare, access, privacy, config, runbook]
 ---
@@ -116,6 +116,7 @@ step, not part of this release.
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact; folds the versioned deploy config and the documented runbook setup into this ADR and states the configurable public/private posture (backfill). |
 | 2026-07-30 | r2 | marco | `_headers` is now generated into `dist/` by the build (package-owned boilerplate, consumer-overridable) instead of being scaffolded/versioned; updated criterion 5 accordingly. |
+| 2026-07-31 | r3 | marco | Superseded by adr/0040: the Cloudflare substrate moves from Pages to Workers (Static Assets + one Worker route). The configurable public/private posture, `/shared/*` `Bypass`, and versioned-config principles carry over; the substrate does not. |
 
 ## Approvals
 

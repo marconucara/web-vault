@@ -30,7 +30,7 @@ hand-edit rows out of sync with the ADR files.
 | [0023](adr/0023-note-create-delete.md) | Create and delete notes from the client | Implemented | 2026-07-29 |
 | [0024](adr/0024-share-unshare-from-app.md) | Share and unshare a note from the app | Implemented | 2026-07-29 |
 | [0025](adr/0025-public-share-pages.md) | Isolated public share pages | Implemented | 2026-07-29 |
-| [0026](adr/0026-cloudflare-pages-access.md) | Cloudflare Pages deployment — configurable access, versioned config, runbook setup | Implemented | 2026-07-29 |
+| [0026](adr/0026-cloudflare-pages-access.md) | Cloudflare Pages deployment — configurable access, versioned config, runbook setup | Superseded | 2026-07-29 |
 | [0027](adr/0027-real-404-and-share-marker.md) | Real 404 page and a share-page marker | Implemented | 2026-07-29 |
 | [0028](adr/0028-google-maps-places.md) | Google Maps places — keyless build-time resolution, place cards, and map view | Implemented | 2026-07-29 |
 | [0029](adr/0029-cli-setup-and-distribution.md) | Delivery — wv CLI, agent-driven setup, and git-repo distribution | Implemented | 2026-07-29 |
@@ -44,3 +44,4 @@ hand-edit rows out of sync with the ADR files.
 | [0037](adr/0037-versioning-and-release-policy.md) | Versioning and release policy — semver, 1.0.0, GitHub Releases | Proposed | 2026-07-30 |
 | [0038](adr/0038-in-app-upgrade-notice.md) | In-app upgrade notice — fetch latest release, compare, notify | Proposed | 2026-07-30 |
 | [0039](adr/0039-adopter-upgrade-path.md) | Adopter upgrade path — prompt-driven pin bump and reinstall | Proposed | 2026-07-30 |
+| [0040](adr/0040-cloudflare-workers-deploy-substrate.md) | Cloudflare Workers as the deploy substrate, superseding Pages | Proposed | 2026-07-31 |
