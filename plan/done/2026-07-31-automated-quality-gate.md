@@ -50,3 +50,21 @@ Measured after generating `.wv/content.json` with `yarn wv build`, using
   and record that `wv build` is not a gate step.
 - The owning ADR can move to `Implemented` when this item is shipped via the
   repository completion event.
+
+## Shipped
+
+HEAD: `d708c5493f14e03d8a06bd2b88a9b5de0bd9dfaf`
+(`feat(quality): add typecheck and test gate; implement 0041`)
+
+Delivered: `tsconfig.json` (allowJs + checkJs, whole tree, 67 → 0 errors),
+Vitest with 14 tests, `yarn verify`, `scripts/roundtrip-spike.mjs` as an
+out-of-gate diagnostic, and `.yarnrc.yml` pinning `nodeLinker: node-modules`.
+
+Deviation from the original scope: `wv build` was dropped from the verify gate.
+It resolves the vault as `process.cwd()/..`, so from this repo's root it scans
+the parent directory and builds unrelated notes. The gate is now self-contained
+and CI-portable (ADR criterion 6); build and browser smoke run against a
+`portal:`-linked consumer vault instead.
+
+Follow-ups left open: the 588 round-trip failures reported by the spike, and
+whether to commit an example vault so `wv build` becomes gate-verifiable.

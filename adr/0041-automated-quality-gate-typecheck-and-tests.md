@@ -147,8 +147,8 @@ Remaining, deferred to later work:
 - CONVENTIONS.md — Git Contract / verify gate this ADR extends.
 - AGENTS.md — "Acceptance criteria are testable" / "Map tests back to ADR
   acceptance criteria" intent this ADR operationalises.
-- ../plan/todo/0002-automated-quality-gate.md — measured spike findings and
-  rollout priority order.
+- ../plan/done/2026-07-31-automated-quality-gate.md — measured spike findings,
+  rollout priority order, and shipped record.
 
 ## Revision History
 
