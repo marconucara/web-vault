@@ -66,6 +66,7 @@ Worker's hostnames. The subdomain field syntax is what makes it work:
 | Protect previews | `*-<worker>` (wildcard) | `<account>.workers.dev` | *(empty)* | Allow (your identity) |
 | Public shares (prod) | `<worker>` (exact) | `<account>.workers.dev` | `shared` | Bypass (Everyone) |
 | Public shares (preview) | `*-<worker>` (wildcard) | `<account>.workers.dev` | `shared` | Bypass (Everyone) |
+| Map cache — only if used (prod) | `<worker>` (exact) | `<account>.workers.dev` | `maps-cache.json` | Bypass (Everyone) |
 
 The wildcard **must** keep the leading `*-`: on `*.workers.dev` an exact-hostname
 application is not enforced (there is no per-worker DNS record to bind to), but a
