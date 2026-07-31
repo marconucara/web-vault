@@ -1,0 +1,9 @@
+name: Start here
+icon: null
+color: null
+sort: title:asc
+filters:
+  any:
+  - field: type
+    op: equals
+    value: Note

@@ -26,16 +26,25 @@ sharing on top of that — use as much or as little of it as you want.
 
 ## Get started
 
-### Configure in your existing vault
+Two onboarding paths — pick the one that fits.
 
-Don't have a vault yet? I recommend creating one with
+### Start from a template (near one-click)
+
+No vault yet, and want the fastest path? Deploy the starter template to
+**Cloudflare Workers** in a few clicks — you get a running instance with a small
+sample vault, then point it at your own notes. See
+[`templates/base/`](templates/base/) for the **Deploy to Cloudflare** button and
+its setup steps.
+
+### Add WebVault to your existing vault
+
+Already have a Markdown vault? (No vault yet? I recommend
 [Tolaria](https://github.com/refactoringhq/tolaria), but any repository of mixed
-Markdown files works reasonably well.
-
-Hand this one-line prompt to any coding agent working inside your vault:
+Markdown files works reasonably well.) Hand this one-line prompt to any coding
+agent working inside your vault:
 
 > Add WebVault to this vault by reading and following
-> https://github.com/marconucara/web-vault/blob/v0.3.0/SETUP.md
+> https://github.com/marconucara/web-vault/blob/v0.4.0/SETUP.md
 
 The agent scaffolds the `.web/` config shell and adds WebVault as a dependency.
 [`SETUP.md`](SETUP.md) is the supported install path. The natural next step is to
@@ -51,8 +60,8 @@ app code, no bundler config to maintain.
   optional `views/*.yml` and `attachments/`) and bakes them into a static site.
   There is no read-time backend.
 - **Edit in the browser.** The WYSIWYG editor commits changes back to your vault
-  repo through a Cloudflare Pages Function, in one atomic commit via the GitHub
-  Git Data API. The GitHub token lives only as a server-side Secret.
+  repo through a Cloudflare Worker, in one atomic commit via the GitHub Git Data
+  API. The GitHub token lives only as a server-side Secret.
 - **Share selectively.** Individual notes can be published as isolated
   `/shared/<id>/` pages; the rest of the vault stays private behind Cloudflare
   Access.
@@ -76,9 +85,9 @@ static site in `.web/dist/`.
 
 Deploying is optional, but it's where WebVault delivers its real value.
 
-Currently the supported target is **Cloudflare Pages**: a static site behind
-**Cloudflare Access**, with only `/shared/*` public and the private vault never
-exposed. Full steps in [`DEPLOY.md`](DEPLOY.md).
+Currently the supported target is **Cloudflare Workers**: a static site (served
+by a single Worker) behind **Cloudflare Access**, with only `/shared/*` public
+and the private vault never exposed. Full steps in [`DEPLOY.md`](DEPLOY.md).
 
 ## Design decisions
 

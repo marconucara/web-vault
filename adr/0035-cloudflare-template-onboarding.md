@@ -1,12 +1,12 @@
 ---
 adr: 0035
 title: Second delivery path — Cloudflare starter template for near-one-click onboarding
-status: Proposed
+status: Implemented
 date: 2026-07-30
 owner: marco
 supersedes:
 superseded-by:
-depends-on: [0029, 0005]
+depends-on: [0029, 0005, 0040]
 tags: [distribution, onboarding, deployment, cloudflare]
 ---
 
@@ -74,15 +74,18 @@ template. The README documents **both** delivery paths and when to use each.
 
 ## Open questions
 
-- Whether the template lives in the same repository or a separate starter repo.
-- Whether the starter vault is a curated sample or an empty scaffold.
-- Template repo **shape** for the one-click "Deploy to Cloudflare" button (now on
-  Workers, per `adr/0040-cloudflare-workers-deploy-substrate.md`): keep the
-  `marconucaravault` layout (vault at repo root, shell + `wrangler.toml` in `.web/`,
-  button URL pointing at the `.web` subdirectory) versus a flat template (shell +
-  `wrangler.toml` at the repo root, sample vault in a subfolder). The button
-  supports a subdirectory in its URL, so `.web` is viable; confirm with a live
-  button test before settling.
+Resolved during implementation (see Revision History r3):
+
+- **Location:** the template lives in the **same repository**, at
+  `templates/base/` (not a separate starter repo). The "Deploy to Cloudflare"
+  button clones that subfolder as the new repo's root, so it ships self-contained.
+- **Starter vault:** a **curated minimal sample** — `welcome.md` (a setup
+  checklist plus a live feature demo with map pins) and one saved view.
+- **Shape:** the `.web` layout (identical to a real vault), so `templates/base/`
+  holds the sample vault at its root with the shell in `.web/`. The button points
+  at `templates/base`; the adopter sets **Path = `/.web/`** in the flow (the one
+  manual step inherent to the `.web` shape — the button's subdirectory model
+  clones only the pointed folder, which is why the folder must be self-contained).
 
 ## References
 
@@ -99,8 +102,10 @@ template. The README documents **both** delivery paths and when to use each.
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
 | 2026-07-31 | r2 | marco | The substrate is now Workers (`adr/0040-*`), which is what makes the one-click button viable (the button supports only Workers). Added the template-shape open question (`.web` subdirectory vs flat repo) deferred to this ADR's implementation. |
+| 2026-07-31 | r3 | marco | Implemented. Template lives at `templates/base/` in this repo (same-repo, self-contained folder the button clones as root); curated sample vault with a `welcome.md` demo; `.web` shape with a manual `Path = /.web/` step. README documents both onboarding paths. Live button test confirmed the subfolder-as-root clone behaviour. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-07-31 | — |
