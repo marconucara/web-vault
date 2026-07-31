@@ -1,7 +1,7 @@
 ---
 adr: 0040
 title: Cloudflare Workers as the deploy substrate, superseding Pages
-status: Proposed
+status: Implemented
 date: 2026-07-31
 owner: marco
 supersedes: [0026]
@@ -134,8 +134,10 @@ Workers model.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-31 | r1 | marco | Initial draft. Records the Pages→Workers substrate migration validated by the wv-access-spike. |
+| 2026-07-31 | r2 | marco | Accepted and implemented in web-vault v0.4.0 (`functions/worker.js`, `scripts/generate-worker.mjs`, `wv build` wiring; Pages `generate-functions.mjs` removed) and migrated in marconucaravault (`.web/wrangler.toml` → Workers shape). DEPLOY.md rewritten for Workers. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-07-31 | — |

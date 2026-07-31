@@ -44,4 +44,5 @@ hand-edit rows out of sync with the ADR files.
 | [0037](adr/0037-versioning-and-release-policy.md) | Versioning and release policy — semver, 1.0.0, GitHub Releases | Proposed | 2026-07-30 |
 | [0038](adr/0038-in-app-upgrade-notice.md) | In-app upgrade notice — fetch latest release, compare, notify | Proposed | 2026-07-30 |
 | [0039](adr/0039-adopter-upgrade-path.md) | Adopter upgrade path — prompt-driven pin bump and reinstall | Proposed | 2026-07-30 |
-| [0040](adr/0040-cloudflare-workers-deploy-substrate.md) | Cloudflare Workers as the deploy substrate, superseding Pages | Proposed | 2026-07-31 |
+| [0040](adr/0040-cloudflare-workers-deploy-substrate.md) | Cloudflare Workers as the deploy substrate, superseding Pages | Implemented | 2026-07-31 |
+| [0041](adr/0041-automated-quality-gate-typecheck-and-tests.md) | Automated quality gate — typechecking and tests | Proposed | 2026-07-31 |

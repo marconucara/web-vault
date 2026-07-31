@@ -2,28 +2,73 @@
 
 Deploying is optional, but it's where WebVault delivers its real value.
 
-## Cloudflare Pages
+## Cloudflare Workers
 
-The site is a static build behind **Cloudflare Access** (private); only
-`/shared/*` is public. The in-browser editor commits back to your vault repo
-through a Pages Function. Do these steps in the Cloudflare dashboard.
+The site is a static build served by a single **Cloudflare Worker** (Workers
+Static Assets) behind **Cloudflare Access** (private); only `/shared/*` is public.
+The in-browser editor commits back to your vault repo through the same Worker at
+`/api/commit`. Deploy is **git-connected** (Workers Builds) — no local
+`wrangler deploy`.
 
-1. **Create a Pages project** connected to the vault's GitHub repo. Settings:
-   - Root directory: `.web`
-   - Build command: `yarn build`
-   - Output directory: `dist`
-   - Project name: must match `name` in `.web/wrangler.toml`.
+The deploy config (`.web/wrangler.toml`) is versioned in the repo. `yarn build`
+(`wv build`) produces `dist/` and generates the Worker entry `.wv/worker.js`
+(gitignored); the response-header rules (`dist/_headers`) are generated too. See
+`adr/0040-cloudflare-workers-deploy-substrate.md`.
 
-2. **Add the editor secret** — a `GITHUB_TOKEN` (fine-grained PAT with
-   **Contents:write** on the vault repo only). Without it the site is read-only.
+### 1. Create the Worker (git-connected)
 
-3. **Gate the site with Cloudflare Access** — an `Allow` policy over the whole
-   domain, plus a path-scoped `Bypass` on `/shared/*` so share links stay public.
+Cloudflare dashboard → **Workers & Pages → Create → Workers → Import a
+repository**. Select the vault's GitHub repo and set:
 
-Deploy by pushing to the deployment branch; Cloudflare builds and publishes.
-Verify the app loads behind Access and a `/shared/<id>/` page is reachable
-publicly.
+- **Root directory:** `.web`
+- **Build command:** `yarn build`
+- **Deploy command:** `npx wrangler deploy` *(default — production branch)*
+- **Non-production branch deploy command:** `npx wrangler versions upload`
+- **Worker name:** must match `name` in `.web/wrangler.toml`.
 
-> The deploy config files (`.web/wrangler.toml`, and the response-header rules)
-> are handled for you: `wrangler.toml` is written during setup, and `_headers`
-> is generated into the build output. See `adr/0026-cloudflare-pages-access.md`.
+The two deploy commands matter: on Workers Builds **every branch runs the deploy
+command**, so a non-production branch left on `npx wrangler deploy` would overwrite
+production. `npx wrangler versions upload` publishes a **preview URL** instead,
+without touching production. Keep the `npx` prefix so the command works with or
+without a local wrangler. Enable **Preview URLs** / non-production branch builds in
+the project settings (needs Wrangler ≥ 4.21.0).
+
+Per-branch preview URLs take the form `<branch>-<worker>.<account>.workers.dev`;
+production is `<worker>.<account>.workers.dev`.
+
+### 2. Add the editor secret
+
+In the Worker's **Settings → Variables and Secrets**, add a secret
+`GITHUB_TOKEN` — a fine-grained PAT with **Contents: write** on the vault repo
+only. Without it the site is read-only. Optionally set `GITHUB_REPO` /
+`GITHUB_BRANCH` as plain vars to override the values baked at build time.
+
+### 3. Gate the site with Cloudflare Access
+
+Access protects the free `*.workers.dev` domain — no custom domain required. In
+Zero Trust → **Access → Applications**, create **self-hosted** applications on the
+Worker's hostnames. The subdomain field syntax is what makes it work:
+
+| Purpose | Subdomain | Domain | Path | Policy |
+|---------|-----------|--------|------|--------|
+| Protect production | `<worker>` (exact) | `<account>.workers.dev` | *(empty)* | Allow (your identity) |
+| Protect previews | `*-<worker>` (wildcard) | `<account>.workers.dev` | *(empty)* | Allow (your identity) |
+| Public shares (prod) | `<worker>` (exact) | `<account>.workers.dev` | `shared` | Bypass (Everyone) |
+| Public shares (preview) | `*-<worker>` (wildcard) | `<account>.workers.dev` | `shared` | Bypass (Everyone) |
+
+The wildcard **must** keep the leading `*-`: on `*.workers.dev` an exact-hostname
+application is not enforced (there is no per-worker DNS record to bind to), but a
+wildcard application is matched at the edge on the Host header. `*-<worker>` also
+covers preview hosts (`<branch>-<worker>...`) with a single policy. The `/shared`
+Bypass keeps share links public while the rest of the site is Restricted; the
+commit endpoint at `/api/commit` inherits the gate. When a policy exists, the
+Worker's **Domains & Routes** panel shows the URL as **Restricted**.
+
+For a **fully public** site, skip step 3 and, advisably, skip the `GITHUB_TOKEN`
+in step 2 so there is no editing surface.
+
+### 4. Deploy
+
+Push to the deployment branch; Cloudflare builds and publishes. Verify the app
+loads behind Access and a `/shared/<id>/` page is reachable publicly (and, on a
+non-production branch, that its preview URL is separate from production).

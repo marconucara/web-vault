@@ -1,6 +1,6 @@
 {
   "name": "web-vault",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "A static web viewer/editor for Markdown knowledge vaults. Strongly inspired by and compatible with Tolaria vaults.",
   "type": "module",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "exports": {
     "./functions/commit.js": "./functions/commit.js",
+    "./functions/worker.js": "./functions/worker.js",
     "./vite-config": "./lib/vite-config.mjs"
   },
   "files": [

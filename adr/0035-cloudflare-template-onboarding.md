@@ -76,11 +76,19 @@ template. The README documents **both** delivery paths and when to use each.
 
 - Whether the template lives in the same repository or a separate starter repo.
 - Whether the starter vault is a curated sample or an empty scaffold.
+- Template repo **shape** for the one-click "Deploy to Cloudflare" button (now on
+  Workers, per `adr/0040-cloudflare-workers-deploy-substrate.md`): keep the
+  `marconucaravault` layout (vault at repo root, shell + `wrangler.toml` in `.web/`,
+  button URL pointing at the `.web` subdirectory) versus a flat template (shell +
+  `wrangler.toml` at the repo root, sample vault in a subfolder). The button
+  supports a subdirectory in its URL, so `.web` is viable; confirm with a live
+  button test before settling.
 
 ## References
 
 - adr/0029-cli-setup-and-distribution.md
 - adr/0005-framework-package.md
+- adr/0040-cloudflare-workers-deploy-substrate.md
 - adr/0026-cloudflare-pages-access.md
 - adr/0018-edit-commit-via-pages-function.md
 - README.md
@@ -90,6 +98,7 @@ template. The README documents **both** delivery paths and when to use each.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
+| 2026-07-31 | r2 | marco | The substrate is now Workers (`adr/0040-*`), which is what makes the one-click button viable (the button supports only Workers). Added the template-shape open question (`.web` subdirectory vs flat repo) deferred to this ADR's implementation. |
 
 ## Approvals
 
