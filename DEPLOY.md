@@ -26,6 +26,7 @@ repository**. Select the vault's GitHub repo and set:
 - **Non-production branch deploy command:** `npx wrangler versions upload`
 - **Worker name:** must match `name` in `.web/wrangler.toml`.
 - **Build watch paths → Include:** `../*`
+- **Build API token:** leave **Create new token** (Cloudflare provisions it).
 
 The build watch path is easy to get wrong and fails silently. Watch paths are
 evaluated **relative to the Root directory** (`.web`), not the repository root —
@@ -82,3 +83,20 @@ in step 2 so there is no editing surface.
 Push to the deployment branch; Cloudflare builds and publishes. Verify the app
 loads behind Access and a `/shared/<id>/` page is reachable publicly (and, on a
 non-production branch, that its preview URL is separate from production).
+
+### Troubleshooting
+
+Three separate credentials are in play — don't confuse them: the **GitHub App**
+connection (reads the repo + delivers push webhooks), the **build API token**
+(lets the build authenticate `wrangler` to deploy the Worker), and the runtime
+**`GITHUB_TOKEN`** secret (lets the running Worker commit edits back to GitHub).
+
+- **Edits commit but the site never rebuilds:** the build watch path is relative
+  to the Root directory (`.web`); set Include to `../*` (see step 1).
+- **Build fails: "build token … has been deleted or rolled":** the build API
+  token is stale. Worker → Settings → Build → **Create new token**, select it, and
+  retry. It is currently a *user* token, so rotating/deleting it (or the user
+  leaving the org) breaks builds until a new one is created.
+- **Nothing builds on push at all:** check the repo is git-connected and
+  "Enable automatic production branch deployments" (Branch control) is on, with
+  the production branch set to `main`.
