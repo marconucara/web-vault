@@ -100,3 +100,12 @@ connection (reads the repo + delivers push webhooks), the **build API token**
 - **Nothing builds on push at all:** check the repo is git-connected and
   "Enable automatic production branch deployments" (Branch control) is on, with
   the production branch set to `main`.
+- **Map cache re-fetches every build (optional feature):** the map cache is
+  build-time, so `MAP_CACHE_KEY` must be a **build** variable (Workers Builds →
+  Build → Variables and Secrets), *not* a runtime Worker secret — if it is a
+  runtime secret the build never sees it (`[maps-cache] MAP_CACHE_KEY unset`).
+  Reading the previous cache also needs `SITE_URL` set to the deployed URL
+  (e.g. `https://<worker>.<account>.workers.dev`): unlike Pages (`CF_PAGES_URL`),
+  Workers Builds exposes no automatic deployment-URL variable. Keep an Access
+  **Bypass on `/maps-cache.json`** so the unauthenticated build can read it. A
+  working read logs `[maps] cache: N entr(ies) loaded from …`.
