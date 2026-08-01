@@ -44,7 +44,7 @@ Markdown files works reasonably well.) Hand this one-line prompt to any coding
 agent working inside your vault:
 
 > Add WebVault to this vault by reading and following
-> https://github.com/marconucara/web-vault/blob/v0.4.0/SETUP.md
+> https://github.com/marconucara/web-vault/blob/v0.5.0/SETUP.md
 
 The agent scaffolds the `.web/` config shell and adds WebVault as a dependency.
 [`SETUP.md`](SETUP.md) is the supported install path. The natural next step is to
