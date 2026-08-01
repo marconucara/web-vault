@@ -15,6 +15,13 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **ADR `0035` — starter template (2026-08-01).** The one-click entry point is
+  the standalone `marconucara/web-vault-template` repository, not a subfolder
+  here: the deploy button rejects a subfolder with no root `wrangler.toml`,
+  failing before the screen where **Path** is set. `templates/base/` was tried
+  and reverted (`c3098da`). ADR 0035 gained acceptance criteria 6 and 7 — the
+  one-click path does not reshape the product, and the template is a real vault.
+  See `plan/done/2026-08-01-template-separate-repo.md`.
 - **`v0.3.0`** — dev-server CJS/ESM interop fix for the editor stack: `wv dev`
   was blanking with "does not provide an export named ..." for plain-CJS
   transitive deps (`style-to-js` via react-markdown; `use-sync-external-store`

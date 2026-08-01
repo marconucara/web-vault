@@ -39,7 +39,7 @@ hand-edit rows out of sync with the ADR files.
 | [0032](adr/0032-dual-format-views-base-yml.md) | Dual-format saved views — Obsidian .base and Tolaria .yml with dedup | Proposed | 2026-07-30 |
 | [0033](adr/0033-builtin-sidebar-views.md) | Built-in vault-independent sidebar views — All notes, Inbox, Shared | Implemented | 2026-07-30 |
 | [0034](adr/0034-client-settings-modal.md) | Client-side settings modal — token status, editor gating, Inbox toggle, language | Proposed | 2026-07-30 |
-| [0035](adr/0035-cloudflare-template-onboarding.md) | Second delivery path — Cloudflare starter template for near-one-click onboarding | Accepted | 2026-07-30 |
+| [0035](adr/0035-cloudflare-template-onboarding.md) | Second delivery path — Cloudflare starter template for near-one-click onboarding | Implemented | 2026-07-30 |
 | [0036](adr/0036-local-dev-edit-write-to-disk.md) | Local dev edit persistence — write to disk, no commit | Implemented | 2026-07-30 |
 | [0037](adr/0037-versioning-and-release-policy.md) | Versioning and release policy — semver, 1.0.0, GitHub Releases | Proposed | 2026-07-30 |
 | [0038](adr/0038-in-app-upgrade-notice.md) | In-app upgrade notice — fetch latest release, compare, notify | Proposed | 2026-07-30 |

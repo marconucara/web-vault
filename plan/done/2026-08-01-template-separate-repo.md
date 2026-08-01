@@ -38,3 +38,24 @@ deploy, and the template must be identical to a real vault.
   new acceptance criteria.
 - A live button test from the template repository root reaches the
   configuration screen (the step that failed with the subfolder).
+
+## Outcome
+
+All exit criteria met.
+
+- `templates/` is gone from this repository; the only remaining mentions are
+  historical (ADR 0035's decision record, this plan item, the superseded
+  `plan/done/2026-07-31-cloudflare-template-onboarding.md`).
+- `README.md` links `marconucara/web-vault-template`.
+- ADR 0035 r4 records the separate-repo decision, its cause (the button rejects
+  a subfolder with no root `wrangler.toml`, failing before the screen where
+  **Path** is set), and acceptance criteria 6 and 7.
+- The live button test from the template repository root reaches the
+  configuration screen — confirmed by the maintainer.
+
+The `web-vault` side of the work shipped in `c3098da`, ahead of this closure;
+this item stayed open until the template repository was restored and the button
+retested.
+
+Shipped: 2026-08-01. web-vault HEAD recorded in the shipping commit.
+Template repository `marconucara/web-vault-template` at `fe085ff`.

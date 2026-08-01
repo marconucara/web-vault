@@ -1,7 +1,7 @@
 ---
 adr: 0035
 title: Second delivery path — Cloudflare starter template for near-one-click onboarding
-status: Accepted
+status: Implemented
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -127,6 +127,7 @@ Resolved during implementation (see Revision History r3, r4):
 | 2026-07-31 | r2 | marco | The substrate is now Workers (`adr/0040-*`), which is what makes the one-click button viable (the button supports only Workers). Added the template-shape open question (`.web` subdirectory vs flat repo) deferred to this ADR's implementation. |
 | 2026-07-31 | r3 | marco | Implemented. Template lives at `templates/base/` in this repo (same-repo, self-contained folder the button clones as root); curated sample vault with a `welcome.md` demo; `.web` shape with a manual `Path = /.web/` step. README documents both onboarding paths. Live button test confirmed the subfolder-as-root clone behaviour. |
 | 2026-07-31 | r4 | marco | Reverted the same-repo location: the button rejects a subfolder without a root `wrangler.toml`, failing before the screen where Path would be set, so the entry point must be a repository root. Template returns to the standalone `web-vault-template` repository and `templates/base/` is removed. Added acceptance criteria 6 and 7 — the one-click path does not reshape the product, and the template is a real vault — the principles under which reshaping the template to fit the button was rejected. |
+| 2026-08-01 | r5 | marco | Implemented. The standalone `marconucara/web-vault-template` repository is restored as the one-click entry point and a live button test from its root reaches the configuration screen — the step that failed with the subfolder. All seven acceptance criteria met. |
 
 ## Approvals
 
