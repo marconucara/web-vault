@@ -46,3 +46,4 @@ hand-edit rows out of sync with the ADR files.
 | [0039](adr/0039-adopter-upgrade-path.md) | Adopter upgrade path — prompt-driven pin bump and reinstall | Proposed | 2026-07-30 |
 | [0040](adr/0040-cloudflare-workers-deploy-substrate.md) | Cloudflare Workers as the deploy substrate, superseding Pages | Implemented | 2026-07-31 |
 | [0041](adr/0041-automated-quality-gate-typecheck-and-tests.md) | Automated quality gate — typechecking and tests | Implemented | 2026-07-31 |
+| [0042](adr/0042-brand-identity-and-logo.md) | Brand identity and logo | Proposed | 2026-08-01 |
