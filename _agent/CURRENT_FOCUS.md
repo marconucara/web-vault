@@ -20,7 +20,10 @@ If status files and git disagree, git is authoritative; correct this file.
   signed, and pinned everywhere adopters look: `SETUP.md`, `README.md`, and the
   template repo's `.web/package.json` + `yarn.lock` + README links
   (`marconucara/web-vault-template@e1d9f63`), whose build was verified green
-  against this tag.
+  against this tag. The reference vault `marconucara/marconucaravault@5486405`
+  was bumped too — it was still on `v0.4.0`, two releases behind — and its
+  build confirmed the fix on real data: the one poisoned link was re-fetched
+  and resolved properly (13 links, 13 usable, no `UNRESOLVED`).
 - **`v0.5.0`** — the quality gate (ADR `0041`), `DEPLOY.md` hardening, and the
   template/ADR bookkeeping that had accumulated on `main` after `v0.4.0`.
 - **What `v0.5.0` contains.** No user-facing features and no bug fixes — by
