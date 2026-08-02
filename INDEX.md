@@ -47,3 +47,4 @@ hand-edit rows out of sync with the ADR files.
 | [0040](adr/0040-cloudflare-workers-deploy-substrate.md) | Cloudflare Workers as the deploy substrate, superseding Pages | Implemented | 2026-07-31 |
 | [0041](adr/0041-automated-quality-gate-typecheck-and-tests.md) | Automated quality gate — typechecking and tests | Implemented | 2026-07-31 |
 | [0042](adr/0042-brand-identity-and-logo.md) | Brand identity and logo | Proposed | 2026-08-01 |
+| [0043](adr/0043-map-link-resolution-diagnostics.md) | Map link resolution diagnostics — unresolved links surfaced to the client and an opt-in strict gate | Proposed | 2026-08-02 |

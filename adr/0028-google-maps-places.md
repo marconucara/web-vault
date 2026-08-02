@@ -112,10 +112,9 @@ appearance), with duplicates spread apart.
 
 ## Open questions
 
-- Surfacing unresolved links to the client (a `mapsIssues` list in the content
-  artifact, recomputed per build and excluded from the cache, plus an optional
-  strict gate limited to *permanent* failures). Today the only signal is the
-  build log. Deferred: it is a separate decision and needs its own ADR.
+- ~~Surfacing unresolved links to the client.~~ Split out into
+  `adr/0043-map-link-resolution-diagnostics.md` (Proposed): today the only
+  signal that a link failed to resolve is the build log.
 - Moving resolution to an on-demand Pages Function + KV cache, only if the
   build-time approach ever becomes a bottleneck (the persistent cross-build cache
   already covers the common case; raise `MAPS_CONCURRENCY` for a big first build).
@@ -127,6 +126,8 @@ appearance), with duplicates spread apart.
 - src/components/MapCard.jsx, src/components/MapView.jsx, src/lib/mdLinks.js
 - adr/0002-build-time-content-pipeline.md, adr/0015-durable-markdown-round-trip.md,
   adr/0016-wikilink-and-media-blocks.md
+- adr/0043-map-link-resolution-diagnostics.md — reporting the links this ADR
+  leaves unresolved.
 
 ## Revision History
 
@@ -134,6 +135,7 @@ appearance), with duplicates spread apart.
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact; merges the keyless build-time resolver, the persistent encrypted cache, the body place-cards, and the map view into one ADR (backfill). |
 | 2026-08-02 | r2 | marco | Defined what counts as resolved (title or image; coordinates alone are not a place) after a `429` interstitial was cached as a place — its `continue=` URL yielded plausible coordinates, so the entry passed the old `lat != null` test and was never retried. Blocked responses are now failed fetches, unusable entries stay out of both caches and self-heal, and unresolved links are logged as `UNRESOLVED` without failing the build. Added acceptance criterion 6; parked client-side surfacing as an open question. |
+| 2026-08-02 | r3 | marco | Closed the open question on surfacing unresolved links: split out into `adr/0043-map-link-resolution-diagnostics.md`. No behaviour change here. |
 
 ## Approvals
 
