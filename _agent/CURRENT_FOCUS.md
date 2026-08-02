@@ -15,10 +15,12 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Current tag: `v0.5.1`** — the maps resolver cache-poisoning fix (ADR `0028`
-  r2). A genuine patch by semver: bug fix, no API change. This is what adopters
-  pin: `SETUP.md` and `README.md` say `v0.5.1`; the starter template's
-  `.web/package.json` lives in the template repo and still needs the bump.
+- **Current tag: `v0.5.1`** (`8ac6fe0`) — the maps resolver cache-poisoning fix
+  (ADR `0028` r2). A genuine patch by semver: bug fix, no API change. Pushed,
+  signed, and pinned everywhere adopters look: `SETUP.md`, `README.md`, and the
+  template repo's `.web/package.json` + `yarn.lock` + README links
+  (`marconucara/web-vault-template@e1d9f63`), whose build was verified green
+  against this tag.
 - **`v0.5.0`** — the quality gate (ADR `0041`), `DEPLOY.md` hardening, and the
   template/ADR bookkeeping that had accumulated on `main` after `v0.4.0`.
 - **What `v0.5.0` contains.** No user-facing features and no bug fixes — by
@@ -87,6 +89,12 @@ If status files and git disagree, git is authoritative; correct this file.
 - `plan/todo/0001-implement-brand-identity.md` (ADR `0042`) is the only queued
   item.
 - Unbuilt decisions are the natural backlog: `0037` gates `0038`/`0039`.
+- The starter template's three demo pins in `welcome.md` are `?q=` **search**
+  URLs, not place links: Google answers some of them with the generic shell
+  (`ogTitle="Google Maps"`, no photo), which `v0.5.1` correctly reports as
+  `UNRESOLVED` where the old rule rendered a nameless coordinates-only pin.
+  Flaky by nature — which of the three resolve varies per build. Not a
+  regression; replacing them with real place links would make the demo stable.
 - Parked, needs its own ADR: surfacing unresolved map links to the client
   (`mapsIssues` in the content artifact + an optional strict gate limited to
   *permanent* failures). Today the only signal is the build log.
