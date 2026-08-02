@@ -69,7 +69,7 @@ Maps to ADR 0028 acceptance criteria 1 (resolution and transient-error retry) an
 
 ---
 
-**Shipped:** 2026-08-02 · `v0.5.1` · ADR 0028 r2 (stays
+**Shipped:** 2026-08-02 · HEAD `bd49d88` · `v0.5.1` · ADR 0028 r2 (stays
 Implemented; the fix corrects behaviour already decided). `yarn verify` green
 (typecheck + 19 tests). Client-side surfacing of unresolved links deferred to a
 future ADR.
