@@ -80,9 +80,10 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## ADR state
 
-`0001`–`0041` exist. All **Implemented** except: `0026` **Superseded** (by
-`0040`), and `0030`, `0031`, `0032`, `0034`, `0037`, `0038`, `0039` still
-**Proposed** — decisions drafted, not built. `INDEX.md` is authoritative.
+`0001`–`0043` exist. All **Implemented** except: `0026` **Superseded** (by
+`0040`), and `0030`, `0031`, `0032`, `0034`, `0037`, `0038`, `0039`, `0042`,
+`0043` still **Proposed** — decisions drafted, not built. `INDEX.md` is
+authoritative.
 
 ## Next item
 
@@ -95,9 +96,11 @@ If status files and git disagree, git is authoritative; correct this file.
   `UNRESOLVED` where the old rule rendered a nameless coordinates-only pin.
   Flaky by nature — which of the three resolve varies per build. Not a
   regression; replacing them with real place links would make the demo stable.
-- Parked, needs its own ADR: surfacing unresolved map links to the client
-  (`mapsIssues` in the content artifact + an optional strict gate limited to
-  *permanent* failures). Today the only signal is the build log.
+- ADR `0043` (**Proposed**) — map link resolution diagnostics: classify
+  unresolved links transient/permanent, carry them into the content artifact,
+  surface them at the point of use, plus an opt-in strict gate that fails only
+  on permanent failures. Drafted, not queued; it closes the open question 0028
+  r3 handed off.
 
 ## Environment notes for a fresh agent
 
