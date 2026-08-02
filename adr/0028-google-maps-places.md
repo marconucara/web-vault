@@ -37,6 +37,18 @@ resolved URL, else the `og:image` static-map `center=`, else an OpenStreetMap
 (`MAPS_RETRIES`). Resolution must happen in CI so notes edited from the web editor
 — which never pass through a local machine — also resolve.
 
+**What counts as resolved.** A link is resolved only when Google returned a
+**name or a photo**; coordinates alone are not a place. This deliberately drops
+the coordinates-only entries that the `og:image` static-map fallback could
+produce — they rendered a nameless pin, and they are indistinguishable from a
+blocked response's bogus coordinates. Google's `/sorry/`
+rate-limit interstitial is treated as a failed fetch (like a network error) and
+never parsed, and coordinates are never taken from the `continue=` parameter that
+page echoes back. Unresolved links are omitted from the artifact, kept out of both
+caches, reported as `UNRESOLVED` in the build log, and retried on the next build;
+they never fail the build, because a `429` is transient and hits every link at
+once, so failing would re-fatalise what the cache exists to absorb.
+
 **Persistent cross-build cache.** A transient CI `429` is made non-fatal: with
 `MAP_CACHE_KEY` set, each build writes an **encrypted** (AES-256-GCM) cache to
 `dist/maps-cache.json` — a public static file, opaque without the key (no key = it
@@ -87,6 +99,12 @@ appearance), with duplicates spread apart.
 4. A toolbar toggle shows a keyless Leaflet + OpenStreetMap map of the note's
    points, with a headings filter and per-list coloured pins.
 5. No Google Maps API key is required at build or runtime.
+6. A link counts as resolved only with a title or an image. A blocked response
+   (`429`, non-OK, or a `/sorry/` final URL) yields no entry, contributes no
+   coordinates, and is written to neither cache; an entry lacking title and image
+   — including one read from a previously deployed cache — is re-fetched on the
+   next build. Unresolved links are listed as `UNRESOLVED` in the build log and
+   do not change the build's exit status.
 
 ## Out of scope
 
@@ -94,14 +112,18 @@ appearance), with duplicates spread apart.
 
 ## Open questions
 
+- Surfacing unresolved links to the client (a `mapsIssues` list in the content
+  artifact, recomputed per build and excluded from the cache, plus an optional
+  strict gate limited to *permanent* failures). Today the only signal is the
+  build log. Deferred: it is a separate decision and needs its own ADR.
 - Moving resolution to an on-demand Pages Function + KV cache, only if the
   build-time approach ever becomes a bottleneck (the persistent cross-build cache
   already covers the common case; raise `MAPS_CONCURRENCY` for a big first build).
 
 ## References
 
-- scripts/resolve-maps.mjs, scripts/maps-cache.mjs, scripts/build-maps-cache.mjs,
-  scripts/maps-genkey.mjs
+- scripts/resolve-maps.mjs, scripts/resolve-maps.test.mjs, scripts/maps-cache.mjs,
+  scripts/build-maps-cache.mjs, scripts/maps-genkey.mjs
 - src/components/MapCard.jsx, src/components/MapView.jsx, src/lib/mdLinks.js
 - adr/0002-build-time-content-pipeline.md, adr/0015-durable-markdown-round-trip.md,
   adr/0016-wikilink-and-media-blocks.md
@@ -111,9 +133,10 @@ appearance), with duplicates spread apart.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact; merges the keyless build-time resolver, the persistent encrypted cache, the body place-cards, and the map view into one ADR (backfill). |
+| 2026-08-02 | r2 | marco | Defined what counts as resolved (title or image; coordinates alone are not a place) after a `429` interstitial was cached as a place — its `continue=` URL yielded plausible coordinates, so the entry passed the old `lat != null` test and was never retried. Blocked responses are now failed fetches, unusable entries stay out of both caches and self-heal, and unresolved links are logged as `UNRESOLVED` without failing the build. Added acceptance criterion 6; parked client-side surfacing as an open question. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Maintainer | Marco Nucara | 2026-07-29 | — |
+| Maintainer | Marco Nucara | 2026-08-02 | — |

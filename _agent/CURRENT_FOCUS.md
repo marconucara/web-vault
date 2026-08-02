@@ -15,10 +15,12 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Current tag: `v0.5.0`** — the quality gate (ADR `0041`), `DEPLOY.md`
-  hardening, and the template/ADR bookkeeping that had accumulated on `main`
-  after `v0.4.0`. This is what adopters pin: `SETUP.md`, `README.md`, and the
-  starter template's `.web/package.json` all say `v0.5.0`.
+- **Current tag: `v0.5.1`** — the maps resolver cache-poisoning fix (ADR `0028`
+  r2). A genuine patch by semver: bug fix, no API change. This is what adopters
+  pin: `SETUP.md` and `README.md` say `v0.5.1`; the starter template's
+  `.web/package.json` lives in the template repo and still needs the bump.
+- **`v0.5.0`** — the quality gate (ADR `0041`), `DEPLOY.md` hardening, and the
+  template/ADR bookkeeping that had accumulated on `main` after `v0.4.0`.
 - **What `v0.5.0` contains.** No user-facing features and no bug fixes — by
   strict semver this was a patch, cut as a minor deliberately rather than
   leaving `main` untagged. Two runtime-touching side effects rode along with
@@ -34,6 +36,21 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **ADR `0028` r2 — maps resolver cache poisoning (2026-08-02, `v0.5.1`).** A
+  Google `429` was being cached as a resolved place: after the retries ran out
+  `fetchPage` returned the blocked response, `extractCoords` harvested
+  `@lat,lng` out of the `/sorry/` page's `continue=` parameter, and both the
+  retry filter and the usable guard read `lat != null` as success — so the
+  entry landed in `dist/maps-cache.json` and was never retried again. A link
+  now counts as resolved only with a **title or an image**; blocked responses
+  are failed fetches; unusable entries are kept out of both caches, so caches
+  poisoned before the fix repair themselves on the next build with no
+  `MAP_CACHE_KEY` rotation. Unresolved links log `UNRESOLVED` and do **not**
+  fail the build — a `429` is transient and hits every link at once, so a gate
+  would re-fatalise what the cache exists to absorb. Client-side surfacing
+  (`mapsIssues`) is parked as an open question on ADR `0028`. Brought the first
+  tests to `scripts/`. See
+  `plan/done/2026-08-02-maps-resolver-reject-blocked-responses.md`.
 - **ADR `0035` — starter template (2026-08-01).** The one-click entry point is
   the standalone `marconucara/web-vault-template` repository, not a subfolder
   here: the deploy button rejects a subfolder with no root `wrangler.toml`,
@@ -67,8 +84,12 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Next item
 
-- Queue empty (`plan/todo/` has no items). No work in flight.
+- `plan/todo/0001-implement-brand-identity.md` (ADR `0042`) is the only queued
+  item.
 - Unbuilt decisions are the natural backlog: `0037` gates `0038`/`0039`.
+- Parked, needs its own ADR: surfacing unresolved map links to the client
+  (`mapsIssues` in the content artifact + an optional strict gate limited to
+  *permanent* failures). Today the only signal is the build log.
 
 ## Environment notes for a fresh agent
 

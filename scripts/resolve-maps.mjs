@@ -17,6 +17,14 @@
 // is set, each build reads the previous build's encrypted cache from the deploy
 // (see maps-cache.mjs) and re-fetches only the missing links. This is what makes
 // a transient Google 429 in CI non-fatal (links resolved once stay resolved).
+//
+// Only a place with a name or a photo counts as resolved (see isUsableEntry).
+// Anything else — notably Google's /sorry/ rate-limit interstitial, whose
+// `continue=` parameter would otherwise yield plausible-looking coordinates —
+// is kept out of both caches and retried on the next build. Unresolved links
+// are reported as UNRESOLVED in the log but never fail the build: a 429 is
+// transient and hits every link at once, so failing would re-fatalise exactly
+// what the persistent cache exists to absorb.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { mapUrlInLine } from '../src/lib/mdLinks.js';
@@ -76,11 +84,24 @@ function ogMeta(html, key) {
   return null;
 }
 
+// True when Google served a block/interstitial page instead of a place: the
+// rate-limit page lives at /sorry/ and carries the request we made in its
+// `continue=` parameter, which must never be mistaken for place data.
+export function isBlockedUrl(u) {
+  return /^https?:\/\/[^/]*google\.[^/]*\/sorry\//i.test(String(u || ''));
+}
+
 // Coordinates from the resolved place URL (most precise: the !3d/!4d pin).
-function extractCoords(u) {
+// A blocked URL yields nothing: its `continue=` echoes back the URL we asked
+// for, so matching over the whole string would harvest the *request's* coords
+// and pass a rate-limit page off as a resolved place.
+export function extractCoords(u) {
+  if (isBlockedUrl(u)) return { lat: null, lng: null };
+  // Drop any nested URL carried in a query parameter before matching.
+  const s = String(u).split(/[?&](?:continue|url|q)=/)[0];
   let m;
-  if ((m = u.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/))) return { lat: +m[1], lng: +m[2] };
-  if ((m = u.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/))) return { lat: +m[1], lng: +m[2] };
+  if ((m = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/))) return { lat: +m[1], lng: +m[2] };
+  if ((m = s.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/))) return { lat: +m[1], lng: +m[2] };
   return { lat: null, lng: null };
 }
 
@@ -166,7 +187,17 @@ async function fetchPage(url) {
         headers: { 'user-agent': UA, 'accept-language': 'it,en;q=0.8', cookie: CONSENT_COOKIE },
       });
       const html = await res.text();
-      if (res.status === 429 && attempt < RETRIES) continue; // transient: back off and retry
+      // A rate-limit / block page is NOT a place page. Retry it like a network
+      // error and, if the retries run out, fail: returning it would let the
+      // caller parse the interstitial and cache the result as a resolved place.
+      if (res.status === 429 || isBlockedUrl(res.url || url)) {
+        lastErr = new Error(`rate-limited (HTTP ${res.status})`);
+        continue;
+      }
+      if (!res.ok) {
+        lastErr = new Error(`HTTP ${res.status}`);
+        continue;
+      }
       return { res, html };
     } catch (e) {
       lastErr = e;
@@ -222,6 +253,18 @@ async function resolveOne(url) {
   }
 }
 
+// The single definition of "this link resolved to something worth keeping".
+//
+// Coordinates alone are NOT enough: a card with neither a name nor a photo has
+// nothing to show, and treating bare coords as success is what let a rate-limit
+// page (whose bogus coords came from the interstitial's `continue=` URL) be
+// cached as a place and never retried. Requiring title-or-image also means any
+// such entry already sitting in a deployed cache is retried — and repaired — on
+// the next build, with no MAP_CACHE_KEY rotation.
+export function isUsableEntry(r) {
+  return !!(r && (r.title || r.image));
+}
+
 function loadCache() {
   if (process.env.MAPS_NO_CACHE) return {};
   try {
@@ -231,10 +274,15 @@ function loadCache() {
   }
 }
 
+// Persist only usable entries. A failed resolution is deliberately NOT written:
+// keeping it would make the next local build skip the retry, which is the same
+// trap the persistent cache had. (The cross-build cache is derived from
+// content.json's already-filtered `maps`, so it is clean by construction.)
 function saveCache(cache) {
   try {
+    const keep = Object.fromEntries(Object.entries(cache).filter(([, v]) => isUsableEntry(v)));
     mkdirSync(dirname(CACHE_FILE), { recursive: true });
-    writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+    writeFileSync(CACHE_FILE, JSON.stringify(keep, null, 2));
   } catch {
     /* best-effort */
   }
@@ -277,17 +325,12 @@ export async function resolveMapsForBodies(bodies) {
   if (key && !process.env.MAPS_NO_CACHE) {
     const remote = await fetchRemoteCache(key);
     for (const [url, val] of Object.entries(remote)) {
-      const c = cache[url];
-      const localGood = c && (c.title || c.lat != null);
-      if (!localGood && val && (val.title || val.lat != null)) cache[url] = val;
+      if (!isUsableEntry(cache[url]) && isUsableEntry(val)) cache[url] = val;
     }
   }
-  // Resolve if missing, or retry a fully-failed entry (no title and no coords)
-  // so a transient CI failure doesn't get stuck in the persistent cache.
-  const toResolve = urls.filter((url) => {
-    const c = cache[url];
-    return !c || (!c.title && c.lat == null);
-  });
+  // Resolve if missing, or retry anything that isn't a usable entry, so a
+  // transient CI failure never gets stuck in the persistent cache.
+  const toResolve = urls.filter((url) => !isUsableEntry(cache[url]));
   // Resolve in parallel (bounded); each worker writes its own cache key.
   await mapLimit(toResolve, CONCURRENCY, async (url) => {
     cache[url] = await resolveOne(url);
@@ -295,22 +338,36 @@ export async function resolveMapsForBodies(bodies) {
   const resolvedCount = toResolve.length;
   saveCache(cache);
   const maps = {};
+  const unresolved = [];
   for (const url of urls) {
     const r = cache[url];
-    if (r && (r.title || r.image || r.lat != null)) {
-      maps[url] = {
-        title: r.title || null,
-        address: r.address || null,
-        image: r.image || null,
-        ratingStars: r.ratingStars ?? null,
-        category: r.category || null,
-        lat: r.lat ?? null,
-        lng: r.lng ?? null,
-      };
+    if (!isUsableEntry(r)) {
+      unresolved.push({ url, reason: (r && r.error) || 'no place data' });
+      continue;
     }
+    maps[url] = {
+      title: r.title || null,
+      address: r.address || null,
+      image: r.image || null,
+      ratingStars: r.ratingStars ?? null,
+      category: r.category || null,
+      lat: r.lat ?? null,
+      lng: r.lng ?? null,
+    };
   }
   console.log(
     `[gen] maps: ${urls.length} link(s), ${resolvedCount} resolved now, ${Object.keys(maps).length} usable`
   );
+  // Unresolved links are not fatal: a Google 429 is transient and IP-sticky
+  // across the whole build, and a dead link would otherwise hold every future
+  // build hostage. They ARE reported loudly, because the failure would
+  // otherwise be indistinguishable from success in the deploy log. These links
+  // stay out of the cache and are retried on the next build.
+  if (unresolved.length) {
+    console.log(`[gen] maps: ${unresolved.length} UNRESOLVED link(s) — these will be retried next build:`);
+    for (const { url, reason } of unresolved) {
+      console.log(`[gen] maps: UNRESOLVED ${url} (${reason})`);
+    }
+  }
   return maps;
 }
