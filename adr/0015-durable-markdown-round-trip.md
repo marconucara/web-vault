@@ -78,6 +78,7 @@ model.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact from existing implementation (backfill). |
+| 2026-08-03 | r2 | marco | Criterion 1 did not hold for soft-wrapped notes: wraps became hard breaks and list-item continuations escaped their item, splitting the list. Continuations are now folded before the parse and hard-break artefacts undone after it. Wrap columns inside a list item are not restored, so the guarantee for such notes is idempotence after the first normalization rather than a byte-identical first save. |
 
 ## Approvals
 

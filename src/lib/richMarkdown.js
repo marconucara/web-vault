@@ -137,8 +137,52 @@ export function postProcessMapLinks(md) {
   return collapsed.replace(MAP_TOKEN, (_m, inner) => decodeTokenInner(inner));
 }
 
+// A soft-wrapped list item continues on the next line, indented under the
+// marker. BlockNote's parser does not keep that continuation inside the item —
+// it emits a sibling paragraph, so the item silently stops being part of the
+// list and any following ordered item restarts at 1. Once parsed the loss is
+// irreversible (a paragraph after an item is ambiguous), so the join has to
+// happen here, before the parse: fold each continuation onto its item's line.
+// Code fences are skipped, and a blank line still ends the item as usual.
+const LIST_MARKER = /^(\s*)(?:[-*+]|\d+[.)])\s+/;
+export function joinListContinuations(body) {
+  const out = [];
+  let inFence = false;
+  let itemIndent = null; // indent width of the marker text for the open item
+  for (const line of (body || '').split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      itemIndent = null;
+      out.push(line);
+      continue;
+    }
+    if (inFence) { out.push(line); continue; }
+
+    const marker = line.match(LIST_MARKER);
+    if (marker) {
+      itemIndent = marker[0].length;
+      out.push(line);
+      continue;
+    }
+    // Inside an open item, a non-blank line indented at least to the marker's
+    // text column is a continuation: append it to the item instead of breaking
+    // the list. Anything shallower (or blank) closes the item.
+    if (itemIndent !== null && line.trim() !== '' && /^\s+/.test(line)) {
+      const indent = line.match(/^\s*/)[0].length;
+      if (indent >= Math.min(itemIndent, 2)) {
+        out[out.length - 1] += ` ${line.trim()}`;
+        continue;
+      }
+    }
+    if (line.trim() === '') itemIndent = null;
+    out.push(line);
+  }
+  return out.join('\n');
+}
+
 // Full pre/post pipeline (wikilink + media link + map link).
-const preProcess = (body) => preProcessMapLinks(preProcessMediaLinks(preProcessWikilinks(body || '')));
+const preProcess = (body) =>
+  preProcessMapLinks(preProcessMediaLinks(preProcessWikilinks(joinListContinuations(body || ''))));
 const postProcess = (md) => postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md)));
 
 // Normalizes BlockNote's output to the vault style (like Tolaria):
@@ -160,10 +204,20 @@ function compactTableLine(line) {
   return '| ' + cells.map((c) => c.trim()).join(' | ') + ' |';
 }
 
+// A source-level soft wrap (a plain newline inside a paragraph) has no meaning
+// in markdown, but BlockNote's exporter re-emits it as a hard break: the line
+// ends with `\` and the next one starts with a space. Neither existed in the
+// vault file, so an untouched note would not round-trip. Undo that pairing —
+// only when both halves are present, so a hard break the author really typed
+// (`\` with no leading space after it) is left alone.
+function joinSoftWraps(md) {
+  return md.replace(/\\\n /g, '\n');
+}
+
 function normalizeMarkdown(md) {
   const out = [];
   let inFence = false;
-  for (const line of md.split('\n')) {
+  for (const line of joinSoftWraps(md).split('\n')) {
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; out.push(line); continue; }
     if (inFence) { out.push(line); continue; }
     if (/^\s*\|/.test(line)) { out.push(compactTableLine(line)); continue; }
