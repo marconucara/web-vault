@@ -92,9 +92,11 @@ Unsharing works the same way in reverse: the id comes out of the frontmatter, th
 
 ## Make it yours
 
-1. **Edit this note** (once the token is set) or delete it — it's just an example.
+1. **Edit this note** (once the token is set) or delete it — every note here is just an example, and so are the folders they sit in.
 2. **Add your own notes**: drop `.md` files anywhere in this repository.
-3. **Organise with views**: saved views live in `views/*.yml` — see **Start here** in the sidebar.
+3. **Organise with views and types**: saved views live in `views/*.yml` — see **Start here** in the sidebar — and types in `_types/`.
 4. **Share a note**: publish it as an isolated public `/shared/<id>/` link while the rest of your vault stays private.
+
+Every push to the repository rebuilds and redeploys the site, and so does every edit you commit from here.
 
 Full setup notes live in the `README.md` of the GitHub repository this site was deployed from — the one Cloudflare created for you. The deploy and hosting side is documented in [WebVault's DEPLOY.md](https://github.com/marconucara/web-vault/blob/main/DEPLOY.md).
