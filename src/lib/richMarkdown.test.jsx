@@ -7,6 +7,7 @@ import {
   preProcessMediaLinks,
   preProcessWikilinks,
   roundTripBody,
+  bodyToBlocks,
   roundTripNote,
   splitFrontmatter,
 } from './richMarkdown.js';
@@ -109,14 +110,38 @@ describe('round-trip of the starter welcome note (ADR 0015 AC 1)', () => {
     );
   });
 
-  it('keeps the map links intact as their own list items', async () => {
+  it('keeps the map links intact as their own numbered list items', async () => {
     const out = await roundTripped();
-    expect(out).toContain('- [Colosseo](https://www.google.com/maps?q=Colosseo,+Roma)');
-    expect(out).toContain('- [Duomo di Milano](https://www.google.com/maps?q=Duomo+di+Milano)');
+    // The numbering is what pairs a place card with its marker on the map, so
+    // both the ordinal and the link text have to survive.
+    expect(out).toMatch(
+      /^1\. \[Colosseo — first thing to see once we land[^\]]*\]\(https:\/\/www\.google\.com\/maps\?q=Colosseo,\+Roma\)$/m
+    );
+    expect(out).toMatch(/^3\. \[Ponte di Rialto — [^\]]*\]\(https:\/\/www\.google\.com\/maps\?q=Ponte\+di\+Rialto,\+Venezia\)$/m);
   });
 
   it('keeps the wikilink intact', async () => {
     expect(await roundTripped()).toContain('[[welcome]]');
+  });
+
+  // The editor shows a block's text as one line, so a `\n` left inside it is
+  // rendered as a break the author never typed — the source's wrap column
+  // leaking into the reading experience.
+  it('leaves no literal newline inside a block of prose', async () => {
+    const blocks = await bodyToBlocks(splitFrontmatter(source).body);
+    const withBreak = [];
+    const walk = (list) => {
+      for (const b of list) {
+        for (const span of b.content || []) {
+          if (typeof span?.text === 'string' && span.text.includes('\n')) {
+            withBreak.push(`${b.type}: ${JSON.stringify(span.text.slice(0, 60))}`);
+          }
+        }
+        if (b.children?.length) walk(b.children);
+      }
+    };
+    walk(blocks);
+    expect(withBreak).toEqual([]);
   });
 
   // Soft wraps inside a list item are folded onto one line, so the first save

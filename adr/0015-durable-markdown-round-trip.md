@@ -79,6 +79,7 @@ model.
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact from existing implementation (backfill). |
 | 2026-08-03 | r2 | marco | Criterion 1 did not hold for soft-wrapped notes: wraps became hard breaks and list-item continuations escaped their item, splitting the list. Continuations are now folded before the parse and hard-break artefacts undone after it. Wrap columns inside a list item are not restored, so the guarantee for such notes is idempotence after the first normalization rather than a byte-identical first save. |
+| 2026-08-03 | r3 | marco | Extended the fold to prose: the parser kept a paragraph's soft wraps as literal newlines inside the block's text, so the editor displayed a break at whatever column the source happened to wrap at — the round-trip was clean but the reading experience was not. Paragraph continuations are now joined before the parse alongside list ones, leaving structural newlines (headings, tables, blockquotes, fences, thematic breaks) untouched. |
 
 ## Approvals
 

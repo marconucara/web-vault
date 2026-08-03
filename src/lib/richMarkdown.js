@@ -137,44 +137,80 @@ export function postProcessMapLinks(md) {
   return collapsed.replace(MAP_TOKEN, (_m, inner) => decodeTokenInner(inner));
 }
 
-// A soft-wrapped list item continues on the next line, indented under the
-// marker. BlockNote's parser does not keep that continuation inside the item —
-// it emits a sibling paragraph, so the item silently stops being part of the
-// list and any following ordered item restarts at 1. Once parsed the loss is
-// irreversible (a paragraph after an item is ambiguous), so the join has to
-// happen here, before the parse: fold each continuation onto its item's line.
-// Code fences are skipped, and a blank line still ends the item as usual.
+// A hand-authored note wraps its prose at some column; in markdown those plain
+// newlines carry no meaning and a renderer reflows them. BlockNote's parser
+// keeps them as literal `\n` inside the block's text, so the editor shows a
+// break wherever the source happened to wrap. The same wrap inside a list item
+// is worse: the continuation becomes a *sibling paragraph*, the item drops out
+// of the list, and a following ordered item restarts at 1.
+//
+// Both are irreversible once parsed (a paragraph after an item is ambiguous),
+// so the join happens here, before the parse: fold every continuation line onto
+// the line it continues. A blank line still ends the block, and constructs
+// where the newline IS structural are left alone.
 const LIST_MARKER = /^(\s*)(?:[-*+]|\d+[.)])\s+/;
+// Lines whose break is structural rather than a soft wrap: fence markers,
+// headings, table rows, blockquotes, and thematic breaks.
+const STRUCTURAL = /^\s*(?:#{1,6}\s|\||>|(?:[-*_]\s*){3,}$)/;
+
 export function joinListContinuations(body) {
   const out = [];
   let inFence = false;
   let itemIndent = null; // indent width of the marker text for the open item
+  let inParagraph = false; // a paragraph line is open and may absorb a wrap
   for (const line of (body || '').split('\n')) {
     if (/^\s*(```|~~~)/.test(line)) {
       inFence = !inFence;
       itemIndent = null;
+      inParagraph = false;
       out.push(line);
       continue;
     }
     if (inFence) { out.push(line); continue; }
 
-    const marker = line.match(LIST_MARKER);
-    if (marker) {
-      itemIndent = marker[0].length;
+    if (line.trim() === '') {
+      itemIndent = null;
+      inParagraph = false;
       out.push(line);
       continue;
     }
+
+    const marker = line.match(LIST_MARKER);
+    if (marker) {
+      itemIndent = marker[0].length;
+      inParagraph = false;
+      out.push(line);
+      continue;
+    }
+
+    if (STRUCTURAL.test(line)) {
+      itemIndent = null;
+      inParagraph = false;
+      out.push(line);
+      continue;
+    }
+
     // Inside an open item, a non-blank line indented at least to the marker's
     // text column is a continuation: append it to the item instead of breaking
-    // the list. Anything shallower (or blank) closes the item.
-    if (itemIndent !== null && line.trim() !== '' && /^\s+/.test(line)) {
+    // the list.
+    if (itemIndent !== null && /^\s+/.test(line)) {
       const indent = line.match(/^\s*/)[0].length;
       if (indent >= Math.min(itemIndent, 2)) {
         out[out.length - 1] += ` ${line.trim()}`;
         continue;
       }
     }
-    if (line.trim() === '') itemIndent = null;
+
+    // Otherwise this is prose. A line following an open paragraph line is that
+    // paragraph's soft wrap — join it so the editor does not show a break the
+    // author never typed.
+    if (inParagraph && itemIndent === null) {
+      out[out.length - 1] += ` ${line.trim()}`;
+      continue;
+    }
+
+    itemIndent = null;
+    inParagraph = true;
     out.push(line);
   }
   return out.join('\n');
@@ -211,7 +247,10 @@ function compactTableLine(line) {
 // only when both halves are present, so a hard break the author really typed
 // (`\` with no leading space after it) is left alone.
 function joinSoftWraps(md) {
-  return md.replace(/\\\n /g, '\n');
+  // Inside a blockquote the continuation carries the `> ` marker too, so the
+  // artefact reads `\` + newline + `>  text` — strip the extra space the break
+  // left behind and keep the quote marker.
+  return md.replace(/\\\n>  /g, '\n> ').replace(/\\\n /g, '\n');
 }
 
 // When emphasis spans a soft wrap, the exporter closes it at the break and
