@@ -8,7 +8,7 @@ You deployed this in a few clicks. It's a **starter vault** — a tiny Markdown 
 
 ## ✅ Finish your setup
 
-- [ ] **🔒 Make it private (⚠️ important).** Until you do this, anyone with the URL can read your vault. Gate the site with **Cloudflare Access / Zero Trust** so only you can read it, while `/shared/<id>/` links stay public. Follow [WebVault's Access setup steps](https://github.com/marconucara/web-vault/blob/v0.5.4/DEPLOY.md#3-gate-the-site-with-cloudflare-access).
+- [ ] **🔒 Make it private (⚠️ important).** Until you do this, anyone with the URL can read your vault. Gate the site with **Cloudflare Access / Zero Trust** so only you can read it, while `/shared/<id>/` links stay public. Follow [WebVault's Access setup steps](https://github.com/marconucara/web-vault/blob/main/DEPLOY.md#3-gate-the-site-with-cloudflare-access).
 - [ ] **✏️ Turn on web editing.** Create a [fine-grained GitHub token](https://github.com/settings/personal-access-tokens/new) with *Contents: write* on this repository only, then add it to your Worker (Settings → Variables and Secrets) as a secret named `GITHUB_TOKEN`. Then this note becomes editable and your changes commit straight back to the repo.
 - [ ] **🗺️ (Optional) Speed up maps.** Any Google Maps link in a note becomes a place card and a pin on a map — there are examples further down this note. If you add *many* pins, set `MAP_CACHE_KEY` + `SITE_URL` as **build** variables to cache those lookups between builds. Skip it until you need it.
 
@@ -86,7 +86,7 @@ A small marker also appears next to the title when a note has changes that haven
 
 Sharing gives the note an id, writes it into the note's frontmatter as `share_id`, and commits that change to your repository. The commit triggers a rebuild, and when the site comes back up the note is live at `/shared/<id>/` — a standalone page with no sidebar, no editor, and no way back into the rest of the vault. Expect to wait a couple of minutes for the build; the button keeps checking and copies the link once it's really up.
 
-Two things it needs. The **GitHub token** from the setup above, because sharing works by committing to your repository. And a **Cloudflare Access policy that keeps the share paths public** — without it your own gate blocks the very people you shared with. Both are covered in [WebVault's Access setup steps](https://github.com/marconucara/web-vault/blob/v0.5.4/DEPLOY.md#3-gate-the-site-with-cloudflare-access).
+Two things it needs. The **GitHub token** from the setup above, because sharing works by committing to your repository. And a **Cloudflare Access policy that keeps the share paths public** — without it your own gate blocks the very people you shared with. Both are covered in [WebVault's Access setup steps](https://github.com/marconucara/web-vault/blob/main/DEPLOY.md#3-gate-the-site-with-cloudflare-access).
 
 Unsharing works the same way in reverse: the id comes out of the frontmatter, the page stops existing at the next build. Anyone still holding the old link gets nothing.
 
@@ -97,4 +97,4 @@ Unsharing works the same way in reverse: the id comes out of the frontmatter, th
 3. **Organise with views**: saved views live in `views/*.yml` — see **Start here** in the sidebar.
 4. **Share a note**: publish it as an isolated public `/shared/<id>/` link while the rest of your vault stays private.
 
-Full setup and deploy notes are in this repository's `README.md`.
+Full setup notes live in the `README.md` of the GitHub repository this site was deployed from — the one Cloudflare created for you. The deploy and hosting side is documented in [WebVault's DEPLOY.md](https://github.com/marconucara/web-vault/blob/main/DEPLOY.md).
