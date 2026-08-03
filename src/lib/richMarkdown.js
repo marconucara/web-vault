@@ -214,10 +214,19 @@ function joinSoftWraps(md) {
   return md.replace(/\\\n /g, '\n');
 }
 
+// When emphasis spans a soft wrap, the exporter closes it at the break and
+// reopens it right after it: `**public and**\` + newline + `** read-only**`.
+// The seam is only recognisable while the hard-break marker is still there —
+// once the lines are joined, `**a** **b**` is indistinguishable from two
+// genuine adjacent runs — so it has to be stitched before joinSoftWraps.
+function joinSplitEmphasis(md) {
+  return md.replace(/(\*{1,2})\\\n(\s*)\1/g, (_m, _delim, indent) => (indent ? ' ' : ''));
+}
+
 function normalizeMarkdown(md) {
   const out = [];
   let inFence = false;
-  for (const line of joinSoftWraps(md).split('\n')) {
+  for (const line of joinSoftWraps(joinSplitEmphasis(md)).split('\n')) {
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; out.push(line); continue; }
     if (inFence) { out.push(line); continue; }
     if (/^\s*\|/.test(line)) { out.push(compactTableLine(line)); continue; }

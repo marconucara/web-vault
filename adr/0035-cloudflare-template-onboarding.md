@@ -74,6 +74,15 @@ template. The README documents **both** delivery paths and when to use each.
    like an ordinary vault an adopter would keep: sample notes at the root, the
    shell in `.web/`, no structural variant that exists only to make the one-click
    flow work. What the newcomer deploys is what they keep working in afterwards.
+8. **The starter note is a round-trip fixture.** `welcome.md` is the first note a
+   newcomer opens in the editor, so it doubles as the fidelity fixture for
+   `adr/0015-durable-markdown-round-trip.md`: a verbatim copy lives at
+   `src/lib/__fixtures__/welcome.md` and the round-trip suite runs against it.
+   The two copies are kept in sync — a change to the template's welcome note is
+   mirrored into the fixture in the same change. Testing the real note (rather
+   than a reduced stand-in) is what makes the guarantee meaningful; keeping the
+   note authored as ordinary markdown, never reshaped to dodge a round-trip
+   defect, is criterion 7 applied to its content.
 
 ## Out of scope
 
@@ -128,6 +137,7 @@ Resolved during implementation (see Revision History r3, r4):
 | 2026-07-31 | r3 | marco | Implemented. Template lives at `templates/base/` in this repo (same-repo, self-contained folder the button clones as root); curated sample vault with a `welcome.md` demo; `.web` shape with a manual `Path = /.web/` step. README documents both onboarding paths. Live button test confirmed the subfolder-as-root clone behaviour. |
 | 2026-07-31 | r4 | marco | Reverted the same-repo location: the button rejects a subfolder without a root `wrangler.toml`, failing before the screen where Path would be set, so the entry point must be a repository root. Template returns to the standalone `web-vault-template` repository and `templates/base/` is removed. Added acceptance criteria 6 and 7 — the one-click path does not reshape the product, and the template is a real vault — the principles under which reshaping the template to fit the button was rejected. |
 | 2026-08-01 | r5 | marco | Implemented. The standalone `marconucara/web-vault-template` repository is restored as the one-click entry point and a live button test from its root reaches the configuration screen — the step that failed with the subfolder. All seven acceptance criteria met. |
+| 2026-08-03 | r6 | marco | Added acceptance criterion 8: the starter `welcome.md` is mirrored as the round-trip fixture for ADR 0015 and the two copies move together. Opening it in the editor degraded it (soft wraps became hard breaks, task-item continuations escaped their item), which a reduced stand-in fixture had not caught. Testing the real note keeps the guarantee honest and stops the template from being reshaped to hide an editor defect — criterion 7 applied to note content. |
 
 ## Approvals
 

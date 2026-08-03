@@ -50,11 +50,16 @@ describe('durable markdown round-trip helpers (ADR 0015, ADR 0016)', () => {
   });
 });
 
+// The fixture is a verbatim copy of the starter template's `welcome.md` — the
+// first note most people ever open in the editor, and the one whose degradation
+// would be most visible. Keep the two copies in sync: when the template's
+// welcome note changes, update `src/lib/__fixtures__/welcome.md` to match.
+//
 // A hand-authored note soft-wraps its paragraphs and list items across source
 // lines. That shape must survive an open-and-save untouched (ADR 0015 AC 1);
 // each assertion below pins one way it used to degrade.
-describe('round-trip of a soft-wrapped note (ADR 0015 AC 1)', () => {
-  const source = fixture('soft-wrapped-note.md');
+describe('round-trip of the starter welcome note (ADR 0015 AC 1)', () => {
+  const source = fixture('welcome.md');
   const roundTripped = () => roundTripNote(source);
 
   it('does not turn source-level soft wraps into hard breaks', async () => {
@@ -66,9 +71,12 @@ describe('round-trip of a soft-wrapped note (ADR 0015 AC 1)', () => {
   });
 
   it('does not emit a phantom bullet from a wrapped emphasis span', async () => {
-    const body = (await roundTripped()).split('\n');
-    // `- ` may only start a real list item, never a continuation line.
-    const stray = body.filter((l) => /^-\s/.test(l) && !/^- (\[ \]|\[x\])?\s*\*\*/.test(l));
+    const lines = (await roundTripped()).split('\n');
+    // Every `- ` line must be a real item: a task box or a link (the map list),
+    // never a stray continuation that a wrapped emphasis run turned into one.
+    const stray = lines.filter(
+      (l) => /^- /.test(l) && !/^- (\[[ x]\] )?(\*\*|\[)/.test(l)
+    );
     expect(stray).toEqual([]);
   });
 
@@ -78,9 +86,9 @@ describe('round-trip of a soft-wrapped note (ADR 0015 AC 1)', () => {
     // a sibling paragraph at column 0 — the wrap column is not preserved, the
     // item's membership in the list is.
     expect(out).toContain(
-      '- [ ] **Make it private.** Until you do this, anyone with the URL can read your vault.'
+      '- [ ] **🔒 Make it private (⚠️ important).** Until you do this, anyone with the URL can read your vault.'
     );
-    expect(out).not.toMatch(/^vault\. Gate the site/m);
+    expect(out).not.toMatch(/^URL can read your vault/m);
   });
 
   it('preserves ordered-list numbering across wrapped items', async () => {
@@ -88,14 +96,27 @@ describe('round-trip of a soft-wrapped note (ADR 0015 AC 1)', () => {
     expect(out).toContain('4. **Share a note**');
   });
 
-  it('preserves frontmatter and every paragraph verbatim', async () => {
+  it('preserves frontmatter, headings and prose wording', async () => {
     const out = await roundTripped();
     expect(out.startsWith('---\ntype: Note\n---\n')).toBe(true);
-    expect(out).toContain(
-      "You deployed this in a few clicks. It's a **starter vault** — a tiny Markdown\n" +
-        'knowledge base with the web client already wired in. Right now the site is\n' +
-        '**public and read-only**. Two unlocks finish the setup.'
+    expect(out).toContain('# Welcome to your WebVault 👋');
+    expect(out).toContain('## ✅ Finish your setup');
+    // Wording and emphasis survive; only the wrap columns may move.
+    expect(out.replace(/\s+/g, ' ')).toContain(
+      "You deployed this in a few clicks. It's a **starter vault** — a tiny Markdown " +
+        'knowledge base with WebVault already wired in. Right now the site is ' +
+        '**public and read-only**.'
     );
+  });
+
+  it('keeps the map links intact as their own list items', async () => {
+    const out = await roundTripped();
+    expect(out).toContain('- [Colosseo](https://www.google.com/maps?q=Colosseo,+Roma)');
+    expect(out).toContain('- [Duomo di Milano](https://www.google.com/maps?q=Duomo+di+Milano)');
+  });
+
+  it('keeps the wikilink intact', async () => {
+    expect(await roundTripped()).toContain('[[welcome]]');
   });
 
   // Soft wraps inside a list item are folded onto one line, so the first save

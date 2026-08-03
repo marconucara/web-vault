@@ -56,3 +56,24 @@ that requires real work; 3 follows from it.
 5. `yarn verify` green.
 6. ADR 0015 stays `Implemented`; a Revision History row records the fidelity
    fix.
+
+## Outcome
+
+All five symptoms fixed. Emphasis spanning a soft wrap (4) turned out to be
+stitchable only *before* the wraps are joined — once `**a**\` and `** b**` sit
+on one line they are indistinguishable from two genuine adjacent runs, and a
+first attempt at joining them afterwards ate legitimate delimiters.
+
+Symptom 2 was fixed by folding continuations before the parse: BlockNote emits
+them as sibling paragraphs, and after the parse the loss is irreversible. Wrap
+columns inside a folded item are **not** restored, so a hand-wrapped note
+reflows once on first save and is stable from then on. Criterion 1 of ADR 0015
+therefore holds as idempotence-after-first-normalization for such notes, not as
+a byte-identical first save — recorded in 0015 r2 rather than quietly widened.
+
+The fixture is a verbatim copy of the starter template's `welcome.md`
+(ADR 0035 AC 8), so the suite tests the note newcomers actually open. Adopting
+the real note immediately exposed the paragraph-level emphasis split that the
+reduced stand-in had missed.
+
+**Shipped:** 2026-08-03 · `v0.5.2` · ADR 0015 r2, ADR 0035 r6
