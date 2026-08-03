@@ -113,15 +113,26 @@ describe('round-trip of the starter welcome note (ADR 0015 AC 1)', () => {
   it('keeps the map links intact as their own numbered list items', async () => {
     const out = await roundTripped();
     // The numbering is what pairs a place card with its marker on the map, so
-    // both the ordinal and the link text have to survive.
-    expect(out).toMatch(
-      /^1\. \[Colosseo — first thing to see once we land[^\]]*\]\(https:\/\/www\.google\.com\/maps\?q=Colosseo,\+Roma\)$/m
-    );
-    expect(out).toMatch(/^3\. \[Ponte di Rialto — [^\]]*\]\(https:\/\/www\.google\.com\/maps\?q=Ponte\+di\+Rialto,\+Venezia\)$/m);
+    // the ordinal has to survive along with the URL. A bare URL must stay bare:
+    // wrapping it in `[text](url)` would put a label on a card that is meant to
+    // take its name from the place itself.
+    const pins = out.match(/^\d+\. https:\/\/maps\.app\.goo\.gl\/\w+$/gm) || [];
+    expect(pins).toHaveLength(3);
+    expect(pins[0]).toMatch(/^1\. /);
+    expect(pins[2]).toMatch(/^3\. /);
   });
 
   it('keeps the wikilink intact', async () => {
     expect(await roundTripped()).toContain('[[welcome]]');
+  });
+
+  // Every Google Maps URL is a valid pin — a `?q=…` search link resolves to
+  // coordinates and renders a card, just a bare one, with no name, address or
+  // photo behind it. This asserts nothing about what the resolver accepts; it
+  // pins an editorial choice for THIS note, which exists to show place cards at
+  // their best and so links to specific places.
+  it('showcases place cards with share links', () => {
+    expect(source.match(/https:\/\/maps\.app\.goo\.gl\/\w+/g) || []).toHaveLength(3);
   });
 
   // The editor shows a block's text as one line, so a `\n` left inside it is

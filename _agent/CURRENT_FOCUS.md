@@ -15,7 +15,16 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Current tag: `v0.5.1`** (`8ac6fe0`) — the maps resolver cache-poisoning fix
+- **Current tag: `v0.5.4`** — a dev-only Leaflet fix plus the ADR `0028` r3
+  clarification. `optimizeDeps.include` was missing `leaflet`: it is a UMD
+  bundle with no detectable `default` export, and because the map view is
+  lazily imported Vite's dev scanner never saw it at startup, so opening that
+  view for the first time threw `does not provide an export named 'default'`.
+  Production (Rollup) was never affected. ADR `0028` r3 states what r2 left
+  implicit — every Maps link is supported and survives into the note; only the
+  fetched extras degrade — with four `collectPoints` tests pinning it. Pinned
+  in `SETUP.md`, `README.md`, `package.json`, and the template's welcome note.
+- **`v0.5.1`** (`8ac6fe0`) — the maps resolver cache-poisoning fix
   (ADR `0028` r2). A genuine patch by semver: bug fix, no API change. Pushed,
   signed, and pinned everywhere adopters look: `SETUP.md`, `README.md`, and the
   template repo's `.web/package.json` + `yarn.lock` + README links

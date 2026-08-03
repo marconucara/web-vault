@@ -105,6 +105,16 @@ appearance), with duplicates spread apart.
    — including one read from a previously deployed cache — is re-fetched on the
    next build. Unresolved links are listed as `UNRESOLVED` in the build log and
    do not change the build's exit status.
+7. **Every Google Maps link is supported, and resolution only ever adds to it.**
+   A link the resolver could not enrich is never dropped, rewritten, or hidden:
+   the note keeps the author's link and its text exactly as written. What
+   degrades is only what was fetched — no photo means a card without a photo, no
+   title means the card falls back to the link's own text, and no coordinates
+   means the link has no marker in the map view and is counted there as a link
+   without coordinates. None of these is an error state: `UNRESOLVED` is build
+   diagnostics, not a verdict on the link. A link form that resolves to a
+   specific place (a `maps.app.goo.gl` share link) simply yields a richer card
+   than a generic search URL; both are valid and both stay in the note.
 
 ## Out of scope
 
@@ -135,6 +145,7 @@ appearance), with duplicates spread apart.
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact; merges the keyless build-time resolver, the persistent encrypted cache, the body place-cards, and the map view into one ADR (backfill). |
 | 2026-08-02 | r2 | marco | Defined what counts as resolved (title or image; coordinates alone are not a place) after a `429` interstitial was cached as a place — its `continue=` URL yielded plausible coordinates, so the entry passed the old `lat != null` test and was never retried. Blocked responses are now failed fetches, unusable entries stay out of both caches and self-heal, and unresolved links are logged as `UNRESOLVED` without failing the build. Added acceptance criterion 6; parked client-side surfacing as an open question. |
+| 2026-08-03 | r3 | marco | Stated what r2 left implicit and what its wording ("coordinates alone are not a place") invited readers to misread as a limit on which links are supported. Every Maps link is supported and always survives into the note; resolution only adds photo, name, address and marker, and its absence degrades the card rather than removing the link. Added acceptance criterion 7. No behaviour change: the reader already did this (`MapCard` renders from an empty `info`, `MapView` counts coordinate-less links as missing) — criterion 6 governs the resolver and its caches, criterion 7 governs what the reader shows, and only their combination said what the product actually promises. |
 | 2026-08-02 | r3 | marco | Closed the open question on surfacing unresolved links: split out into `adr/0043-map-link-resolution-diagnostics.md`. No behaviour change here. |
 
 ## Approvals
