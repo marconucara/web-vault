@@ -1,5 +1,5 @@
 ---
-adr: 42
+adr: 0042
 title: Brand identity and logo
 status: Proposed
 date: 2026-08-01
@@ -10,7 +10,7 @@ depends-on: []
 tags: [design, brand, logo, assets]
 ---
 
-# ADR 42 — Brand identity and logo
+# ADR 0042 — Brand identity and logo
 
 ## Context
 
@@ -54,6 +54,31 @@ web-vault must define and support a custom brand identity system, including a de
 - Which of the aesthetic proposals (Connected Nodes, Floating Page, Brackets/Cursor) will be selected as the final visual identity?
 - Whether to export the SVG asset into a standard `.ico`/`.png` collection at build time or simply deliver the raw inline SVGs for react/framework usage.
 
+### Why this ADR is not ready to implement
+
+This ADR was queued for implementation once and the item was withdrawn. Several
+attempts, across different models and providers, all produced unacceptable
+results. The cause is in this document, not in the executors: **the decision is
+not made here.** The first open question above leaves the visual identity to
+whoever implements it, so each attempt invented a different direction and none
+of them was the owner's.
+
+Two further properties make it unsuitable for delegation as written:
+
+- It bundles one act of product judgement (choosing an identity) with three
+  mechanical tasks (drawing the SVG, placing it in the sidebar, emitting the
+  favicon). The mechanical parts are routine, but bundled together they inherit
+  the open-endedness of the creative one.
+- Its acceptance criteria are not machine-verifiable. "The guidelines are
+  respected" and "the UI remains neutral" cannot be checked by an executor,
+  which has no way to know whether the result is the one the owner wanted.
+
+Before this ADR moves to `Accepted`, the owner resolves the first open question
+**in this document** — one identity, described precisely enough to be
+unambiguous (metaphor, forbidden imagery, colour, visual weight). Only then does
+the work split into small items with criteria an executor can satisfy without
+guessing at taste.
+
 ## References
 
 - adr/0009-three-panel-ui-note-list.md — the sidebar branding location where the logo is to be integrated.
@@ -65,6 +90,7 @@ web-vault must define and support a custom brand identity system, including a de
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-08-01 | r1 | Jules | Initial draft. |
+| 2026-08-05 | r2 | marco | Recorded why the ADR is not ready to implement: the visual identity is still an open question, so the queued item was withdrawn after repeated failed attempts. Names what must be settled here before the ADR can move to Accepted. |
 
 ## Approvals
 
