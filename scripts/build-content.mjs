@@ -10,9 +10,10 @@ import yaml from 'js-yaml';
 import { resolveMapsForBodies } from './resolve-maps.mjs';
 import { VAULT_DIR as VAULT, GEN_DIR as OUT, CONTENT_JSON, VIEWS_DIR } from './paths.mjs';
 
-// I nomi con '.' (.web, .tools, .git, ...) sono già saltati da walk() (startsWith('.')).
-const IGNORE_DIRS = new Set(['node_modules', 'attachments', 'views']);
-const IGNORE_FILES = new Set(['AGENTS.md', 'CLAUDE.md', 'GEMINI.md']);
+// Dotted names (.web, .tools, .git, ...) are already skipped by walk() via
+// startsWith('.'). The rules live in content-ignore.mjs so the dev watcher can
+// share them without importing this script (which generates on import).
+import { IGNORE_DIRS, IGNORE_FILES } from './content-ignore.mjs';
 
 function walk(dir, acc = []) {
   for (const name of readdirSync(dir)) {
