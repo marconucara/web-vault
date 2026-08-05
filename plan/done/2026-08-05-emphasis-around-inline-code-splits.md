@@ -108,3 +108,41 @@ approach unworkable: the parse-time block dump quoted under Root cause was taken
 from `bodyToBlocks` on row 3, confirming the bold mark is dropped before export.
 `excludes: "_"` was confirmed in the installed `@tiptap/extension-code`. The item
 was rewritten from a post-processing stitch to a schema override on that basis.
+
+## Outcome
+
+Both causes were addressed, and the scope held: the fix is a schema override plus
+a change to how a run is serialised, with no rewriting of the exporter's output.
+
+The schema override landed as scoped — `code` no longer excludes the other marks,
+so a code span keeps its emphasis through the parse (criterion 3). `code: true`
+was left as upstream has it, having been confirmed to play no part in the
+stripping; the divergence from TipTap's default is therefore the minimum that
+fixes the defect.
+
+The export side needed an approach the item did not anticipate. Relaxing
+`excludes` is necessary but not sufficient: BlockNote's exporter has no notion of
+a run and brackets every span on its own, so the marks were correct but came back
+as `**bold with** **`code`**** inside**`. Repairing that string after the fact was
+attempted and abandoned — `**` and `*` overlap in the delimiter alternation, and
+the rules for the opening and closing seams interfere with each other. Emphasis
+runs are instead rendered whole, from the styles, before the exporter sees them.
+`blocksToBody` had to be routed through `extractCustomBlocks`, which it
+previously bypassed, so the round-trip path gets the same treatment as the
+mounted editor.
+
+Criterion 5 was verified at the API level (`toggleStyles` for the toolbar, and
+HTML paste), not through a mounted editor: the repo has no harness for editor
+interaction and building one was out of proportion to this item. The typing input
+rule for a code span is therefore unverified — the residual risk of this change.
+
+Two round-trip defects remain, both **pre-existing and unchanged** by this work,
+confirmed by diffing behaviour against the unmodified tree: `[**bold link**](url)`
+comes back as `**[bold link](url)**`, and a code span at a link's trailing edge
+escapes the link. Both are emphasis *inside* a link — a different defect, noted in
+ADR 0015 r4 and left for a separate item.
+
+Coverage: 41 → 63 tests. 13 of the new assertions were confirmed to fail against
+the unmodified tree, so they pin the behaviour rather than merely passing.
+
+**Shipped:** 2026-08-05 · ADR 0015 (r4; already `Implemented`, no status change)

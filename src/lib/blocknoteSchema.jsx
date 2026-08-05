@@ -1,6 +1,6 @@
 import React from 'react';
 import { createReactInlineContentSpec, createReactBlockSpec } from '@blocknote/react';
-import { BlockNoteSchema, defaultInlineContentSpecs, defaultBlockSpecs } from '@blocknote/core';
+import { BlockNoteSchema, defaultInlineContentSpecs, defaultBlockSpecs, defaultStyleSpecs } from '@blocknote/core';
 import Icon from '../components/Icon.jsx';
 import MapCard from '../components/MapCard.jsx';
 import { MEDIA_EXT } from './mdLinks.js';
@@ -91,7 +91,28 @@ export const Mapcard = createReactBlockSpec(
   }
 );
 
+// TipTap's `code` mark ships with `excludes: "_"`, meaning it excludes every
+// other mark: a code span can carry no emphasis. That is a reasonable default
+// for an editor where code is a terminal formatting state, but for a vault it
+// is data loss — `**bold with `code` inside**` parses with the bold already
+// stripped off the code span, so nothing downstream can put it back.
+// Relaxing `excludes` lets the two marks coexist through the parse. `code: true`
+// is left as upstream has it: it plays no part in the stripping.
+// See adr/0015-durable-markdown-round-trip.md.
+const codeStyle = defaultStyleSpecs.code;
+const styleSpecs = {
+  ...defaultStyleSpecs,
+  code: {
+    ...codeStyle,
+    implementation: {
+      ...codeStyle.implementation,
+      mark: codeStyle.implementation.mark.extend({ excludes: '' }),
+    },
+  },
+};
+
 export const schema = BlockNoteSchema.create({
+  styleSpecs,
   blockSpecs: {
     ...defaultBlockSpecs,
     // createReactBlockSpec returns a factory (options) => BlockSpec: call it.
@@ -165,13 +186,107 @@ function injectInline(content) {
   return out;
 }
 
+// BlockNote's exporter brackets every span on its own: it has no notion of a
+// run, so `**bold with `code` inside**` — three spans sharing `bold`, the middle
+// one also `code` — is emitted as `**bold with** **`code`**** inside**`, with the
+// delimiters repeated around each piece. That is not what the author wrote, and
+// re-parsing it loses formatting.
+//
+// The styles themselves are correct by this point (the schema keeps `code`
+// alongside emphasis), so rather than repairing the exporter's string we render
+// each run ourselves: group consecutive spans by the emphasis marks they share,
+// emit one delimiter pair around the group, and hand the result over as plain
+// text — which the exporter passes through untouched.
+//
+// See adr/0015-durable-markdown-round-trip.md.
+const EMPHASIS = [
+  ['bold', '**'],
+  ['italic', '*'],
+  ['strike', '~~'],
+];
+
+const isTextSpan = (it) => it && it.type === 'text' && typeof it.text === 'string';
+
+// The marks that take delimiters, as a stable key — `code` is excluded because
+// it is rendered per span (backticks hug the code itself, never the whole run).
+const emphasisKey = (styles) =>
+  EMPHASIS.filter(([name]) => styles && styles[name]).map(([name]) => name).join(',');
+
+// A link carries its emphasis on the text inside it, so it can sit in the middle
+// of a run (`**bold [link](url) here**`). It joins the run only when all of its
+// text agrees on the same emphasis, which is the only case where one delimiter
+// pair around the whole run is faithful.
+const isLinkSpan = (it) =>
+  it && it.type === 'link' && Array.isArray(it.content) && it.content.length > 0 &&
+  it.content.every(isTextSpan);
+const linkKey = (it) => {
+  const keys = it.content.map((c) => emphasisKey(c.styles));
+  return keys.every((k) => k === keys[0]) ? keys[0] : null;
+};
+
+// One span as it appears inside its run: the code backticks, if any, but no
+// emphasis delimiters — those belong to the run.
+function renderSpanBody(item) {
+  if (item.type === 'link') {
+    return `[${item.content.map(renderSpanBody).join('')}](${item.href})`;
+  }
+  const text = item.text;
+  return item.styles && item.styles.code ? `\`${text}\`` : text;
+}
+
+// The emphasis of a run lives on its text spans; for a link it lives on the text
+// inside it.
+const runStyles = (item) =>
+  (item.type === 'link' ? item.content[0].styles : item.styles) || {};
+
+function renderRun(spans) {
+  const body = spans.map(renderSpanBody).join('');
+  const styles = runStyles(spans[0]);
+  // Emphasis delimiters cannot sit against the run's own padding (`** bold **`
+  // is not emphasis), so keep the surrounding whitespace outside the pair.
+  const [, lead = '', core = '', trail = ''] = body.match(/^(\s*)([\s\S]*?)(\s*)$/) || [];
+  if (!core) return body;
+  const delims = EMPHASIS.filter(([name]) => styles[name]).map(([, d]) => d);
+  const open = delims.join('');
+  const close = delims.slice().reverse().join('');
+  return `${lead}${open}${core}${close}${trail}`;
+}
+
+// Groups consecutive text spans that share the same emphasis and renders each
+// group as one pre-formatted plain-text span. Spans with no emphasis at all are
+// left exactly as they were, so ordinary text keeps the exporter's own escaping.
+function joinEmphasisRuns(content) {
+  const out = [];
+  let run = [];
+  const flush = () => {
+    if (!run.length) return;
+    out.push({ type: 'text', text: renderRun(run), styles: {} });
+    run = [];
+  };
+  for (const item of content) {
+    const key = isTextSpan(item)
+      ? emphasisKey(item.styles)
+      : isLinkSpan(item) ? linkKey(item) : null;
+    if (!key) {
+      flush();
+      out.push(item);
+      continue;
+    }
+    if (run.length && emphasisKey(runStyles(run[0])) !== key) flush();
+    run.push(item);
+  }
+  flush();
+  return out;
+}
+
 function extractInline(content) {
   if (!Array.isArray(content)) return content;
-  return content.map((item) => {
+  const mapped = content.map((item) => {
     if (item && item.type === 'wikilink') return { type: 'text', text: encWikilink(item.props), styles: {} };
     if (item && item.type === 'medialink') return { type: 'text', text: encMedia(item.props), styles: {} };
     return item;
   });
+  return joinEmphasisRuns(mapped);
 }
 
 // A paragraph whose ONLY content is a media token ⟦…⟧ represents a "block-level"

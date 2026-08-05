@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { BlockNoteEditor } from '@blocknote/core';
+import { schema } from './blocknoteSchema.jsx';
 import {
   postProcessMediaLinks,
   postProcessWikilinks,
@@ -15,6 +17,11 @@ import {
 const fixture = (name) => readFileSync(`src/lib/__fixtures__/${name}`, 'utf8');
 
 const normalizeHarness = (s) => s.replace(/^\n+/, '').replace(/\s+$/, '');
+
+// A block's content is a union (inline spans, or a table's rows): narrow it to
+// the span list so a test can assert on the styles each span carries.
+const spanStyles = (block) =>
+  (Array.isArray(block.content) ? block.content : []).map((s) => s.styles);
 
 describe('durable markdown round-trip helpers (ADR 0015, ADR 0016)', () => {
   it('preserves frontmatter outside the editable body', () => {
@@ -162,5 +169,110 @@ describe('round-trip of the starter welcome note (ADR 0015 AC 1)', () => {
   it('is idempotent — a second round-trip is a no-op', async () => {
     const once = await roundTripped();
     expect(await roundTripNote(once)).toBe(once);
+  });
+});
+
+// An emphasis run that contains an inline code span used to come back with its
+// delimiters around the wrong text, and in the worst cases with the emphasis on
+// the code span dropped outright — `**bold with `code`**` returned as
+// `**bold with** `code``, losing formatting rather than merely churning syntax.
+//
+// Two things had to hold for that to be fixable. The parse must keep `code`
+// alongside the emphasis marks (TipTap's `code` mark excludes every other mark
+// by default, so the bold was gone before anything was serialised), and the
+// export must bracket the whole run once instead of every span in turn.
+describe('emphasis around an inline code span (ADR 0015)', () => {
+  const rt = async (body) => (await roundTripBody(body)).replace(/\n+$/, '');
+
+  // The shapes that motivated this: emphasis wrapping a code span in the
+  // middle, at the closing edge, and at the opening edge of the run.
+  it.each([
+    'A **policy that leaves `/shared/*` public** here.',
+    'A **bold with `code` inside** it.',
+    'A **bold with `code`** at the end.',
+    'Start **`code` then bold** end.',
+    'A **`code`** end.',
+  ])('round-trips %j unchanged', async (body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  // The parse is where the loss used to happen, so assert on the styles and not
+  // only on the exported string: a code span inside a bold run must carry both.
+  it('keeps code and emphasis on the same span through the parse', async () => {
+    const blocks = await bodyToBlocks('A **bold with `code` inside** it.');
+    const styles = spanStyles(blocks[0]);
+    expect(styles).toEqual([
+      {},
+      { bold: true },
+      { bold: true, code: true },
+      { bold: true },
+      {},
+    ]);
+  });
+
+  it.each([
+    ['single-delimiter emphasis', 'A *ital with `code` inside* it.'],
+    ['strikethrough', 'A ~~struck with `code`~~ end.'],
+    ['several code spans in one run', 'A **b `c1` m `c2` e** z.'],
+    ['nested emphasis', 'A ***bold ital `c` mix*** end.'],
+    ['a link inside the run', 'A **bold [link](http://x.com) here** end.'],
+  ])('handles %s', async (_label, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  // The stitch must not merge runs the author wrote as separate ones. These are
+  // the cases that make the fix a real distinction rather than a blanket join.
+  it.each([
+    'A **bold** `code` end.',
+    'A **bold**`code` end.',
+    'A **bold with `code`** and **more `x`** end.',
+    'A **bold** `code` and **bold2** `x` end.',
+    'A **bold** [plain](http://x.com) **more** end.',
+    'A `code with **stars** inside` end.',
+    'Literal `a ** b` span.',
+  ])('leaves genuinely separate runs alone: %j', async (body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  it('holds inside a list item, a quote and a table cell', async () => {
+    for (const body of ['- **item `c` here** text', '> **quote `c` here** text', '| **a `c` b** | x |']) {
+      expect(await rt(body)).toBe(body);
+    }
+  });
+
+  it('is idempotent — a second round-trip is a no-op', async () => {
+    const once = await rt('A **bold with `code` inside** it.');
+    expect(await rt(once)).toBe(once);
+  });
+});
+
+// Relaxing the `code` mark's exclusion is an editor-wide change, not only a
+// serialisation one: the same mark backs the formatting toolbar and paste. These
+// pin the behaviour that relaxation is supposed to enable, so a future revert of
+// the schema override fails here and not only on the round-trip assertions.
+describe('code alongside emphasis in the editor (ADR 0015)', () => {
+  it('lets the toolbar apply code over a bold selection, keeping both', () => {
+    const ed = BlockNoteEditor.create({ schema });
+    ed.replaceBlocks(ed.document, [
+      { type: 'paragraph', content: [{ type: 'text', text: 'hello world', styles: {} }] },
+    ]);
+    ed._tiptapEditor.commands.selectAll();
+    ed.toggleStyles({ bold: true });
+    ed.toggleStyles({ code: true });
+    expect(ed.document[0].content[0].styles).toEqual({ bold: true, code: true });
+  });
+
+  it('keeps both marks when rich HTML carrying bold code is pasted', async () => {
+    const ed = BlockNoteEditor.create({ schema });
+    const blocks = await ed.tryParseHTMLToBlocks(
+      '<p>A <strong>bold with <code>code</code> inside</strong> it.</p>'
+    );
+    expect(spanStyles(blocks[0])).toEqual([
+      {},
+      { bold: true },
+      { bold: true, code: true },
+      { bold: true },
+      {},
+    ]);
   });
 });

@@ -288,7 +288,10 @@ export async function bodyToBlocks(body) {
 
 // BlockNote blocks -> markdown (body only)
 export async function blocksToBody(blocks) {
-  const out = await editor().blocksToMarkdownLossy(blocks);
+  // extractCustomBlocks also renders emphasis runs the exporter would otherwise
+  // split around an inline code span, so it runs on this path too — not only on
+  // the mounted-editor one.
+  const out = await editor().blocksToMarkdownLossy(extractCustomBlocks(blocks));
   return normalizeMarkdown(postProcess(out));
 }
 
