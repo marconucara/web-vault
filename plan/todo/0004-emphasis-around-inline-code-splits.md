@@ -43,3 +43,12 @@ defect; the defect itself is untouched and affects any vault note.
    containing more than one code span.
 4. Idempotence still holds: a second round trip is a no-op.
 5. `yarn verify` green.
+
+## Verification
+
+Re-verified 2026-08-05 by running the round trip on all four rows: every one
+reproduces exactly as tabulated above, including the two lossy cases (rows 3
+and 4, where the code span loses its emphasis outright). A genuinely adjacent
+`**bold** ` + `` `code` `` was confirmed unaffected, so the stitch in criterion 2
+has a real case to distinguish. This item is accurate as written and ready to
+implement.
