@@ -145,4 +145,4 @@ ADR 0015 r4 and left for a separate item.
 Coverage: 41 → 63 tests. 13 of the new assertions were confirmed to fail against
 the unmodified tree, so they pin the behaviour rather than merely passing.
 
-**Shipped:** 2026-08-05 · ADR 0015 (r4; already `Implemented`, no status change)
+**Shipped:** 2026-08-05 · HEAD ee6f5c8 · ADR 0015 (r4; already `Implemented`, no status change)
