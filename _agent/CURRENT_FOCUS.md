@@ -99,20 +99,52 @@ authoritative.
 
 ## Next item
 
-- `plan/todo/0001-implement-brand-identity.md` (ADR `0042`) is the only queued
-  item.
-- Unbuilt decisions are the natural backlog: `0037` gates `0038`/`0039`.
-- The starter template's three demo pins in `welcome.md` are `?q=` **search**
+The queue holds three items after the 2026-08-05 audit. Suggested order:
+
+1. **`plan/todo/0004`** — emphasis around an inline code span is split on
+   export. Re-verified 2026-08-05: all four tabulated rows reproduce exactly,
+   two of them lossy (the code span loses its emphasis outright). Confirmed
+   defect, tight scope, testable criteria — the best next implementation.
+2. **`plan/todo/0005`** — an unlabelled code fence comes back as ```` ```text ````.
+   Found while re-verifying 0003. Not content loss, but it rewrites a note
+   nobody edited, against the open-and-save-is-a-no-op promise of ADR `0015`.
+3. **`plan/todo/0003`** — *rewritten by the audit and deprioritised.* The bug it
+   originally described no longer reproduces: `preProcessWikilinks` still builds
+   a malformed token across a code span, but `postProcessWikilinks` reverses it
+   symmetrically, so the round trip is clean end to end. Nothing enforces that
+   symmetry, so the item is now test coverage, not a fix.
+Not queued, because it needs a decision first: **ADR `0044`** — what the URL
+addresses. Written by the 2026-08-05 audit, promoted from
+`_agent/prompts/routing-adr.md` (now removed) where it had been invisible to
+both `INDEX.md` and the queue. `Proposed`: it fixes the slug rule as a
+compatibility surface and settles that heading anchors are addressable while
+sidebar/view selection stays out of the URL. Implementation is queued once it
+is `Accepted`.
+
+## Backlog — not queued, and why
+
+- **ADR `0042` (brand identity) is blocked on a decision, not on capacity.**
+  `plan/todo/0001` was withdrawn by the 2026-08-05 audit. It had been attempted
+  repeatedly across several models and providers, all with unacceptable results;
+  the cause is in the ADR, which leaves the visual identity as an open question
+  and so delegates the choice to whoever implements it. It also bundles one act
+  of product judgement with three mechanical tasks, and its criteria are not
+  machine-verifiable. **The owner resolves the first open question in `0042`
+  before anything is re-queued** — see the "Why this ADR is not ready to
+  implement" section there. Do not re-queue it before then.
+- **`0037` gates `0038`/`0039`.** No written release policy yet, while tags
+  `v0.5.0`–`v0.5.4` were cut by judgement. Five commits sit after `v0.5.4`
+  untagged, one of them a feature (`4c2e315`).
+- **ADR `0043`** — map link resolution diagnostics. `Proposed` and deliberately
+  not queued; it closes the open question `0028` r3 handed off. `Proposed` is a
+  valid resting state, not a defect.
+- **The starter template's three demo pins in `welcome.md`** are `?q=` **search**
   URLs, not place links: Google answers some of them with the generic shell
   (`ogTitle="Google Maps"`, no photo), which `v0.5.1` correctly reports as
   `UNRESOLVED` where the old rule rendered a nameless coordinates-only pin.
   Flaky by nature — which of the three resolve varies per build. Not a
   regression; replacing them with real place links would make the demo stable.
-- ADR `0043` (**Proposed**) — map link resolution diagnostics: classify
-  unresolved links transient/permanent, carry them into the content artifact,
-  surface them at the point of use, plus an opt-in strict gate that fails only
-  on permanent failures. Drafted, not queued; it closes the open question 0028
-  r3 handed off.
+  Lives in the template repo, not here.
 
 ## Environment notes for a fresh agent
 

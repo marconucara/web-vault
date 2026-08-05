@@ -1,5 +1,5 @@
 ---
-adr: 41
+adr: 0041
 title: Automated quality gate — typechecking and tests
 status: Implemented
 date: 2026-07-31
@@ -10,7 +10,7 @@ depends-on: []
 tags: [quality, tooling, testing, developer-experience]
 ---
 
-# ADR 41 — Automated quality gate — typechecking and tests
+# ADR 0041 — Automated quality gate — typechecking and tests
 
 ## Context
 

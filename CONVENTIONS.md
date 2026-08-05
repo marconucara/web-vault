@@ -71,7 +71,7 @@ documentation, release notes, marketing copy, or support communications.
 
 Allowed references:
 - Inline code comments tying a non-obvious choice to its ADR
-  (`// see adr/0015-commit-via-pages-function.md`).
+  (`// see adr/0018-edit-commit-via-pages-function.md`).
 - Commit messages and PR descriptions.
 - Internal documents: `AGENTS.md`, `INDEX.md`, the `plan/` queue, `_agent/`
   files, internal runbooks.
