@@ -138,5 +138,5 @@ line box and supplies that space itself.
 
 Coverage: 68 → 70 tests.
 
-**Shipped:** 2026-08-05 · HEAD (see the follow-up commit) · ADR 0042 (r4,
+**Shipped:** 2026-08-05 · HEAD afdf6e8 · v0.6.0 · ADR 0042 (r4,
 `Accepted` → `Implemented`)
