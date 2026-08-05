@@ -1,9 +1,9 @@
 ---
 adr: 0042
 title: Brand identity and logo
-status: Proposed
+status: Accepted
 date: 2026-08-01
-owner: Jules
+owner: marco
 supersedes:
 superseded-by:
 depends-on: []
@@ -24,24 +24,82 @@ To establish a cohesive identity, the system requires a custom logo/icon designe
 
 Furthermore, while the logo/icon will introduce a specific brand color, the application UI itself should remain highly neutral in both light and dark modes. An eventual application-wide brand/accent color may be introduced in the future, but must be designed in a flexible, scalable manner to preserve theme contrast.
 
+### The direction, and how it is recorded
+
+r1 of this ADR listed three candidate directions and left the choice open. That
+open question is now closed: the direction is a **geometric, monoline mark in
+which a connecting path is framed by angular delimiters**, in a single blue
+accent against otherwise neutral values. It reads simultaneously as the wikilink
+delimiters the product is built around and as a link traced between two points —
+the two concepts r1 could not choose between, resolved into one sign.
+
+A visual reference for this direction is committed at
+`adr/assets/0042-brand-direction.png`. It is a **mood and constraint reference,
+not a specification**: it shows the mark, a wordmark, the palette, the icon at
+several sizes, and two editor mockups demonstrating how little colour the UI
+carries. The geometry in it is inconsistent between instances by nature, and is
+not what is being decided here.
+
+**This ADR deliberately does not specify the drawing.** Node count, node shapes,
+the path the connector takes, stroke ratios and proportions are design work, not
+decisions: writing them here would produce a document that is stale the moment
+the artwork is refined and that cannot be adjusted without a formal revision.
+What is fixed below is the mood, the palette, the prohibitions, and the
+operational constraints the artwork must satisfy. **Once produced, the SVG asset
+itself is the authoritative source for the form**; this ADR governs the space it
+is drawn in.
+
+The shape vocabulary named below is illustrative — a set of examples that
+orients the drawing, not an inventory to be reproduced or exhausted.
+
 ## Capability statement
 
-web-vault must define and support a custom brand identity system, including a dedicated logo designed strictly around notes, knowledge, and connection concepts, delivered as a scalable SVG asset suitable for icons, favicons, and in-app brand headers, while preserving the application's clean, high-contrast, theme-neutral user interface.
+WebVault has a defined brand identity: a single geometric mark built from a
+connecting path and angular framing delimiters, one blue accent against a
+neutral palette, delivered as a scalable SVG that serves as favicon, in-app
+brand mark, and application icon. The mark is **one drawing used at every
+size** — no simplified variant for small renderings. The identity deliberately
+carries no lock, key, or safe imagery: the "vault" in the name is a Markdown
+vault, a body of notes. The application interface remains neutral in both
+themes; the brand colour appears in the mark and in the accents the UI already
+uses, and does not spread into a themed interface.
 
 ## User stories / scenarios
 
-- As a user, I want the application to have a distinctive brand icon (logo and favicon), so that I can easily identify WebVault among other open browser tabs and recognize it as a specialized knowledge tool.
-- As a designer or contributor, I want the brand guidelines to avoid vault/lock metaphors, so that the visual identity aligns with the digital knowledge and Markdown organization nature of the tool.
-- As a theme developer, I want any brand color or logo accent to adapt gracefully to both light and dark modes, so that contrast and readability are never compromised.
+- As a user, I recognise WebVault by its icon among open browser tabs, at
+  favicon size, without squinting.
+- As a user, I see an interface that stays calm and neutral — the brand is
+  present in the mark, not painted across the app.
+- As a designer or contributor, I can tell from this ADR what the identity is
+  about and what it must never look like, and find the exact form in the SVG
+  rather than in prose.
+- As a theme developer, the mark and its accent hold contrast on both light and
+  dark backgrounds without a per-theme redraw.
 
 ## Acceptance criteria
 
-1. An ADR is authored and proposed outlining the branding strategy, visual requirements, and design constraints.
-2. The visual guidelines forbid the use of physical lock, key, safe, or security box imagery.
-3. The visual guidelines require the logo to be designed around knowledge, notes, writing, or connectivity (e.g., node graphs, pages, cursors, wikilink delimiters).
-4. The logo must be defined as a clean, scalable SVG asset capable of acting as a favicon, sidebar brand icon, or general application symbol.
-5. The visual guidelines define the criteria for a brand/accent color (such as contrast compliance on dark/light backgrounds) without immediately imposing a heavy colored theme on the currently neutral UI.
-6. The ADR lists concrete aesthetic proposals for review (e.g., page/document node combinations, connected graph nodes, markdown/brackets symbolisms) to be evaluated and selected in the implementation phase.
+1. A single SVG mark exists, used unchanged at every size — favicon, sidebar
+   brand mark, and application icon — with no separate simplified variant.
+2. The mark is legible at 16 px: its silhouette stays distinguishable and does
+   not read as a smudge.
+3. The mark renders correctly on both light and dark backgrounds from one asset,
+   with no per-theme redraw. Where a value must invert between themes, it does
+   so via `currentColor` or a CSS custom property, not a second file.
+4. The brand accent is `#3B82F6`, and it is the only saturated colour in the
+   identity. All other values are neutral (the reference palette is `#EFF6FF`,
+   `#E5E7EB`, `#737373`, `#171717`).
+5. The mark carries no lock, key, safe, padlock, or security-box imagery, and no
+   skeuomorphic depth — no gradients, drop shadows, or bevels.
+6. The mark is monoline and geometric: uniform stroke weight, hard corners, flat
+   fills.
+7. The application UI is unchanged in its neutrality by this work: no new
+   coloured surfaces, and the existing accent usage (links, selection, active
+   sidebar row) is not broadened.
+8. The favicon is emitted from the same source as the in-app mark, so the two
+   cannot drift.
+9. The wordmark reads **WebVault**, matching the product name established in
+   `adr/0029-cli-setup-and-distribution.md`. `web-vault` remains the repository,
+   package, and CLI identifier and is not used as the product name.
 
 ## Out of scope
 
@@ -51,27 +109,33 @@ web-vault must define and support a custom brand identity system, including a de
 
 ## Open questions
 
-- Which of the aesthetic proposals (Connected Nodes, Floating Page, Brackets/Cursor) will be selected as the final visual identity?
-- Whether to export the SVG asset into a standard `.ico`/`.png` collection at build time or simply deliver the raw inline SVGs for react/framework usage.
+- Whether to export the SVG into a standard `.ico`/`.png` collection at build
+  time, or deliver the raw inline SVG for react/framework usage and rely on
+  modern browsers' SVG favicon support.
+- Whether the wordmark needs a specified typeface, or the mark alone carries the
+  identity and the wordmark is set in the UI's existing font.
+- Whether the brand accent eventually replaces the UI's current generic blue,
+  which would unify them at the cost of touching every accent surface. Not
+  proposed here; criterion 7 explicitly holds the UI as it is.
 
-### Why this ADR is not ready to implement
+### Note for whoever implements this
 
-This ADR was queued for implementation once and the item was withdrawn. Several
-attempts, across different models and providers, all produced unacceptable
-results. The cause is in this document, not in the executors: **the decision is
-not made here.** The first open question above leaves the visual identity to
-whoever implements it, so each attempt invented a different direction and none
-of them was the owner's.
+r1 of this ADR left the visual direction unchosen, and the queued item was
+attempted repeatedly across several models and providers with unacceptable
+results every time — each attempt invented its own direction because none was
+recorded. r2 closes that: the direction is fixed above and referenced by
+`adr/assets/0042-brand-direction.png`.
 
-Two further properties make it unsuitable for delegation as written:
+What remains genuinely open is the **drawing**, and that is intentional. Work
+from the reference image and the constraints above; do not treat the reference's
+geometry as a spec to reproduce pixel-for-pixel, and do not expect this document
+to tell you how many nodes to draw. Expect the artwork to need review by the
+owner — several criteria here (legibility at 16 px, whether the silhouette
+reads) are judgements a human makes by looking, not assertions a test can make.
 
-- It bundles one act of product judgement (choosing an identity) with three
-  mechanical tasks (drawing the SVG, placing it in the sidebar, emitting the
-  favicon). The mechanical parts are routine, but bundled together they inherit
-  the open-endedness of the creative one.
-- Its acceptance criteria are not machine-verifiable. "The guidelines are
-  respected" and "the UI remains neutral" cannot be checked by an executor,
-  which has no way to know whether the result is the one the owner wanted.
+Split the work so that judgement is isolated: produce and settle the SVG first,
+then the mechanical placements (sidebar mark, favicon emission) against a
+finished asset.
 
 Before this ADR moves to `Accepted`, the owner resolves the first open question
 **in this document** — one identity, described precisely enough to be
@@ -81,7 +145,11 @@ guessing at taste.
 
 ## References
 
+- adr/assets/0042-brand-direction.png — the visual reference for the chosen
+  direction: mark, wordmark, palette, icon sizes, and editor mockups showing the
+  UI's colour restraint. A mood and constraint reference, not a specification.
 - adr/0009-three-panel-ui-note-list.md — the sidebar branding location where the logo is to be integrated.
+- adr/0029-cli-setup-and-distribution.md — where the product name WebVault was established.
 - src/styles.css — the stylesheet declaring neutral light/dark colors.
 - src/components/Sidebar.jsx — where the brand text currently resides.
 
@@ -91,8 +159,10 @@ guessing at taste.
 |------|----------|--------|--------|
 | 2026-08-01 | r1 | Jules | Initial draft. |
 | 2026-08-05 | r2 | marco | Recorded why the ADR is not ready to implement: the visual identity is still an open question, so the queued item was withdrawn after repeated failed attempts. Names what must be settled here before the ADR can move to Accepted. |
+| 2026-08-05 | r3 | marco | Closed the direction question. Fixed the identity as a monoline geometric mark — a connecting path framed by angular delimiters — with `#3B82F6` as the sole accent, one drawing at every size, and a committed visual reference at `adr/assets/`. Replaced the aspirational criteria with operational ones, and deliberately excluded the drawing itself (node count, shapes, path, proportions) so the SVG stays authoritative for form. Settled the wordmark as WebVault. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-08-05 | — |

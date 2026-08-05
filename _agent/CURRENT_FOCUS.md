@@ -123,15 +123,17 @@ is `Accepted`.
 
 ## Backlog — not queued, and why
 
-- **ADR `0042` (brand identity) is blocked on a decision, not on capacity.**
-  `plan/todo/0001` was withdrawn by the 2026-08-05 audit. It had been attempted
-  repeatedly across several models and providers, all with unacceptable results;
-  the cause is in the ADR, which leaves the visual identity as an open question
-  and so delegates the choice to whoever implements it. It also bundles one act
-  of product judgement with three mechanical tasks, and its criteria are not
-  machine-verifiable. **The owner resolves the first open question in `0042`
-  before anything is re-queued** — see the "Why this ADR is not ready to
-  implement" section there. Do not re-queue it before then.
+- **ADR `0042` (brand identity) is `Accepted` as of 2026-08-05 (r3), with
+  nothing queued yet.** The direction it lacked is now fixed — a monoline
+  geometric mark, a connecting path framed by angular delimiters, `#3B82F6` as
+  the sole accent, one drawing at every size — with a visual reference committed
+  at `adr/assets/0042-brand-direction.png`. The ADR deliberately does **not**
+  specify the drawing (node count, shapes, path, proportions): the SVG is
+  authoritative for form once it exists. When queuing, isolate the judgement —
+  produce and settle the SVG as its own item with owner review as the exit
+  criterion, then do the mechanical placements (sidebar mark, favicon) against
+  a finished asset. The earlier `plan/todo/0001` was withdrawn because r1 left
+  the direction open, which is what made repeated attempts fail.
 - **`0037` gates `0038`/`0039`.** No written release policy yet, while tags
   `v0.5.0`–`v0.5.4` were cut by judgement. Five commits sit after `v0.5.4`
   untagged, one of them a feature (`4c2e315`).
