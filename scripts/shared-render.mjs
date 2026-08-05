@@ -186,6 +186,10 @@ function renderPage(note, bodyHtml, relRows) {
 <meta name="robots" content="noindex, nofollow" />
 <meta name="x-web-vault-shared" content="1" />
 <title>${title}</title>
+<!-- One file for every share page, copied by copy-brand.mjs. It lives inside
+     /shared/ because that prefix is the one on a Cloudflare Access Bypass:
+     the icon at the site root is private and would 302 to the login. -->
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <style>${CSS}</style>
 </head>
 <body>

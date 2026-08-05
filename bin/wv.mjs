@@ -50,7 +50,7 @@ Usage: wv <command>
 
   dev       Generate content, then start the Vite dev server
   build     Full static build into ./dist (content, app, shared pages,
-            attachments, maps cache, 404, headers, Worker entry)
+            attachments, brand icons, maps cache, 404, headers, Worker entry)
   preview   Serve the built ./dist locally
   gen       Regenerate .wv/content.json only
   genkey    Print a new MAP_CACHE_KEY (never writes a file)
@@ -69,6 +69,7 @@ async function main() {
       await runNode('build-content.mjs');
       await runVite('build');
       await runNode('copy-attachments.mjs');
+      await runNode('copy-brand.mjs');
       await runNode('build-shared.mjs');
       await runNode('build-maps-cache.mjs');
       await runNode('build-404.mjs');

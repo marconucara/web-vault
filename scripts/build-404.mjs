@@ -22,6 +22,7 @@
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { DIST_DIR as DIST } from './paths.mjs';
+import { inlineFaviconLink } from './brand-inline.mjs';
 
 // Same variables and empty-state look as the app (styles.css .empty-note).
 const CSS = `
@@ -108,6 +109,7 @@ const HTML = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="robots" content="noindex, nofollow" />
 <title>Page not found</title>
+${inlineFaviconLink()}
 <style>${CSS}</style>
 </head>
 <body>

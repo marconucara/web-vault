@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from './Icon.jsx';
+import BrandMark from './BrandMark.jsx';
 
 export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, onSelect }) {
   const isSel = (kind, id) => selection.kind === kind && selection.id === id;
@@ -8,7 +9,10 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
 
   return (
     <nav className="sidebar">
-      <div className="brand">Vault</div>
+      <div className="brand">
+        <BrandMark size={40} />
+        <span>WebVault</span>
+      </div>
 
       <div className="group-label">Views</div>
       <button

@@ -15,7 +15,17 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Current tag: `v0.5.4`** — a dev-only Leaflet fix plus the ADR `0028` r3
+- **Current tag: `v0.6.0`** — the brand identity (ADR `0042`, now Implemented).
+  A minor, not a patch: adopters get a visible change they did not ask for —
+  the sidebar reads `WebVault` behind the mark instead of `Vault`, and the tab
+  carries an icon. The icon set is committed pre-rendered under `brand/` and
+  copied into `dist/` by `scripts/copy-brand.mjs`, per-file overridable from the
+  consumer's `public/`. Two non-obvious placements, both forced by Cloudflare
+  Access: the share pages link one shared copy at `dist/shared/favicon.svg`
+  (only `/shared/*` is bypassed), and the 404 inlines the mark as a `data:` URI
+  because it answers unmatched paths at any depth. Pinned in `SETUP.md`,
+  `README.md`, `package.json`, and both consumer repos' `.web/`.
+- **`v0.5.4`** — a dev-only Leaflet fix plus the ADR `0028` r3
   clarification. `optimizeDeps.include` was missing `leaflet`: it is a UMD
   bundle with no detectable `default` export, and because the map view is
   lazily imported Vite's dev scanner never saw it at startup, so opening that
@@ -123,20 +133,19 @@ is `Accepted`.
 
 ## Backlog — not queued, and why
 
-- **ADR `0042` (brand identity) is `Accepted` as of 2026-08-05 (r3), with
-  nothing queued yet.** The direction it lacked is now fixed — a monoline
-  geometric mark, a connecting path framed by angular delimiters, `#3B82F6` as
-  the sole accent, one drawing at every size — with a visual reference committed
-  at `adr/assets/0042-brand-direction.png`. The ADR deliberately does **not**
-  specify the drawing (node count, shapes, path, proportions): the SVG is
-  authoritative for form once it exists. When queuing, isolate the judgement —
-  produce and settle the SVG as its own item with owner review as the exit
-  criterion, then do the mechanical placements (sidebar mark, favicon) against
-  a finished asset. The earlier `plan/todo/0001` was withdrawn because r1 left
-  the direction open, which is what made repeated attempts fail.
-- **`0037` gates `0038`/`0039`.** No written release policy yet, while tags
-  `v0.5.0`–`v0.5.4` were cut by judgement. Five commits sit after `v0.5.4`
-  untagged, one of them a feature (`4c2e315`).
+- **ADR `0042` (brand identity) is `Implemented` as of 2026-08-05 (r4),
+  shipped in `v0.6.0`.** The artwork was produced with an external design tool
+  and the ADR's advice held: the judgement was isolated — the icons went in
+  first and were reviewed in a browser by the owner, and only then did the
+  sidebar mark follow in the same item. `brand/mark.svg` is authoritative for
+  the form; `src/components/BrandMark.jsx` is that geometry inlined so it can
+  take `currentColor`. If the drawing is ever refined, both move together, and
+  `adr/assets/0042-brand-components.jsx` holds the design-tool source it was
+  settled in. What r4 did **not** settle: the wordmark's typeface, and whether
+  the brand accent eventually replaces the UI's generic blue.
+- **`0037` gates `0038`/`0039`.** Still no written release policy; tags
+  `v0.5.0`–`v0.6.0` were all cut by judgement. `v0.6.0` was called a minor
+  because adopters see the rename and the mark without asking for them.
 - **ADR `0043`** — map link resolution diagnostics. `Proposed` and deliberately
   not queued; it closes the open question `0028` r3 handed off. `Proposed` is a
   valid resting state, not a defect.

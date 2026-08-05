@@ -1,7 +1,7 @@
 ---
 adr: 0042
 title: Brand identity and logo
-status: Accepted
+status: Implemented
 date: 2026-08-01
 owner: marco
 supersedes:
@@ -109,9 +109,29 @@ uses, and does not spread into a themed interface.
 
 ## Open questions
 
-- Whether to export the SVG into a standard `.ico`/`.png` collection at build
+- ~~Whether to export the SVG into a standard `.ico`/`.png` collection at build
   time, or deliver the raw inline SVG for react/framework usage and rely on
-  modern browsers' SVG favicon support.
+  modern browsers' SVG favicon support.~~ **Settled (r4):** both, and neither is
+  generated at build time. The raster set is produced once from the SVG geometry
+  by the design tooling and committed under `brand/`; the build only copies it.
+  Rasterising during `wv build` was rejected because it would put an image
+  dependency into a gate that must run from a bare clone, and "Out of scope"
+  already excludes automated raster production. Modern browsers still take the
+  SVG — `favicon.svg` is listed after `favicon.ico` in the head so that the ICO
+  serves only the browsers that cannot read the SVG.
+
+  One consequence is worth recording, because it looks like avoidable
+  duplication and is not. The site root is behind Cloudflare Access while
+  `/shared/*` is on a Bypass (see `DEPLOY.md`), so a public share page linking
+  the root icon has that request answered by the Access login rather than by the
+  file. The share pages therefore reference a **second copy of `favicon.svg`,
+  placed once at `/shared/favicon.svg`** — one file for every share page, not
+  one per share, and mirrored from whichever copy won at the root so that an
+  adopter override reaches the public pages too. The `404` can use neither copy:
+  it is served for unmatched paths at any depth, so no relative href resolves in
+  every case, and it inlines the mark as a `data:` URI instead — the same reason
+  it already inlines its CSS and JS. All three surfaces read
+  `brand/favicon.svg` at build time, so criterion 8 holds: they cannot drift.
 - Whether the wordmark needs a specified typeface, or the mark alone carries the
   identity and the wordmark is set in the UI's existing font.
 - Whether the brand accent eventually replaces the UI's current generic blue,
@@ -148,6 +168,12 @@ guessing at taste.
 - adr/assets/0042-brand-direction.png — the visual reference for the chosen
   direction: mark, wordmark, palette, icon sizes, and editor mockups showing the
   UI's colour restraint. A mood and constraint reference, not a specification.
+- brand/ — the produced identity: `mark.svg` (the authoritative form),
+  `favicon.svg` and the raster set, with `brand/ASSETS.md` describing each
+  file's role and colour behaviour.
+- adr/assets/0042-brand-components.jsx — the design-tool React source the
+  geometry was settled in. A reference: it is not imported by the app and is
+  outside the typecheck and test scope.
 - adr/0009-three-panel-ui-note-list.md — the sidebar branding location where the logo is to be integrated.
 - adr/0029-cli-setup-and-distribution.md — where the product name WebVault was established.
 - src/styles.css — the stylesheet declaring neutral light/dark colors.
@@ -159,6 +185,7 @@ guessing at taste.
 |------|----------|--------|--------|
 | 2026-08-01 | r1 | Jules | Initial draft. |
 | 2026-08-05 | r2 | marco | Recorded why the ADR is not ready to implement: the visual identity is still an open question, so the queued item was withdrawn after repeated failed attempts. Names what must be settled here before the ADR can move to Accepted. |
+| 2026-08-05 | r4 | marco | Closed the raster question: the icon set is committed pre-rendered from the SVG geometry under `brand/`, copied into the deploy at build time rather than generated. Recorded how each surface reaches the mark under Cloudflare Access — root file, one shared copy at `/shared/favicon.svg`, inline `data:` URI for the 404 — all read from the same source. Status advanced to Implemented: the mark now ships as favicon, platform icons and the sidebar brand. |
 | 2026-08-05 | r3 | marco | Closed the direction question. Fixed the identity as a monoline geometric mark — a connecting path framed by angular delimiters — with `#3B82F6` as the sole accent, one drawing at every size, and a committed visual reference at `adr/assets/`. Replaced the aspirational criteria with operational ones, and deliberately excluded the drawing itself (node count, shapes, path, proportions) so the SVG stays authoritative for form. Settled the wordmark as WebVault. |
 
 ## Approvals
