@@ -216,25 +216,56 @@ export function joinListContinuations(body) {
   return out.join('\n');
 }
 
-// A fence with no info string parses to a code block whose `language` prop is
-// `text` — BlockNote's default — which is exactly what a fence that DID declare
-// `text` parses to. The two collapse into the same block, so by export time
-// "the author wrote nothing" is no longer recoverable and the exporter labels
-// both ```text. Marking the bare fence before the parse keeps them apart: the
-// sentinel rides along as the block's language and is stripped on the way out,
-// so a bare fence stays bare and an explicit `text` stays `text`.
+// A code block keeps only its language, so everything else about how the fence
+// was written is dropped on parse and re-invented by the exporter, which always
+// emits three backticks and labels an unlabelled block `text`:
+//
+//   ```      -> language "text" -> ```text   (a language the author never wrote)
+//   ~~~js    -> language "js"   -> ```js     (the marker kind is gone)
+//   ````     -> language "text" -> ```text   (the marker length is gone)
+//
+// The `text` case is the worst of the three because it is unrecoverable rather
+// than merely lossy: a bare fence and one that really declares `text` parse to
+// the same block, so no export-side rule could tell them apart.
+//
+// All three are carried across in the one field that does survive — the
+// language — by rewriting the opening fence into a sentinel that encodes the
+// marker and the original info string, then restoring it on the way out. The
+// sentinel is not a plausible language name, so a fence that genuinely declares
+// it is not a case worth protecting.
 //
 // Only the OPENING fence of a block carries an info string; the closing one is
 // bare by definition, so the fence state has to be tracked rather than matching
-// every bare marker. The sentinel is not a plausible language name, so a fence
-// that really declares it is not a case worth protecting.
-const BARE_FENCE_LANG = 'wv-plain';
+// every bare marker.
+const FENCE_SENTINEL = 'wv-fence';
 // The marker is the full run of backticks/tildes, so a longer fence (````) is
 // matched whole and the leftover backticks are not mistaken for an info string.
 const FENCE_OPEN = /^(\s*)(`{3,}|~{3,})(.*)$/;
+// `wv-fence-<kind><length>i<indent>-<encoded info string>`, e.g. ```` ```` ````
+// with no info string becomes `wv-fence-b4i0-`, and `~~~js` indented by two
+// columns becomes `wv-fence-t3i2-js`. The info string is encoded so a space or
+// a backtick in it cannot break the language token apart.
+//
+// The indent is carried for the same reason as the marker: a fence nested under
+// a list item is exported flattened to column zero, because BlockNote's HTML
+// exporter lifts every non-list child out of its `<li>` and records the depth
+// only in a `data-nesting-level` attribute the markdown step does not read.
+// Restoring it from the emitted markdown alone is not possible — a fence that
+// merely follows a list is indistinguishable there from one nested inside it.
+const SENTINEL_LINE = new RegExp(
+  `^(\\s*)(\`{3,})${FENCE_SENTINEL}-([bt])(\\d+)i(\\d+)-(\\S*)\\s*$`
+);
 
-export function preProcessBareFences(body) {
+/**
+ * Rewrites every opening fence into a sentinel language carrying how the fence
+ * was written, so the parse cannot drop it.
+ * @param {string} body
+ * @returns {string}
+ */
+export function preProcessFences(body) {
+  /** @type {string[]} */
   const out = [];
+  /** @type {string | null} */
   let fence = null; // marker of the open fence, null outside one
   for (const line of (body || '').split('\n')) {
     const m = line.match(FENCE_OPEN);
@@ -250,25 +281,73 @@ export function preProcessBareFences(body) {
       continue;
     }
     fence = marker;
-    out.push(info.trim() === '' ? `${indent}${marker}${BARE_FENCE_LANG}` : line);
+    const kind = marker[0] === '`' ? 'b' : 't';
+    const encoded = encodeURIComponent(info.trim());
+    out.push(
+      `${indent}${marker}${FENCE_SENTINEL}-${kind}${marker.length}i${indent.length}-${encoded}`
+    );
   }
   return out.join('\n');
 }
 
-export function postProcessBareFences(md) {
-  return (md || '').replace(
-    new RegExp(`^(\\s*)(\`{3,}|~{3,})${BARE_FENCE_LANG}\\s*$`, 'gm'),
-    '$1$2'
-  );
+/**
+ * Restores each fence from its sentinel: the marker kind and length the author
+ * wrote, the original info string, and the indent that carries the block back
+ * inside its list item.
+ * @param {string} md
+ * @returns {string}
+ */
+export function postProcessFences(md) {
+  /** @type {string[]} */
+  const out = [];
+  /**
+   * How to close and indent the fence that is open, or null outside one.
+   * @type {{ marker: string, emitted: string, indent: string } | null}
+   */
+  let closing = null;
+  for (const line of (md || '').split('\n')) {
+    if (closing === null) {
+      const m = line.match(SENTINEL_LINE);
+      if (!m) { out.push(line); continue; }
+      const [, emittedIndent, emitted, kind, length, indentWidth, encoded] = m;
+      let info = encoded;
+      try {
+        info = decodeURIComponent(encoded);
+      } catch {
+        // invalid token: fall back to the encoded form rather than dropping it
+      }
+      // The exporter lengthens the marker when the content itself holds a
+      // fence; never shorten below what it chose, or the block would close
+      // early on its own content.
+      const marker = (kind === 'b' ? '`' : '~').repeat(Math.max(Number(length), emitted.length));
+      // The source indent wins over the one the exporter emitted: a nested
+      // fence comes back flattened to column zero, and only the carried width
+      // puts it back under its list item.
+      const indent = ' '.repeat(Number(indentWidth) || emittedIndent.length);
+      closing = { marker, emitted, indent };
+      out.push(`${indent}${marker}${info}`);
+      continue;
+    }
+    // The exporter closes with the same marker it opened with, so that is the
+    // line to swap back; anything else is the block's content, which is
+    // re-indented alongside it so the whole block stays inside its list item.
+    if (line.trim() === closing.emitted) {
+      out.push(closing.indent + closing.marker);
+      closing = null;
+    } else {
+      out.push(line === '' ? line : closing.indent + line);
+    }
+  }
+  return out.join('\n');
 }
 
 // Full pre/post pipeline (wikilink + media link + map link + bare fences).
 const preProcess = (body) =>
-  preProcessBareFences(
+  preProcessFences(
     preProcessMapLinks(preProcessMediaLinks(preProcessWikilinks(joinListContinuations(body || ''))))
   );
 const postProcess = (md) =>
-  postProcessBareFences(postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md))));
+  postProcessFences(postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md))));
 
 // Normalizes BlockNote's output to the vault style (like Tolaria):
 // - unordered lists `* ` -> `- `;

@@ -246,26 +246,35 @@ describe('emphasis around an inline code span (ADR 0015)', () => {
   });
 });
 
-// A bare fence and one declaring `text` both parse to a code block whose
-// language is `text`, so only the pre-parse marking keeps them apart. These
-// assert both directions: dropping the marking relabels the bare fence, and
-// stripping `text` unconditionally would break the explicit case.
-describe('an unlabelled code fence stays unlabelled (ADR 0015)', () => {
+// A code block keeps only its language, so how the fence was written — the
+// marker kind and length, the absence of an info string, the indent that nests
+// it under a list item — survives the parse only by riding on that one field.
+describe('a code fence round-trips as it was written (ADR 0015)', () => {
   const rt = async (body) => (await roundTripBody(body)).replace(/\n+$/, '');
 
   it.each([
+    // The info string: `text` is the exporter's default for an unlabelled
+    // block, so these two shapes are the pair the marking has to keep apart.
     ['bare', '```\nSee [[welcome]] here\n```'],
     ['explicit text', '```text\nSee [[welcome]] here\n```'],
     ['a real language', '```js\nconst a = 1;\n```'],
+    ['an info string with spaces', '```js title="a b.js"\nconst a = 1;\n```'],
+    // The marker: the exporter always emits three backticks.
+    ['a longer marker', '````\nplain\n````'],
+    ['a longer marker with a language', '````js\nlet a = 1;\n````'],
+    ['a tilde fence', '~~~\nplain\n~~~'],
+    ['a tilde fence with a language', '~~~js\nlet a = 1;\n~~~'],
+    // The indent: a nested block is exported flattened to column zero.
+    ['a fence inside a list item', '- item\n\n  ```\n  plain\n  ```'],
+    ['a labelled fence inside a list item', '- item\n\n  ```js\n  let a = 1;\n  ```'],
+    ['a fence inside an ordered item', '1. one\n\n   ```\n   x\n   ```'],
+    ['a fence two levels deep', '- a\n  - b\n\n    ```\n    x\n    ```'],
+    ['a nested fence followed by prose', '- item\n\n  ```\n  x\n  ```\n\nafter prose'],
+    // Content shapes that must not be mistaken for structure.
+    ['a blank line inside the block', '```\nline one\n\nline two\n```'],
+    ['two adjacent fences', '```\none\n```\n\n```\ntwo\n```'],
   ])('round-trips %s unchanged', async (_name, body) => {
     expect(await rt(body)).toBe(body);
-  });
-
-  // The exporter normalises a longer marker back to three characters, which is
-  // its own difference and not this one's: assert only that no language is
-  // added, so this stays a test about the info string.
-  it('adds no language to a longer bare fence', async () => {
-    expect(await rt('````\nplain\n````')).not.toMatch(/```\w/);
   });
 
   it('keeps the language prop the author declared', async () => {
@@ -273,8 +282,10 @@ describe('an unlabelled code fence stays unlabelled (ADR 0015)', () => {
     const [explicit] = await bodyToBlocks('```text\nplain\n```');
     // Same block type, told apart only by the sentinel riding on the bare one.
     expect(bare.type).toBe('codeBlock');
-    expect(explicit.props.language).toBe('text');
     expect(bare.props.language).not.toBe(explicit.props.language);
+    // The sentinel is an implementation detail of the round trip: it must never
+    // reach the vault.
+    expect(await rt('```\nplain\n```')).not.toMatch(/wv-fence/);
   });
 
   // A shorter marker inside a longer fence is content, not a close: if it were
@@ -285,15 +296,20 @@ describe('an unlabelled code fence stays unlabelled (ADR 0015)', () => {
     expect(await rt(body)).toBe(body);
   });
 
-  // Two adjacent bare fences: the second opening must still be marked, which
-  // only holds if the first one was correctly closed.
-  it('marks every bare fence, not only the first', async () => {
-    const body = '```\none\n```\n\n```\ntwo\n```';
-    expect(await rt(body)).toBe(body);
+  // The exporter lengthens the marker when the content holds a backtick run;
+  // the carried length must not shorten it back and close the block early.
+  it('does not shorten a marker the exporter had to lengthen', async () => {
+    const body = '````\n```\nnested\n```\n````';
+    const out = await rt(body);
+    expect(out.split('\n')[0]).toBe('````');
   });
 
-  it('is idempotent — a second round-trip is a no-op', async () => {
-    const once = await rt('```\nplain\n```');
+  it.each([
+    '```\nplain\n```',
+    '~~~js\nlet a = 1;\n~~~',
+    '- item\n\n  ```\n  plain\n  ```',
+  ])('is idempotent — a second round-trip of %j is a no-op', async (body) => {
+    const once = await rt(body);
     expect(await rt(once)).toBe(once);
   });
 });
