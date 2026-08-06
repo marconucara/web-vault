@@ -3,9 +3,10 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-// The status bar shows two identities that are easy to conflate: the WebVault
-// release the site was built with, and the commit of the adopter's own vault
-// content. They come from different sources (adr/0037-*.md) and must not read
+// Integration: the status bar wires up two identities that are easy to conflate
+// — the WebVault release the site was built with, and the commit of the
+// adopter's own vault content. The indicator's own states live in
+// versionIndicator.test.jsx; this file asserts they meet correctly in the bar. They come from different sources (adr/0037-*.md) and must not read
 // as one value. Stub `content.js` so each case states exactly what the build
 // baked. See adr/0012-build-version-chip.md for the commit chip itself.
 const buildInfo = {
@@ -37,7 +38,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-describe('status bar version indicator', () => {
+describe('status bar identities', () => {
   it('shows the framework version alongside the vault commit', () => {
     const html = render(buildInfo);
     expect(html).toContain('v1.2.3');

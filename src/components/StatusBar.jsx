@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
+import VersionIndicator from './VersionIndicator.jsx';
 import { discard, discardAll, discardMany } from '../lib/pending.js';
 import { useDrafts, discardDraft, discardDrafts } from '../lib/drafts.js';
 import { useCreated, markCreated } from '../lib/created.js';
@@ -182,14 +183,7 @@ export default function StatusBar({ pending, onOpen }) {
           They are deliberately separate elements with their own tooltips — the
           version is not a property of that commit, and only the commit has
           somewhere to link to. */}
-      {build?.frameworkVersion && (
-        <span
-          className="sb-version"
-          title={`WebVault ${build.frameworkVersion}`}
-        >
-          v{build.frameworkVersion}
-        </span>
-      )}
+      <VersionIndicator />
       {build?.short && (
         <a
           className="sb-build"

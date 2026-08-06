@@ -16,11 +16,11 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Release state
 
 - **Unreleased on `main` since `v0.6.1`:** the share-page task-list fix
-  (ADR `0025`) and ADR `0037` — the versioning policy plus the framework version
-  in the build and status bar. The next tag is a **minor** (`v0.7.0`): the status
-  bar gains a visible element adopters did not ask for, which is not a patch.
-  When cutting it, follow `AGENTS.md` → "Cutting a release": four places name a
-  version and none of them fails loudly when stale.
+  (ADR `0025`), ADR `0037` (versioning policy, framework version in the build and
+  status bar) and ADR `0038` (the upgrade notice). The next tag is a **minor**
+  (`v0.7.0`): the status bar gains visible elements adopters did not ask for,
+  which is not a patch. When cutting it, follow `AGENTS.md` → "Cutting a
+  release": four places name a version and none of them fails loudly when stale.
 - **Current tag: `v0.6.1`** — round-trip fidelity for code fences and for blocks
   nested under a list item (ADR `0015` r5/r6). A patch by semver: bug fixes, no
   API change. Two defects with one shape — the block model drops something about
@@ -92,6 +92,23 @@ If status files and git disagree, git is authoritative; correct this file.
   and stylesheet in one string, so the rules are verifiable without a browser.
   121 → 130 tests. No version bump — rides along with a later release. See
   `plan/done/2026-08-06-shared-task-lists-show-bullet-and-checkbox.md`.
+- **ADR `0038` — in-app upgrade notice (2026-08-06, unreleased).** The portal
+  reads the framework repo's `/tags`, takes the highest by numeric semver, and
+  reports only a strictly-newer one. Both halves matter and **neither fails
+  locally**: `/tags` is lexicographic, so today's order is right only because
+  every minor is one digit — it breaks at `v0.10.0` — and a build can be *ahead*
+  of every tag (a maintainer on `main` after tagging), where an inequality test
+  shows a permanent false notice. **Two defects the tests caught, both invisible
+  by hand:** the throttle guard collapsed "never checked" into "checked at the
+  epoch", so the first check was refused and on a fresh install the notice would
+  never have appeared; and `run()` recorded `Date.now()` over the injected clock,
+  making the cadence untestable. One automatic check per hour, manual floor of a
+  minute, all failure paths silent. The Dismiss button was **removed after seeing
+  it run** — it persisted the dismissal and hid the dot for good; dismissing now
+  closes the panel and the dot stays (ADR r5 clarifies criterion 5, which always
+  meant the panel). The feature is live but inert until a tag newer than an
+  adopter's build exists. 137 → 159 tests. See
+  `plan/done/2026-08-06-in-app-upgrade-notice.md`.
 - **ADR `0037` — versioning policy and framework version (2026-08-06, `7f192d8`,
   `d8cb7c2`, unreleased).** The decision was rewritten before being built. It had
   called for GitHub Releases and a `1.0.0`; both are gone. A parallel publication

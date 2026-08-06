@@ -1,7 +1,7 @@
 ---
 adr: 0038
 title: In-app upgrade notice — fetch published tags, compare, notify
-status: Accepted
+status: Implemented
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -59,9 +59,14 @@ Performing the upgrade is `adr/0039-*.md`.
    running build's framework version; an equal or older one shows nothing.
 4. The notice attaches to the status-bar version indicator
    (`adr/0037-*.md`), which keeps showing the running version whether or not an
-   update exists, and opens an anchored, dismissible panel naming the new
-   version, the running one, and a link to that version on the repository host.
-5. The notice is non-blocking and dismissible; it never auto-upgrades or reloads.
+   update exists, and opens an anchored panel naming the new version, the
+   running one, and a link to that version on the repository host. The panel
+   closes on click-outside or Escape; the marker itself has no hide action.
+5. The notice is non-blocking and dismissible: the panel closes on
+   click-outside or Escape, and it never auto-upgrades or reloads. Dismissing
+   closes the panel, not the marker — the dot stays until the upgrade actually
+   happens, since suppressing it would have to persist and would then outlive
+   the moment it was clicked in.
 6. A network/API failure is silent — no error surfaced, no notice shown.
 7. The check is throttled so that ordinary use stays well inside the
    unauthenticated GitHub rate limit (60 requests/hour per IP): at most one
@@ -96,6 +101,8 @@ Performing the upgrade is `adr/0039-*.md`.
 | 2026-08-06 | r2 | marco | Retargeted from GitHub Releases to the published tag list, following `adr/0037-*.md` r2. Made semver sorting and the strictly-newer comparison explicit, dropped release notes from the notice, added a rate-limit criterion. |
 | 2026-08-06 | r3 | marco | Anchored the notice to the status-bar version indicator introduced by `adr/0037-*.md` r3 (new AC4), closing the placement open question. |
 | 2026-08-06 | r4 | marco | Settled the remaining open questions: hourly automatic check with a one-minute floor on manual re-checks (AC7/AC8), and an anchored panel that links to the new version on the repository host (AC4). |
+| 2026-08-06 | r5 | marco | Clarified AC5: dismissing closes the panel, not the marker. Found in use — an explicit Dismiss button hid the dot persistently, which outlives the click and leaves no way back. |
+| 2026-08-06 | r6 | marco | Implemented: tag fetch, semver selection, throttled checks, and the status-bar marker with its anchored panel. |
 
 ## Approvals
 

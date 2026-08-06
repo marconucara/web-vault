@@ -1043,20 +1043,65 @@ a:hover { text-decoration: underline; }
 .sb-build:hover { background: var(--bg-active); color: var(--text); }
 .sb-build .icon { flex: none; opacity: 0.7; }
 .sb-build-sha { letter-spacing: 0.2px; }
-/* Sits next to .sb-build but is not a link: no hover affordance, and no icon,
-   so the two identities stay visually distinct rather than reading as one
-   compound value. */
+/* Sits next to .sb-build but is a button, not a link: it re-checks for updates
+   or opens the update panel. No icon, so the two identities stay visually
+   distinct rather than reading as one compound value. */
+.sb-version-wrap { position: relative; display: inline-flex; }
 .sb-version {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   padding: 0 6px;
   height: 22px;
+  border: 0;
   border-radius: 6px;
+  background: none;
   color: var(--text-dim);
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.2px;
+  cursor: pointer;
 }
+.sb-version:hover { background: var(--bg-active); color: var(--text); }
+/* The dot is green by choice. `.status-item.sync` is also green and sits in the
+   same bar, so the two are kept apart by shape and position — a small dot to
+   the LEFT of a version at the far left, against a check + "In sync" at the far
+   right — never by colour alone. */
+.sb-version-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2f9e57;
+  flex: none;
+}
+@media (prefers-color-scheme: dark) { .sb-version-dot { background: #4ac57e; } }
+.sb-version.has-update { color: var(--text); }
+
+/* Anchored to the indicator (bottom-left), unlike .statuspanel which hangs off
+   the right edge of the bar. Passive and dismissible: never a modal. */
+.versionpanel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  width: max-content;
+  max-width: min(320px, calc(100vw - 24px));
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22);
+  padding: 10px 12px;
+  z-index: 30;
+  font-size: 12px;
+}
+.vp-head { font-weight: 600; color: var(--text); }
+.vp-body { color: var(--text-dim); margin-top: 2px; }
+.vp-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.vp-link { color: var(--accent); }
 .sb-toast {
   display: inline-flex;
   align-items: center;

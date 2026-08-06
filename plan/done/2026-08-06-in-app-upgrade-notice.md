@@ -100,3 +100,46 @@ resolve to the adopter's own tags.
 7. The update dot and the "In sync" indicator remain distinguishable in both
    light and dark; confirmed in a browser, since no test settles this.
 8. `yarn verify` green.
+
+---
+
+## Outcome
+
+`src/lib/upgrade.js` fetches the framework repository's tags, selects the
+highest by numeric semver comparison, and compares strictly-newer against
+`build.frameworkVersion`. `src/components/VersionIndicator.jsx` owns the
+indicator and its panel; it was extracted from `StatusBar.jsx` rather than added
+to it, the component being long already and this a separate concern.
+
+**Two real defects were caught by the tests, during implementation rather than
+after.** Both would have been invisible in local use:
+
+- The throttle guard read `Number(state.checkedAt) || 0`, collapsing "never
+  checked" and "checked at the epoch" into the same state. The very first check
+  was therefore refused as though one had just happened — on a fresh install the
+  notice would **never** have appeared. Not reproducible by hand, since locally
+  the timestamp already exists by the time anyone looks.
+- `run()` recorded `Date.now()` while ignoring the injected `now`, which made
+  every throttle window look freshly checked and the cadence untestable.
+
+Deviation from the plan, at the owner's request after seeing it running: the
+panel's **Dismiss button is gone**. It persisted a per-version dismissal, so it
+hid the dot for good — the suppression outlived the click with no way back.
+Dismissing now means closing the panel (click-outside or Escape) and the dot
+stays until the upgrade happens. ADR criterion 5 was clarified accordingly (r5);
+the criterion always meant the panel closes, which it does.
+
+The lexicographic-ordering hazard is worth restating: the live API today returns
+`v0.6.1, v0.6.0, v0.5.4, …` — correct order, but only because every minor is a
+single digit. It stays correct until `v0.10.0` and then silently is not. The
+fixture covers exactly that case.
+
+Verified against the live endpoint and in a browser by the owner, running a
+throwaway consumer with `package.json` temporarily lowered to `0.5.0` so the
+real `v0.6.1` registered as newer (restored afterwards). Criterion 7 — the green
+dot against the green "In sync" at the other end of the bar — confirmed by eye
+in both themes, as no test settles it.
+
+Coverage: 137 → 159 tests.
+
+**Shipped:** 2026-08-06 · HEAD <pending> · ADR 0038 (r6, Accepted → Implemented)
