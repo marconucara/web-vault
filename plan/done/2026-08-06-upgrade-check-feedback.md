@@ -208,3 +208,8 @@ Left as it was: the automatic hourly check's silence, and the upgrade panel.
   so a second tab observing the write re-renders the version but never the
   confirmation. Worth keeping in mind if that state is ever moved into the
   store, where it would leak across tabs.
+
+---
+
+**Shipped:** 2026-08-06 · implementation `84ae2df`, ship `3fe8197` · ADR 0038
+(r7–r9, Implemented). Untagged on purpose — no version bump, see Outcome.
