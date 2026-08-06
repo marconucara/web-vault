@@ -1,7 +1,7 @@
 ---
 adr: 0038
 title: In-app upgrade notice — fetch published tags, compare, notify
-status: Proposed
+status: Accepted
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -59,11 +59,15 @@ Performing the upgrade is `adr/0039-*.md`.
    running build's framework version; an equal or older one shows nothing.
 4. The notice attaches to the status-bar version indicator
    (`adr/0037-*.md`), which keeps showing the running version whether or not an
-   update exists.
+   update exists, and opens an anchored, dismissible panel naming the new
+   version, the running one, and a link to that version on the repository host.
 5. The notice is non-blocking and dismissible; it never auto-upgrades or reloads.
 6. A network/API failure is silent — no error surfaced, no notice shown.
 7. The check is throttled so that ordinary use stays well inside the
-   unauthenticated GitHub rate limit (60 requests/hour per IP).
+   unauthenticated GitHub rate limit (60 requests/hour per IP): at most one
+   automatic check per hour, persisted across page loads.
+8. The indicator is clickable for a manual re-check, refused if the previous
+   check was under a minute ago.
 
 ## Out of scope
 
@@ -76,10 +80,7 @@ Performing the upgrade is `adr/0039-*.md`.
 
 ## Open questions
 
-- Poll cadence and cache lifetime for the throttle in AC6 (once per session vs.
-  a stored timestamp).
-- Whether the notice is a marker on the version indicator alone or also links
-  out to the repository's tag/compare view.
+- None.
 
 ## References
 
@@ -94,8 +95,10 @@ Performing the upgrade is `adr/0039-*.md`.
 | 2026-07-30 | r1 | marco | Initial draft. |
 | 2026-08-06 | r2 | marco | Retargeted from GitHub Releases to the published tag list, following `adr/0037-*.md` r2. Made semver sorting and the strictly-newer comparison explicit, dropped release notes from the notice, added a rate-limit criterion. |
 | 2026-08-06 | r3 | marco | Anchored the notice to the status-bar version indicator introduced by `adr/0037-*.md` r3 (new AC4), closing the placement open question. |
+| 2026-08-06 | r4 | marco | Settled the remaining open questions: hourly automatic check with a one-minute floor on manual re-checks (AC7/AC8), and an anchored panel that links to the new version on the repository host (AC4). |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-08-06 | — |
