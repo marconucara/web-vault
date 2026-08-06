@@ -25,7 +25,10 @@ export const releaseUrl = (version) => `https://github.com/${REPO}/tree/v${versi
 const AUTO_INTERVAL_MS = 60 * 60 * 1000;
 const MANUAL_INTERVAL_MS = 60 * 1000;
 
-const KEY = 'vault-web:upgrade:v1';
+// v2: v1 stored a single `checkedAt` that advanced on failure too, which cannot
+// express "the last check failed" — the distinction AC6/AC9 now turn on. The
+// only cost of discarding a v1 store is one extra check.
+const KEY = 'vault-web:upgrade:v2';
 const hasLS = typeof localStorage !== 'undefined';
 
 // Strictly `X.Y.Z`. Anything else — pre-releases, `v1.2`, a moved branch-like
@@ -82,7 +85,20 @@ function load() {
   }
 }
 
-// { checkedAt: epoch ms, latest: 'X.Y.Z' | undefined }
+// {
+//   checkedAt:   epoch ms of the last SUCCESSFUL check — what "last checked"
+//                means to an adopter, and the only one that may be reported
+//   attemptedAt: epoch ms of the last attempt, successful or not — the throttle
+//                reads this one, so a hard-down endpoint is not re-fetched on
+//                every render
+//   latest:      'X.Y.Z' | undefined
+//   failed:      true when the last attempt did not produce an answer
+// }
+//
+// The two timestamps have to be separate. Sharing one (as v1 did) forces a
+// choice between re-fetching a dead endpoint on every render and reporting a
+// failed check as a fresh one — AC6 rules out the second and the rate limit
+// rules out the first.
 //
 // Deliberately no `dismissed`: dismissing closes the panel (click-outside or
 // Escape), it does not suppress the marker. Suppression would have to persist
@@ -120,21 +136,34 @@ function getSnapshot() {
   return state;
 }
 
+// What a check resolves to. `checked` means "we have an answer" — whether that
+// answer is an available update is read off the store, not off this value.
+export const OUTCOME = { checked: 'checked', failed: 'failed' };
+
 let inFlight = null;
 
-// Every failure path is silent (adr/0038-*.md): network error, non-2xx, rate
-// limit, malformed payload, no usable tags. The adopter is not troubleshooting
-// GitHub — a failed check is simply "no notice this time". The timestamp is
-// still recorded, so a hard-down endpoint is not retried on every render.
+// No failure path surfaces an error the adopter is asked to act on
+// (adr/0038-*.md): network error, non-2xx, rate limit, malformed payload, no
+// usable tags. But they are not all the same OUTCOME, and the difference is
+// what the manual check reports.
+//
+// "The endpoint answered and its newest tag is not newer than us" is knowledge:
+// it justifies telling the adopter they are up to date. "The endpoint did not
+// answer" is the absence of knowledge, and reporting it as up-to-date would
+// assert something this call did not establish. Hence `{ ok }` rather than a
+// bare `latest | null`, which collapsed the two.
+//
+// A 200 carrying no usable tag counts as OK: the check ran, GitHub answered,
+// there is simply no published version to compare against.
 async function fetchLatest() {
   try {
     const res = await fetch(TAGS_URL, {
       headers: { Accept: 'application/vnd.github+json' },
     });
-    if (!res.ok) return null;
-    return highestVersion(await res.json());
+    if (!res.ok) return { ok: false };
+    return { ok: true, latest: highestVersion(await res.json()) };
   } catch {
-    return null;
+    return { ok: false };
   }
 }
 
@@ -142,22 +171,41 @@ async function fetchLatest() {
 // testable: recording Date.now() while the caller reasons about an injected
 // clock makes every window look freshly checked.
 async function run(now) {
-  const latest = await fetchLatest();
-  state = { ...state, checkedAt: now, ...(latest ? { latest } : {}) };
+  const res = await fetchLatest();
+  state = {
+    ...state,
+    attemptedAt: now,
+    ...(res.ok
+      ? { checkedAt: now, failed: false, ...(res.latest ? { latest: res.latest } : {}) }
+      : { failed: true }),
+  };
   emit();
-  return latest;
+  // A successful check keeps the last known `latest` when the payload had no
+  // usable tag, so the marker does not blink off on a stray empty response.
+  return res.ok ? OUTCOME.checked : OUTCOME.failed;
 }
 
 // `force` is the manual re-check: same work, tighter floor. Returns without
 // fetching when called inside the applicable window, so a repeatedly clicked
 // indicator cannot spend the rate limit.
+//
+// A refusal resolves to the outcome of the LAST check rather than to a refusal
+// of its own, and this is deliberate — it is the one place where what the
+// caller is told is not what just happened underneath (adr/0038-*.md AC8). The
+// rate limit is our constraint, not the adopter's: someone clicking twice in
+// thirty seconds asked the same question twice and the answer has not changed,
+// so they get the answer, not a rebuff about a window they cannot see and were
+// never told about. Do not "fix" this into a distinct refused outcome — that is
+// the dead-button behaviour this replaced.
 export function checkForUpdate({ force = false, now = Date.now() } = {}) {
   // "Never checked" is not "checked at the epoch": with `last` defaulting to 0
   // the very first check would be refused as if one had just happened, and the
   // notice would never appear on a fresh install.
-  const last = Number.isFinite(state.checkedAt) ? state.checkedAt : null;
+  const last = Number.isFinite(state.attemptedAt) ? state.attemptedAt : null;
   const floor = force ? MANUAL_INTERVAL_MS : AUTO_INTERVAL_MS;
-  if (last !== null && now - last < floor) return Promise.resolve(null);
+  if (last !== null && now - last < floor) {
+    return Promise.resolve(state.failed ? OUTCOME.failed : OUTCOME.checked);
+  }
   if (inFlight) return inFlight;
   inFlight = run(now).finally(() => {
     inFlight = null;
@@ -172,7 +220,14 @@ export function useUpgrade() {
   // A build predating adr/0037-*.md carries no version. Nothing to compare, so
   // nothing is claimed — better than guessing an adopter is out of date.
   const available = isNewer(latest, running);
-  return { running, latest, available, checkedAt: Number(snap.checkedAt) || 0 };
+  return {
+    running,
+    latest,
+    available,
+    // Of the last SUCCESSFUL check: this is what "last checked" is allowed to
+    // mean when it is shown to an adopter.
+    checkedAt: Number(snap.checkedAt) || 0,
+  };
 }
 
 export const __test = { KEY, AUTO_INTERVAL_MS, MANUAL_INTERVAL_MS, TAGS_URL };

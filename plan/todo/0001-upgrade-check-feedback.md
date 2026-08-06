@@ -138,12 +138,69 @@ Component (`versionIndicator.test.jsx`):
    updated in the same change.
 9. `yarn verify` green.
 
+## Progress (2026-08-06) — implemented, awaiting the browser check
+
+Code and tests are done and `yarn verify` is green (210 → 225 tests). **This item
+stays in `todo/` and ADR `0038` stays Accepted** until exit criteria 5 and 6 are
+confirmed in a browser: both are explicitly "verify in the real app, not only in
+a unit test", and no consumer project was linked to this working tree during
+implementation. Everything else is complete.
+
+**The store now models the outcome, not just the result.** `fetchLatest` returns
+`{ ok, latest }` instead of `latest | null`, which had collapsed "GitHub
+answered and we are current" together with "nothing answered". `checkForUpdate`
+resolves to `OUTCOME.checked | OUTCOME.failed`. The store key went to
+`vault-web:upgrade:v2` — a v1 record cannot express a failed check, and the only
+cost of discarding one is an extra check.
+
+**The two timestamps had to split**, as the Scope suspected. `attemptedAt` drives
+the throttle, `checkedAt` records the last *success* and is the only one shown.
+Sharing one forces a choice between hammering a dead endpoint on every render and
+telling the adopter their information is fresh when nothing answered. A test
+pins each half.
+
+**A 200 carrying no usable tag is a success, not a failure** — the check ran and
+GitHub answered; there is simply no published version. It moved out of the
+"failure" suite into its own case. This is the one classification the old code
+got right by accident and would have been easy to lose here.
+
+**The pending floor runs alongside the fetch, not after it** (`Promise.all`), so
+the floor never adds latency to a slow check — it only stops a fast one from
+flashing. Set to 450ms with the reasoning in a comment.
+
+**Colour.** The green dot is gone; update-available is amber. The CSS comment
+that defended green was arguing against using the brand colour and about staying
+distinct from `.status-item.sync` by shape and position — not against the
+"green reads as no-action-needed" point — so it was removed with the green
+rather than rewritten. Green now appears only as the transient confirmation.
+
+**Tooltip.** `.tt-up` is a modifier on the existing `.tt`, flipping it above the
+element and left-aligning it (a right-aligned bubble at the left edge of the bar
+would run backwards off screen). Built as a reusable modifier per Scope; the
+other status-bar items still use native `title` and can adopt it.
+
+It **leads with the answer** — `Up to date · checked 12 minutes ago`, not
+`WebVault 0.6.1 — up to date · …`. The version is rendered immediately beside
+the tooltip, so repeating it there spends the first half of the line on
+something already on screen. The `aria-label` is the exception and keeps the
+version, because it *replaces* the visible text for a screen reader rather than
+sitting next to it.
+
+**One neighbouring test needed a change**: `statusBarIdentities.test.jsx`
+asserted `class="sb-version"` exactly, which the tooltip modifiers break. Relaxed
+to match the class token, since the assertion's intent is that the version is its
+own element — not that it carries exactly one class.
+
+Left as it was: the automatic hourly check's silence, and the upgrade panel.
+
 ## Notes
 
-- `checkedAt` is already persisted under `vault-web:upgrade:v1`
-  (`src/lib/upgrade.js:28`). If the stored shape changes incompatibly, bump the
-  key version rather than tolerating both — the only cost of a discarded store
-  is one extra check.
-- The `storage` event listener (`src/lib/upgrade.js:107-114`) syncs the store
-  across tabs. A transient confirmation belongs to the tab that was clicked in;
-  it should not appear in a second tab that merely observed the write.
+- ~~`checkedAt` is already persisted under `vault-web:upgrade:v1`. If the stored
+  shape changes incompatibly, bump the key version rather than tolerating
+  both~~ — done: the key is now `vault-web:upgrade:v2`.
+- ~~The `storage` event listener syncs the store across tabs. A transient
+  confirmation belongs to the tab that was clicked in~~ — holds by construction:
+  the confirmation is component state (`check`), set only by the click handler,
+  so a second tab observing the write re-renders the version but never the
+  confirmation. Worth keeping in mind if that state is ever moved into the
+  store, where it would leak across tabs.

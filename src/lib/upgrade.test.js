@@ -122,14 +122,21 @@ describe('throttling', () => {
   });
 });
 
-describe('failure is silent', () => {
+describe('failure claims nothing', () => {
   const expectQuiet = async () => {
-    await mod.checkForUpdate();
+    const outcome = await mod.checkForUpdate();
     const stored = JSON.parse(localStorage.getItem(mod.__test.KEY));
-    // The timestamp is still recorded, so a hard-down endpoint is not retried
-    // on every render; but no version is claimed.
-    expect(stored.checkedAt).toBeGreaterThan(0);
+    // The ATTEMPT is recorded, so a hard-down endpoint is not retried on every
+    // render. But no version is claimed, and the success timestamp does not
+    // move: reporting "last checked" off a failed attempt would tell an adopter
+    // their information is fresh when nothing answered.
+    expect(stored.attemptedAt).toBeGreaterThan(0);
     expect(stored.latest).toBeUndefined();
+    expect(stored.checkedAt).toBeUndefined();
+    expect(stored.failed).toBe(true);
+    // And the caller can tell: this is what stops the UI reporting "up to date"
+    // on the strength of a check that never happened (adr/0038-*.md AC6).
+    expect(outcome).toBe(mod.OUTCOME.failed);
   };
 
   it('swallows a network error', async () => {
@@ -152,9 +159,71 @@ describe('failure is silent', () => {
     await expectQuiet();
   });
 
-  it('swallows a tag list with nothing usable in it', async () => {
+  it('treats a tag list with nothing usable as a check that RAN', async () => {
+    // GitHub answered; there is simply no published version to compare against.
+    // That is knowledge, not a failure, so it may be reported as up to date —
+    // unlike the cases above, where nothing answered at all.
     stubTags([tag('nightly'), tag('latest')]);
-    await expectQuiet();
+    const outcome = await mod.checkForUpdate();
+    const stored = JSON.parse(localStorage.getItem(mod.__test.KEY));
+    expect(outcome).toBe(mod.OUTCOME.checked);
+    expect(stored.checkedAt).toBeGreaterThan(0);
+    expect(stored.latest).toBeUndefined();
+  });
+});
+
+describe('the outcome a check reports', () => {
+  it('reports a completed check, and keeps the answer in the store', async () => {
+    stubTags([tag('v0.7.0')]);
+    expect(await mod.checkForUpdate()).toBe(mod.OUTCOME.checked);
+    expect(JSON.parse(localStorage.getItem(mod.__test.KEY)).latest).toBe('0.7.0');
+  });
+
+  it('reports a completed check when there is no newer version', async () => {
+    // The commonest case by far, and the one that used to be indistinguishable
+    // from nothing happening: the caller must be able to tell it ran.
+    stubTags([tag('v0.6.1'), tag('v0.5.0')]);
+    expect(await mod.checkForUpdate()).toBe(mod.OUTCOME.checked);
+  });
+
+  it('answers a throttled re-check from the last result instead of refusing', async () => {
+    // adr/0038-*.md AC8: the rate limit is our constraint, not the adopter's.
+    // A refusal that rendered as "nothing happened" is the defect this closes.
+    const f = stubTags([tag('v0.7.0')]);
+    await mod.checkForUpdate();
+    const outcome = await mod.checkForUpdate({ force: true, now: Date.now() + 1000 });
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(outcome).toBe(mod.OUTCOME.checked);
+  });
+
+  it('still reports the failure when a throttled re-check follows a failed one', async () => {
+    // The stored answer is "we do not know", so that is what comes back — a
+    // refusal must not upgrade a failure into a success.
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    await mod.checkForUpdate();
+    const outcome = await mod.checkForUpdate({ force: true, now: Date.now() + 1000 });
+    expect(outcome).toBe(mod.OUTCOME.failed);
+  });
+
+  it('re-fetches after a failure once the window passes, and recovers', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    await mod.checkForUpdate({ now: 0 });
+    stubTags([tag('v0.7.0')]);
+    const outcome = await mod.checkForUpdate({ now: mod.__test.AUTO_INTERVAL_MS + 1 });
+    expect(outcome).toBe(mod.OUTCOME.checked);
+    const stored = JSON.parse(localStorage.getItem(mod.__test.KEY));
+    expect(stored.failed).toBe(false);
+    expect(stored.latest).toBe('0.7.0');
+  });
+
+  it('throttles on the attempt, not on the last success', async () => {
+    // Otherwise a failing endpoint would be hammered on every render: the
+    // success timestamp never advances, so it would never look recent.
+    const f = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', f);
+    await mod.checkForUpdate({ now: 0 });
+    await mod.checkForUpdate({ now: 1000 });
+    expect(f).toHaveBeenCalledTimes(1);
   });
 });
 

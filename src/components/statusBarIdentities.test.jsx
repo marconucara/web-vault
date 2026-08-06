@@ -49,10 +49,11 @@ describe('status bar identities', () => {
     const html = render(buildInfo);
     // The version is its own element and stays outside the commit anchor: it is
     // not a property of that commit and has nowhere to link to.
-    expect(html).toMatch(/class="sb-version"[^>]*>v1\.2\.3</);
+    expect(html).toMatch(/class="sb-version[^"]*"[^>]*>v1\.2\.3</);
     const anchor = html.match(/<a class="sb-build"[\s\S]*?<\/a>/)[0];
     expect(anchor).not.toContain('1.2.3');
-    // Each carries its own tooltip naming what it is.
+    // Each carries its own tooltip naming what it is — the version's is the
+    // in-app one (`data-tip`), the commit chip's is still a native `title`.
     expect(html).toContain('WebVault 1.2.3');
     expect(anchor).toContain('Content built from commit abcdef1');
   });
@@ -76,6 +77,6 @@ describe('status bar identities', () => {
   it('marks a dirty local build on the commit, not on the version', () => {
     const html = render({ ...buildInfo, dirty: true });
     expect(html).toContain('abcdef1+');
-    expect(html).toMatch(/class="sb-version"[^>]*>v1\.2\.3</);
+    expect(html).toMatch(/class="sb-version[^"]*"[^>]*>v1\.2\.3</);
   });
 });

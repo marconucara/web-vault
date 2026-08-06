@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { build } from '../content.js';
-import { checkForUpdate, releaseUrl, useUpgrade } from '../lib/upgrade.js';
+import { OUTCOME, checkForUpdate, releaseUrl, useUpgrade } from '../lib/upgrade.js';
 import { loadCapabilities, useCapabilities } from '../lib/capabilities.js';
 import { pollForVersion, requestUpgrade } from '../lib/upgradeAction.js';
+import Icon from './Icon.jsx';
 
 // The WebVault version this site was built with, plus a passive marker when a
 // newer one is published (adr/0037-*.md, adr/0038-*.md).
@@ -10,19 +11,63 @@ import { pollForVersion, requestUpgrade } from '../lib/upgradeAction.js';
 // The click means different things in the two states, by design: with nothing
 // to report it re-runs the check, and with an update known it opens the panel —
 // where re-checking would be pointless, since the answer is already on screen.
+
+// A check that answers in 80ms would otherwise flash a spinner too briefly to
+// register, leaving the adopter where they started: unsure whether the click
+// did anything. Holding the pending state to a floor makes the fast path — the
+// common one, since the answer is usually cached — read as a check that ran
+// rather than as a glitch. Long enough to see, short enough not to feel stalled.
+const PENDING_MIN_MS = 450;
+// The up-to-date answer is a confirmation, not a status: it clears itself and
+// leaves the resting indicator behind (adr/0038-*.md AC9). A standing "you are
+// current" badge would be lit ~always and would say nothing.
+const CONFIRM_MS = 2600;
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Relative under an hour, absolute beyond it — the ADR left this open. Under an
+// hour "12 minutes ago" is the useful form and a clock time makes the reader do
+// arithmetic; beyond it the arithmetic stops being worth it and a time (or a
+// date) is what people actually want to know.
+export function lastCheckedLabel(at, now = Date.now()) {
+  if (!at) return 'not checked yet';
+  const ms = Math.max(0, now - at);
+  if (ms < 60 * 1000) return 'checked just now';
+  if (ms < 60 * 60 * 1000) {
+    const m = Math.round(ms / 60000);
+    return `checked ${m} minute${m === 1 ? '' : 's'} ago`;
+  }
+  const d = new Date(at);
+  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const sameDay = new Date(now).toDateString() === d.toDateString();
+  return sameDay ? `checked at ${time}` : `checked ${d.toLocaleDateString()} at ${time}`;
+}
+
 export default function VersionIndicator() {
-  const { running, latest, available } = useUpgrade();
+  const { running, latest, available, checkedAt } = useUpgrade();
   const { canWrite } = useCapabilities();
   const [open, setOpen] = useState(false);
   // 'idle' | 'working' | 'building' | 'live' | 'done' | 'noop' | 'error'
   const [phase, setPhase] = useState('idle');
   const [note, setNote] = useState('');
+  // The manual check's own visible state, separate from `phase` (which belongs
+  // to the upgrade action): 'idle' | 'pending' | 'confirmed' | 'failed'.
+  const [check, setCheck] = useState('idle');
   const ref = useRef(null);
   const poll = useRef(null);
+  const confirmTimer = useRef(null);
+  const alive = useRef(true);
 
   // A poll outliving the component would keep fetching against a panel nobody
   // is looking at.
   useEffect(() => () => poll.current?.cancel(), []);
+
+  // The confirmation clears on a timer, so both it and any in-flight check have
+  // to stop caring once this unmounts.
+  useEffect(() => () => {
+    alive.current = false;
+    clearTimeout(confirmTimer.current);
+  }, []);
 
   // One automatic check per page open, itself rate limited to once an hour by
   // the persisted timestamp.
@@ -84,12 +129,58 @@ export default function VersionIndicator() {
     }
   };
 
-  const onClick = () => {
-    if (available) setOpen((v) => !v);
-    // Manual re-check. Refused inside a minute of the last one, silently: the
-    // rate limit is not the adopter's problem to solve.
-    else checkForUpdate({ force: true });
+  // The manual re-check, and the case this whole indicator exists to serve: an
+  // adopter who is already current clicking to make sure. It must be visible
+  // from click to answer (adr/0038-*.md AC9) — a check that silently finds
+  // nothing is indistinguishable from a button that does nothing, which is
+  // exactly what this replaced.
+  //
+  // All three paths land here identically: fetched, refused by the throttle
+  // (the store answers from the last check), or failed. The refusal is not
+  // called out — see checkForUpdate.
+  const runCheck = async () => {
+    if (check === 'pending') return;
+    clearTimeout(confirmTimer.current);
+    setCheck('pending');
+    // Both are started before awaiting either: the floor runs alongside the
+    // fetch rather than after it, so a slow check is not further delayed by it.
+    const [outcome] = await Promise.all([
+      checkForUpdate({ force: true }),
+      wait(PENDING_MIN_MS),
+    ]);
+    if (!alive.current) return;
+    if (outcome === OUTCOME.failed) {
+      // Not an error to act on (AC6): the absence of the confirmation IS the
+      // message. Saying "up to date" here would assert what the check failed to
+      // establish.
+      setCheck('failed');
+      confirmTimer.current = setTimeout(() => alive.current && setCheck('idle'), CONFIRM_MS);
+      return;
+    }
+    setCheck('confirmed');
+    confirmTimer.current = setTimeout(() => alive.current && setCheck('idle'), CONFIRM_MS);
   };
+
+  const onClick = () => {
+    // With an update known, the answer is already on screen: the click opens
+    // the panel instead, and re-checking would tell the adopter nothing new.
+    if (available) setOpen((v) => !v);
+    else runCheck();
+  };
+
+  // Leads with the answer, not with the version: the version is rendered right
+  // beside the tooltip, so repeating it spends the first half of the line on
+  // something already on screen. Last-check time is of the last SUCCESSFUL
+  // check (AC11) — a failed attempt must not age the timestamp into looking
+  // fresh.
+  const tip =
+    check === 'pending'
+      ? 'Checking for updates…'
+      : check === 'failed'
+        ? 'Couldn’t check for updates'
+        : available
+          ? `${latest} is available · ${lastCheckedLabel(checkedAt)}`
+          : `Up to date · ${lastCheckedLabel(checkedAt)}`;
 
   return (
     <span className="sb-version-wrap" ref={ref}>
@@ -138,18 +229,33 @@ export default function VersionIndicator() {
           </div>
         </div>
       )}
+      {/* The in-app tooltip (`.tt` + `data-tip`), not the native `title`:
+          consistent with the rest of the app, and it opens upward because this
+          sits in the status bar at the bottom of the viewport, where a
+          downward one would be cut off (adr/0038-*.md AC11). */}
       <button
         type="button"
-        className={`sb-version${available ? ' has-update' : ''}`}
+        className={`sb-version tt tt-up${available ? ' has-update' : ''}${
+          check === 'confirmed' ? ' is-confirmed' : ''
+        }`}
         onClick={onClick}
-        title={
-          available
-            ? `WebVault ${running} — ${latest} is available`
-            : `WebVault ${running} — click to check for updates`
-        }
+        data-tip={tip}
+        // The label replaces the visible text for a screen reader rather than
+        // sitting beside it, so it keeps the version the tooltip can leave out.
+        aria-label={`WebVault ${running} — ${tip}`}
       >
         {available && <span className="sb-version-dot" aria-hidden="true" />}
         v{running}
+        {/* Exactly one of these renders: the check has one visible state at a
+            time, and the outcome replaces the pending state rather than
+            joining it. */}
+        {check === 'pending' ? (
+          <span className="sb-version-spin" aria-hidden="true" />
+        ) : check === 'confirmed' ? (
+          <Icon name="check" size={12} />
+        ) : check === 'failed' ? (
+          <span className="sb-version-failed">couldn’t check</span>
+        ) : null}
       </button>
     </span>
   );

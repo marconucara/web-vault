@@ -137,10 +137,11 @@ Performing the upgrade is `adr/0039-*.md`.
 
 ## Open questions
 
-- How the last-check time (AC11) is rendered: relative ("2h ago", readable at a
-  glance) or absolute ("14:32", verifiable). The leaning is relative under an
-  hour and absolute beyond it, but this is a presentation preference and does
-  not follow from anything above; settle it during implementation.
+- None. The last-check format (AC11) is settled: relative under the hour
+  ("checked 12 minutes ago"), a clock time within the same day beyond it, and a
+  date before that. Under an hour the relative form is what a reader wants and a
+  clock time makes them do arithmetic; past that the arithmetic stops being
+  worth doing and the time is the useful fact.
 
 ## References
 
@@ -159,6 +160,7 @@ Performing the upgrade is `adr/0039-*.md`.
 | 2026-08-06 | r5 | marco | Clarified AC5: dismissing closes the panel, not the marker. Found in use — an explicit Dismiss button hid the dot persistently, which outlives the click and leaves no way back. |
 | 2026-08-06 | r6 | marco | Implemented: tag fetch, semver selection, throttled checks, and the status-bar marker with its anchored panel. |
 | 2026-08-06 | r7 | marco | Back to Accepted. Found in use: the manual re-check (AC8) had no observable outcome in the commonest case — an adopter clicking to confirm they are current saw nothing change, since a check finding no update touches no rendered state. AC8 specified the action without specifying its feedback, and AC6's blanket silence, correct for the automatic check, made a failed manual check indistinguishable from "up to date". Qualified AC6 by mode, rewrote AC8 so a throttle refusal is unobservable, and added AC9 (pending state and exactly one terminal outcome), AC10 (colour semantics — the shipped marker was green, which reads as "no action needed" while meaning the opposite), and AC11 (in-app tooltip carrying the running version and last-check time). |
+| 2026-08-06 | r8 | marco | Closed the AC11 open question with the shipped format: relative under the hour, clock time within the day, date beyond. |
 
 ## Approvals
 

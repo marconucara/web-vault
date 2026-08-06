@@ -900,6 +900,21 @@ a:hover { text-decoration: underline; }
 }
 .tt:hover::after, .tt:focus-visible::after { opacity: 1; transform: none; }
 
+/* Opens upward, for anything in the status bar: the default bubble hangs below
+   its element, which at the bottom of the viewport is off screen. Left-aligned
+   rather than right, since these sit at the left edge of the bar where a
+   right-aligned bubble would run backwards off it. A modifier on .tt, not a
+   second tooltip — the other status-bar items still use native `title` and are
+   meant to move onto this. */
+.tt-up::after {
+  top: auto;
+  bottom: calc(100% + 6px);
+  right: auto;
+  left: 0;
+  transform: translateY(3px);
+}
+.tt-up:hover::after, .tt-up:focus-visible::after { transform: none; }
+
 /* CodeMirror editor */
 .editor-wrap {
   border: 1px solid var(--border);
@@ -1063,19 +1078,46 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
 }
 .sb-version:hover { background: var(--bg-active); color: var(--text); }
-/* The dot is green by choice. `.status-item.sync` is also green and sits in the
-   same bar, so the two are kept apart by shape and position — a small dot to
-   the LEFT of a version at the far left, against a check + "In sync" at the far
-   right — never by colour alone. */
+/* Amber, and deliberately not green: green is what this bar uses for "nothing
+   to do" (`.status-item.sync`), and an update waiting is the opposite of that.
+   There is no dot at rest — being up to date is the absence of the marker, not
+   a second colour for it, so nothing here is lit in the state that holds
+   almost always. */
 .sb-version-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #2f9e57;
+  background: #d98324;
   flex: none;
 }
-@media (prefers-color-scheme: dark) { .sb-version-dot { background: #4ac57e; } }
+@media (prefers-color-scheme: dark) { .sb-version-dot { background: #e8a04b; } }
 .sb-version.has-update { color: var(--text); }
+
+/* The manual check, from click to answer. Green appears ONLY here — as the
+   transient confirmation of something the adopter just did, never as a standing
+   state. It is gone a couple of seconds later. */
+.sb-version-spin {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--text-dim);
+  border-radius: 50%;
+  animation: ss-spin 0.7s linear infinite;
+}
+.sb-version.is-confirmed { color: #2f9e57; }
+.sb-version.is-confirmed .icon { color: #2f9e57; }
+@media (prefers-color-scheme: dark) {
+  .sb-version.is-confirmed,
+  .sb-version.is-confirmed .icon { color: #4ac57e; }
+}
+/* The failed outcome is a statement, not an alarm: same dim text as the rest of
+   the bar. Nothing here asks the adopter to do something about it. */
+.sb-version-failed { color: var(--text-dim); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-version-spin { animation-duration: 2.4s; }
+}
 
 /* Anchored to the indicator (bottom-left), unlike .statuspanel which hangs off
    the right edge of the bar. Passive and dismissible: never a modal. */
