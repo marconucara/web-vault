@@ -68,7 +68,7 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
-- **ADR `0025` — task lists on a share page (2026-08-06, `94df53d`).** A note
+- **ADR `0025` — task lists on a share page (2026-08-06, `25135db`).** A note
   with checkboxes rendered on its public page with **both** a bullet and a
   checkbox. The share page is built by the standalone renderer, which carries
   its own inline copy of the stylesheet; that copy styled `.markdown ul`/`li`

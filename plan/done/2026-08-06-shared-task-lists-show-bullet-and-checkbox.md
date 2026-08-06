@@ -113,5 +113,5 @@ isolation so body text cannot satisfy it. 121 → 130 tests. Two of the first si
 assertions were confirmed failing against the unmodified tree; the nested and
 loose cases were written against selectors known to be missing.
 
-**Shipped:** 2026-08-06 · HEAD 94df53d · ADR 0025 (already `Implemented`, no
+**Shipped:** 2026-08-06 · HEAD 25135db · ADR 0025 (already `Implemented`, no
 status change; no version bump — rides along with a later release)
