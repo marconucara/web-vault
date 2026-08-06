@@ -1,5 +1,6 @@
 import React from 'react';
 import { DynamicIcon, iconNames } from 'lucide-react/dynamic';
+import bundledIcons from 'virtual:web-vault-icons';
 
 // App UI icons: local line-style set. Some names are custom and do NOT match
 // lucide (e.g. external, share, sort, pointer), so they stay here. For Type
@@ -170,10 +171,25 @@ export default function Icon({ name, color = 'currentColor', size = 16 }) {
   if (name && PATHS[name]) {
     return <Svg content={PATHS[name]} color={color} size={size} />;
   }
-  // 2) Any valid lucide name (typical of Type icons): lazy-load the icon by
-  //    name. While the chunk loads we render an invisible, size-preserving
-  //    placeholder (no fallback icon) so there is no icon switch; the real
-  //    icon then fades in on mount.
+  // 2) Lucide icons the vault's Type documents use: bundled at build time from
+  //    content.json, so they paint with the rest of the app rather than each
+  //    arriving in its own chunk (see scripts/type-icons.mjs).
+  const Bundled = name ? bundledIcons[name] : null;
+  if (Bundled) {
+    return (
+      <Bundled
+        size={size}
+        strokeWidth={2}
+        color={color || 'currentColor'}
+        className="icon"
+        aria-hidden="true"
+      />
+    );
+  }
+  // 3) Any other valid lucide name — a type whose icon was set in the running
+  //    app, after this build read the vault. Lazy-load the icon by name; while
+  //    the chunk loads we render an invisible, size-preserving placeholder (no
+  //    fallback icon) so there is no icon switch, then it fades in on mount.
   if (name && LUCIDE_NAMES.has(name)) {
     return (
       <DynamicIcon
@@ -192,6 +208,6 @@ export default function Icon({ name, color = 'currentColor', size = 16 }) {
       />
     );
   }
-  // 3) No name or unknown name: file-text fallback.
+  // 4) No name or unknown name: file-text fallback.
   return <Svg content={PATHS['file-text']} color={color} size={size} />;
 }
