@@ -141,6 +141,24 @@ a:hover { text-decoration:underline; }
 .markdown ul,.markdown ol { margin:0 0 18px; padding-left:24px; }
 .markdown li { margin:6px 0; }
 .markdown li > p { margin:0; }
+/* GFM task lists: the checkbox replaces the bullet, so the list marker goes.
+   Scoped to .contains-task-list, so a plain bullet in the same list keeps its
+   marker. Kept as flow layout, not flex: a task item may contain a nested list,
+   which flex would pull up alongside the label. The checkbox is emitted disabled
+   — a share page is read-only — hence the default cursor: it shows state, it
+   does not invite a click. */
+.markdown .contains-task-list { list-style:none; padding-left:2px; }
+.markdown .task-list-item input[type="checkbox"] { margin:0 8px 0 0; vertical-align:middle; cursor:default; }
+/* Strike the label only. A loose list (one with blank lines between items) wraps
+   each label in a <p>, so the checkbox sits at li > p > input rather than
+   li > input — both shapes are matched. The :not() keeps the rule off an item
+   that nests a sub-list, whose children would otherwise inherit the line
+   through a parent they do not belong to. */
+.markdown .task-list-item:has(> input:checked):not(:has(ul,ol)),
+.markdown .task-list-item:has(> p > input:checked):not(:has(ul,ol)) { text-decoration:line-through; color:var(--text-dim); }
+/* In a loose list the strike lands on the <p>, which also carries the checkbox;
+   keep the box itself unstruck. */
+.markdown .task-list-item input[type="checkbox"] { text-decoration:none; }
 .markdown hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
 .markdown table { border-collapse:collapse; width:100%; margin:16px 0 20px; display:block; overflow-x:auto; }
 .markdown th,.markdown td { border:1px solid var(--border); padding:6px 10px; text-align:left; }

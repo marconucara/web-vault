@@ -68,6 +68,24 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **ADR `0025` — task lists on a share page (2026-08-06, `94df53d`).** A note
+  with checkboxes rendered on its public page with **both** a bullet and a
+  checkbox. The share page is built by the standalone renderer, which carries
+  its own inline copy of the stylesheet; that copy styled `.markdown ul`/`li`
+  generically and had no rule for the `contains-task-list` / `task-list-item`
+  classes `remark-gfm` emits, so nothing suppressed the `ul` marker. Four CSS
+  rules, no logic change: the markup was already correct (`checked` and
+  `disabled` both emitted), so the read-only guarantee and the done/not-done
+  state were never the defect. Two cases surfaced only by reading the real
+  output — a checked item that **nests a sub-list** would have struck its
+  children too, since remark nests the child `ul` inside the parent `li` (also
+  why the item stays in flow layout, not flex), and a **loose list** wraps each
+  label in a `<p>`, moving the checkbox to `li > p > input` where the first
+  selector missed it entirely. `scripts/shared-render.test.mjs` is new — the
+  renderer had none; it asserts against the returned page, which carries markup
+  and stylesheet in one string, so the rules are verifiable without a browser.
+  121 → 130 tests. No version bump — rides along with a later release. See
+  `plan/done/2026-08-06-shared-task-lists-show-bullet-and-checkbox.md`.
 - **ADR `0015` r6 — nested block indent (2026-08-06, `1f81806`, `v0.6.1`).** A
   paragraph, blockquote, table or heading indented under a list item came back at
   column zero. Worse than the fence rewrite it followed: the indent is what holds
@@ -165,8 +183,9 @@ The queue holds one item.
    enforces that symmetry, so the item is now test coverage, not a fix.
 
 Three round-trip items shipped in a row on 2026-08-05/06 (emphasis around inline
-code, fence shape, nested block indent), all under ADR `0015`. The `0004` and
-`0005` slots have each been used twice; numbers are reused once an item ships.
+code, fence shape, nested block indent), all under ADR `0015`, followed by the
+share-page task-list fix under ADR `0025`. The `0004` and `0005` slots have each
+been used three times; numbers are reused once an item ships.
 Not queued, because it needs a decision first: **ADR `0044`** — what the URL
 addresses. Written by the 2026-08-05 audit, promoted from
 `_agent/prompts/routing-adr.md` (now removed) where it had been invisible to
