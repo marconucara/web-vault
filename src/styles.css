@@ -1043,6 +1043,20 @@ a:hover { text-decoration: underline; }
 .sb-build:hover { background: var(--bg-active); color: var(--text); }
 .sb-build .icon { flex: none; opacity: 0.7; }
 .sb-build-sha { letter-spacing: 0.2px; }
+/* Sits next to .sb-build but is not a link: no hover affordance, and no icon,
+   so the two identities stay visually distinct rather than reading as one
+   compound value. */
+.sb-version {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.2px;
+}
 .sb-toast {
   display: inline-flex;
   align-items: center;

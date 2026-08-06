@@ -1,7 +1,7 @@
 ---
 adr: 0037
 title: Versioning policy — semver over git tags, framework version in the build
-status: Proposed
+status: Implemented
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -137,8 +137,10 @@ obligation created here.
 | 2026-07-30 | r1 | marco | Initial draft. |
 | 2026-08-06 | r2 | marco | Dropped GitHub Releases and the `1.0.0` commitment; git tags are the sole publication surface. Added the semver policy inline (incl. the 0.x rule) and the requirement to bake the framework version into the build. |
 | 2026-08-06 | r3 | marco | Brought the status-bar version indicator into scope (new AC5), sitting beside the vault build chip and distinguishable from it. Added AC3: every version reference in the repo moves with the tag, with the procedure documented in `AGENTS.md`. |
+| 2026-08-06 | r4 | marco | Accepted and Implemented: framework version baked into the build and shown in the status bar; release procedure documented. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Maintainer | Marco Nucara | 2026-08-06 | — |

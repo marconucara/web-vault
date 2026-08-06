@@ -69,3 +69,35 @@ not redefine the commit chip.
 5. The existing `sha` / `short` / `dirty` / `builtAt` / `repo` fields and the
    commit chip's link and behaviour are unchanged.
 6. `yarn verify` green.
+
+---
+
+## Outcome
+
+`frameworkVersion` is read from the framework package's own `package.json` via
+`PACKAGE_DIR` and baked into `content.json`'s `build` object beside the vault
+commit fields. The status bar renders it as its own `.sb-version` element,
+outside the commit anchor: the version is not a property of that commit and has
+nowhere to link to. Both tooltips now name what they describe ("WebVault 1.2.3"
+/ "Content built from commit abcdef1") — the commit chip's previously said just
+"Build abcdef1", which read as the version once a version sat next to it.
+
+Verified in the situation the whole item exists for, which this repo's own
+checkout cannot reproduce: a throwaway consumer with a `portal:` link to this
+tree, `wv dev` run from its `.web`. The vault's commit (`dd428b7`, dirty) and
+the framework version (`0.6.1`) came out as different values from different
+sources, which is the point of criterion 4.
+
+Both regressions were confirmed to be caught rather than merely covered:
+pointing `PACKAGE_DIR` at `PROJECT_DIR` fails the build test, and removing the
+indicator fails 3 of the 5 status-bar tests (the other 2 assert the degradation
+and the commit link, which must hold either way).
+
+Left as documented process, not machinery: the four places that name a version
+(`package.json`, the tag, the `SETUP.md` pin, the `README.md` blob link) are
+kept in sync by hand, per `AGENTS.md` (Cutting a release). Making that a
+mechanical gate check needs a reason beyond the one drift at `v0.5.0`.
+
+Coverage: 130 → 137 tests.
+
+**Shipped:** 2026-08-06 · HEAD <pending> · ADR 0037 (r4, Proposed → Implemented)

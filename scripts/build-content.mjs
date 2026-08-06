@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process';
 import matter from 'gray-matter';
 import yaml from 'js-yaml';
 import { resolveMapsForBodies } from './resolve-maps.mjs';
-import { VAULT_DIR as VAULT, GEN_DIR as OUT, CONTENT_JSON, VIEWS_DIR } from './paths.mjs';
+import { VAULT_DIR as VAULT, GEN_DIR as OUT, CONTENT_JSON, VIEWS_DIR, PACKAGE_DIR } from './paths.mjs';
 
 // Dotted names (.web, .tools, .git, ...) are already skipped by walk() via
 // startsWith('.'). The rules live in content-ignore.mjs so the dev watcher can
@@ -156,6 +156,23 @@ if (existsSync(viewsDir)) {
   }
 }
 
+// The framework's own version, from THIS package's package.json — resolved via
+// PACKAGE_DIR, not the vault or the consumer project. Everything else in the
+// build object describes the adopter's vault; this one describes web-vault
+// itself, and the two are easy to confuse because in this repo's own checkout
+// the directories coincide. Reading it from PROJECT_DIR would silently pick up
+// the adopter's shell package.json — a different, wrong number, and one that
+// only misbehaves once installed. See adr/0037-*.md.
+function frameworkVersion() {
+  try {
+    const pkg = JSON.parse(readFileSync(join(PACKAGE_DIR, 'package.json'), 'utf8'));
+    return pkg.version || '';
+  } catch (e) {
+    console.warn('[gen] framework package.json unreadable:', e.message);
+    return '';
+  }
+}
+
 // Build info for the toolbar: commit SHA + timestamp. On Cloudflare Pages the
 // SHA comes from CF_PAGES_COMMIT_SHA; in local dev from `git rev-parse HEAD`.
 // Locally with changes in progress the SHA stays the last commit's (marked
@@ -191,6 +208,7 @@ function gitBuildInfo(vault) {
     dirty,
     builtAt: new Date().toISOString(),
     repo,
+    frameworkVersion: frameworkVersion(),
   };
 }
 const build = gitBuildInfo(VAULT);

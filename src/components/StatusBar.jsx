@@ -177,13 +177,26 @@ export default function StatusBar({ pending, onOpen }) {
         </div>
       )}
 
+      {/* Two distinct identities sit side by side here: the WebVault release
+          this site was built with, and the commit of the vault's own content.
+          They are deliberately separate elements with their own tooltips — the
+          version is not a property of that commit, and only the commit has
+          somewhere to link to. */}
+      {build?.frameworkVersion && (
+        <span
+          className="sb-version"
+          title={`WebVault ${build.frameworkVersion}`}
+        >
+          v{build.frameworkVersion}
+        </span>
+      )}
       {build?.short && (
         <a
           className="sb-build"
           href={build.repo ? `https://github.com/${build.repo}/commit/${build.sha}` : undefined}
           target="_blank"
           rel="noopener noreferrer"
-          title={`Build ${build.short}${build.dirty ? ' (uncommitted local changes)' : ''}\n${build.builtAt}`}
+          title={`Content built from commit ${build.short}${build.dirty ? ' (uncommitted local changes)' : ''}\n${build.builtAt}`}
         >
           <Icon name="git-commit" size={12} />
           <span className="sb-build-sha">{build.short}{build.dirty ? '+' : ''}</span>
