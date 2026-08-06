@@ -142,3 +142,38 @@ is what makes a version *published*. This has drifted before: at `v0.5.0` the
 `SETUP.md` pin still said `v0.3.0`, two releases behind, and was caught by
 chance rather than by any check. Grep `v[0-9]` across the repo before tagging;
 treat any hit outside `_agent/` history as a place to update.
+
+### Tag last, and only after `main` is pushed
+
+**Push `main` first. Create and push the tag only once that push has
+succeeded.** Never `git push --follow-tags` for a release: it can push the tag
+while `main` is rejected, which is how the failure below happens.
+
+The order is not a preference — it is what makes the failure impossible.
+Integration is fast-forward only, so a push rejected because the remote moved is
+answered with a rebase, and **a rebase rewrites your commits**. A tag created
+beforehand keeps pointing at the pre-rebase commit, which is no longer reachable
+from `main`: the release now names a commit that is not in the branch's history.
+
+This is not cosmetic here. Adopters resolve the newest version from the tag list
+(`adr/0038-*.md`) and upgrade by pinning it (`adr/0039-*.md`), so an orphaned tag
+is a version people can install that was never on `main`.
+
+If it happens anyway, the fix is to **move the tag, not delete it**: finish
+integrating (rebase, push `main`), then re-create the tag on the new commit and
+force-push that one ref:
+
+```
+git tag -f -a vX.Y.Z -m "..."     # re-annotate on the corrected commit
+git push --force origin vX.Y.Z    # move the ref; never --force main
+```
+
+Deleting a published tag is not needed and is worse — it briefly removes a
+version adopters may already be resolving. `--force` here is scoped to the one
+tag ref; it is never acceptable on `main`.
+
+Verify before moving on, since nothing else will:
+
+```
+git merge-base --is-ancestor vX.Y.Z HEAD && echo reachable
+```

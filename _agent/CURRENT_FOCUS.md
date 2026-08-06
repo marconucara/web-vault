@@ -44,6 +44,15 @@ If status files and git disagree, git is authoritative; correct this file.
     build-injected into the Worker config and reported beside `canWrite`.
   - Pinned in `SETUP.md`, `README.md`, `package.json`, and both consumer repos'
     `.web/`.
+  - **Release process hit the tag/rebase trap, now written down.**
+    `push --follow-tags` pushed `v0.8.0` while `main` was rejected (the remote
+    had moved); the rebase that followed rewrote the commits and left the tag
+    naming one no longer reachable from `main` — a version adopters could
+    resolve and install that was never on the branch. Fixed by moving the tag
+    (`tag -f` + `push --force` on that ref alone), not deleting it: deleting
+    briefly removes a version the notice may already be resolving. `AGENTS.md`
+    → "Tag last, and only after `main` is pushed" now states the ordering that
+    makes it impossible, rather than the recovery.
 - **`v0.6.1`** — round-trip fidelity for code fences and for blocks
   nested under a list item (ADR `0015` r5/r6). A patch by semver: bug fixes, no
   API change. Two defects with one shape — the block model drops something about
