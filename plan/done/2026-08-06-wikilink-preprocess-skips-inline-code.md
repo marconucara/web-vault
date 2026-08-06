@@ -126,3 +126,49 @@ Round-trip tests locking in the fixed behaviour:
 - The fence defect found during the 2026-08-05 verification (an unlabelled fence
   came back labelled `text`) shipped separately on 2026-08-06; see
   `plan/done/2026-08-06-fence-shape-lost-on-round-trip.md`.
+
+## Outcome
+
+All three shapes reproduced against the real pipeline before the fix, and the
+three structural tests fail against the unmodified tree — the defect was real and
+this file's reversal of the 2026-08-05 downgrade was correct.
+
+**The fix.** Both matchers are bounded to a single line (`[^\]|\n]` in `WIKILINK`,
+`[^\]\n]` in `MD_LINK`), which removes shape 1 outright. A new `outsideCode`
+helper applies a replacer only to the stretches of the body outside a fenced
+block and outside an inline code span; `preProcessWikilinks` and
+`preProcessMediaLinks` both go through it, removing shapes 2 and 3.
+
+**The ordering question the Scope left open, and why it resolved the other way.**
+Neither option in the file was taken as written. Moving `preProcessFences` ahead
+of the link passes would not have worked: it rewrites only the *opening fence
+line* into a sentinel language and leaves the block's content untouched, so a
+`[[note]]` inside the fence would still have been visible to the wikilink pass.
+The ordering was never the mechanism that protected fence content. And no
+ordering of the existing passes can protect an inline code span, since nothing
+marks one. So the wikilink pass learned both itself, in one shared helper, and
+the pipeline order — and `postProcess`'s mirror of it — is unchanged. Recorded in
+a comment above `outsideCode`.
+
+**Exit criterion 5 verified by breaking it.** `postProcessWikilinks` was
+temporarily changed to emit `[x]` instead of `[[x]]`; 10 tests failed, including
+the dedicated inverse test. Restored.
+
+Also recorded near `preProcessWikilinks`, per Scope: its correctness depends on
+`postProcessWikilinks` being its exact inverse. That symmetry is what made the
+defect invisible to a bytes-only check — which is what the 2026-08-05 audit ran,
+and why it concluded there was nothing to fix. ADR `0015` r7 adds criterion 7 so
+the rule is stated rather than rediscovered: the block structure is part of the
+contract, not only the bytes.
+
+**Known limitation, deliberately not fixed here.** `bodyHasUnsafeForBlockNote`
+(`src/lib/mdLinks.js`) also runs `MD_LINK` over the whole body without skipping
+code, so a note that merely *mentions* a media link inside a fence is still
+routed to the raw editor. It is a false positive in the safe direction — the note
+is editable, just not in the block editor — and outside this item's scope.
+
+190 → 210 tests. `yarn verify` green.
+
+---
+
+Shipped at HEAD `f3c6a5b` — see the commit for the exact tree.

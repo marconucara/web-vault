@@ -2,7 +2,11 @@
 // the main bundle without pulling in the heavy editor).
 
 export const MEDIA_EXT = /\.(mp4|webm|ogv|mov|m4v|mp3|wav|ogg|oga|m4a|aac|flac|pdf|log|zip|rar|7z|gz|docx?|xlsx?|pptx?|csv|json|ya?ml)(\?[^)]*)?$/i;
-export const MD_LINK = /(!?)\[([^\]]*)\]\(([^)\s]+)\)/g;
+// The link text excludes newlines: a markdown link's text and destination are on
+// one line in practice, and allowing the class to cross lines lets an unmatched
+// `[` run away to the next `](…)` anywhere later in the note, swallowing whole
+// blocks into one match.
+export const MD_LINK = /(!?)\[([^\]\n]*)\]\(([^)\s]+)\)/g;
 
 // Google Maps links, in all the common forms:
 //   maps.app.goo.gl/…, goo.gl/maps/…, google.<tld>/maps…, maps.google.<tld>/…

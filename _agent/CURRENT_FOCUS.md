@@ -15,7 +15,8 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Unreleased on `main`:** none.
+- **Unreleased on `main`:** ADR `0015` r7 — the link passes now skip code. A bug
+  fix with no contract change, so a **patch** when the next tag is cut.
 - **Current tag: `v0.8.0`** — the upgrade loop closes. ADR `0039`: the notice
   from `0038` gains an action, so a deployment that can write upgrades itself.
   Also carries what had accumulated since `v0.6.1` and was queued for a `v0.7.0`
@@ -106,6 +107,31 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **ADR `0015` r7 — the link passes must skip code (2026-08-06, unreleased).**
+  An unmatched `[[` inside a code span — what a note documenting the wikilink
+  syntax naturally contains — started a match that ran to the next `]]` anywhere
+  later in the note, because the matcher's character classes admitted newlines.
+  Every heading and paragraph in between collapsed into one inline token: four
+  blocks became two, and the code span never closed. **Why two audits missed it,
+  and the lesson worth keeping:** each post pass reverses its own pre pass
+  symmetrically, so the *bytes* round-trip perfectly. The 2026-08-05 audit
+  checked exactly that, found no diff, and downgraded the item to "test coverage,
+  not a fix" — the reasoning recorded in this file until today. The loss was in
+  the block structure the editor *displays*, and it became permanent the moment
+  the user edited the mangled block and committed the encoded blob as literal
+  text. Fixed by bounding both matchers (`WIKILINK`, `MD_LINK`) to a single line
+  and routing both pre-passes through a new `outsideCode` helper that skips
+  fenced blocks and inline code spans. **The pipeline order did not move, against
+  what the plan item assumed:** `preProcessFences` rewrites only the *opening
+  fence line* into a sentinel and leaves the block body untouched, so running it
+  first would never have protected fence content — and nothing marks an inline
+  code span, so no ordering could protect one either. The pass had to learn both
+  itself. ADR `0015` gains **criterion 7** so the rule is stated rather than
+  rediscovered: a note must parse to the structure its markdown describes, and a
+  byte-identical round trip does not demonstrate that on its own. Exit criterion
+  5 verified by breaking it (a broken inverse fails 10 tests); the three
+  structural tests confirmed failing against the unmodified tree. 190 → 210
+  tests. See `plan/done/2026-08-06-wikilink-preprocess-skips-inline-code.md`.
 - **ADR `0025` — task lists on a share page (2026-08-06, `25135db`).** A note
   with checkboxes rendered on its public page with **both** a bullet and a
   checkbox. The share page is built by the standalone renderer, which carries
@@ -251,18 +277,13 @@ authoritative.
 
 ## Next item
 
-The queue holds one item.
+**The queue is empty.**
 
-1. **`plan/todo/0003`** — *rewritten by the 2026-08-05 audit and deprioritised.*
-   The bug it originally described no longer reproduces: `preProcessWikilinks`
-   still builds a malformed token across a code span, but `postProcessWikilinks`
-   reverses it symmetrically, so the round trip is clean end to end. Nothing
-   enforces that symmetry, so the item is now test coverage, not a fix.
-
-Three round-trip items shipped in a row on 2026-08-05/06 (emphasis around inline
-code, fence shape, nested block indent), all under ADR `0015`, followed by the
-share-page task-list fix under ADR `0025`. The `0004` and `0005` slots have each
-been used three times; numbers are reused once an item ships.
+Four round-trip items shipped in a row on 2026-08-05/06 (emphasis around inline
+code, fence shape, nested block indent, and now the link passes skipping code),
+all under ADR `0015`, plus the share-page task-list fix under ADR `0025`. The
+`0003`, `0004` and `0005` slots have each been used more than once; numbers are
+reused once an item ships.
 Not queued, because it needs a decision first: **ADR `0044`** — what the URL
 addresses. Written by the 2026-08-05 audit, promoted from
 `_agent/prompts/routing-adr.md` (now removed) where it had been invisible to
@@ -272,6 +293,14 @@ sidebar/view selection stays out of the URL. Implementation is queued once it
 is `Accepted`.
 
 ## Backlog — not queued, and why
+
+- **`bodyHasUnsafeForBlockNote` does not skip code.** It runs `MD_LINK` over the
+  whole body, so a note that merely *mentions* a media link inside a fence is
+  routed to the raw editor rather than the block editor. Found while fixing ADR
+  `0015` r7 and left alone: it is a false positive in the safe direction (the
+  note is still editable) and the function answers a different question than the
+  pre-processors do — "could this note lose data in BlockNote?" is reasonably
+  answered conservatively. Worth an item only if a real note trips it.
 
 - **ADR `0042` (brand identity) is `Implemented` as of 2026-08-05 (r4),
   shipped in `v0.6.0`.** The artwork was produced with an external design tool

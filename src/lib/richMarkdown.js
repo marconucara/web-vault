@@ -19,16 +19,75 @@ export function splitFrontmatter(md) {
   return { frontmatter: fm, body: md.slice(fm.length) };
 }
 
+// Both link passes below rewrite spans of the body into tokens, and both must
+// leave code alone: a note that documents the wikilink syntax writes `[[` in a
+// code span or a complete [[note]] in a fence, and neither is a link. Code is
+// also where an *unmatched* `[[` is most likely to appear, which is what made
+// the omission structural rather than cosmetic — see the newline note on
+// WIKILINK below.
+//
+// Applying a replacer only outside code keeps that rule in one place instead of
+// duplicating fence tracking in each pass. Fences are tracked line by line (the
+// same way preProcessMapLinks and normalizeMarkdown do it) and code spans are
+// found per line by matching backtick runs, so a closing run must be the same
+// length as the one that opened the span.
+const CODE_SPAN = /(`+)(?:[^`]|(?!\1)`)*\1/g;
+
+/**
+ * Applies `fn` to each stretch of `body` that is outside a fenced block and
+ * outside an inline code span, leaving code verbatim.
+ * @param {string} body
+ * @param {(text: string) => string} fn
+ * @returns {string}
+ */
+function outsideCode(body, fn) {
+  const out = [];
+  let inFence = false;
+  for (const line of (body || '').split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      out.push(line);
+      continue;
+    }
+    if (inFence) { out.push(line); continue; }
+    // Split the line into code spans and the prose between them, mapping only
+    // the prose. `lastIndex` walks the line so the untouched spans are copied
+    // through exactly as written, backticks included.
+    let result = '';
+    let at = 0;
+    CODE_SPAN.lastIndex = 0;
+    let m;
+    while ((m = CODE_SPAN.exec(line))) {
+      result += fn(line.slice(at, m.index)) + m[0];
+      at = m.index + m[0].length;
+    }
+    out.push(result + fn(line.slice(at)));
+  }
+  return out.join('\n');
+}
+
 // [[target]] / [[target|alias]] -> ‹<payload-url-encoded>›
 // encodeURIComponent prevents markdown special characters from ending up inside
 // the token; ‹ › (U+2039/U+203A) are not markdown syntax and survive the
 // round-trip as text.
-const WIKILINK = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+//
+// The character classes exclude newlines because a wikilink never spans lines in
+// Tolaria or Obsidian. Without that, an unmatched `[[` starts a match that runs
+// to the next `]]` anywhere later in the note, swallowing the headings and
+// paragraphs in between into one inline token — the blocks are gone from the
+// editor, and the damage is committed as literal text the moment the user edits.
+//
+// This pass is only safe because postProcessWikilinks is its exact inverse: an
+// untouched note is re-tokenised and detokenised symmetrically, so it commits
+// byte-identical. The round-trip tests exist to keep that inverse true.
+const WIKILINK = /\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/g;
 export function preProcessWikilinks(body) {
-  return body.replace(WIKILINK, (_m, target, alias) => {
-    const payload = alias != null ? `${target}|${alias}` : target;
-    return `‹${encodeURIComponent(payload)}›`;
-  });
+  return outsideCode(body, (text) =>
+    text.replace(WIKILINK, (_m, target, alias) => {
+      const payload = alias != null ? `${target}|${alias}` : target;
+      return `‹${encodeURIComponent(payload)}›`;
+    })
+  );
 }
 
 const TOKEN = /‹([^›]+)›/g;
@@ -49,13 +108,15 @@ export function postProcessWikilinks(md) {
 // tokens (different from the wikilink one) and restore them afterward. Images
 // ![](..), on the other hand, BlockNote handles natively, so we leave them alone.
 export function preProcessMediaLinks(body) {
-  return body.replace(MD_LINK, (m, bang, _text, url) => {
-    if (bang) return m; // image: BlockNote handles it
-    if (MEDIA_EXT.test(url) || url.includes('attachments/')) {
-      return `⟦${encodeURIComponent(m)}⟧`;
-    }
-    return m;
-  });
+  return outsideCode(body, (text) =>
+    text.replace(MD_LINK, (m, bang, _text, url) => {
+      if (bang) return m; // image: BlockNote handles it
+      if (MEDIA_EXT.test(url) || url.includes('attachments/')) {
+        return `⟦${encodeURIComponent(m)}⟧`;
+      }
+      return m;
+    })
+  );
 }
 
 const MEDIA_TOKEN = /⟦([^⟧]+)⟧/g;

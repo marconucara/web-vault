@@ -413,6 +413,123 @@ describe('a block nested under a list item keeps its indent (ADR 0015)', () => {
   });
 });
 
+// A note that documents the wikilink syntax writes `[[` in a code span, and the
+// link passes used to read that as the start of a link: the character classes
+// admitted newlines, so an unmatched `[[` matched through to the next `]]`
+// anywhere later in the note and swallowed the blocks in between into one inline
+// token. The tokens decode symmetrically, so the body still round-trips — the
+// loss is in what the editor shows, and it becomes permanent as soon as the user
+// edits the mangled block. That is why these assert the BLOCK STRUCTURE and not
+// only the bytes.
+describe('the link passes leave code alone (ADR 0015, ADR 0008)', () => {
+  const rt = async (body) => (await roundTripBody(body)).replace(/\n+$/, '');
+  const types = async (body) => (await bodyToBlocks(body)).map((b) => b.type);
+  // The text of a block as the editor shows it, code spans included: what the
+  // encoded blob used to destroy.
+  const text = (block) =>
+    (Array.isArray(block.content) ? block.content : []).map((s) => s.text ?? '').join('');
+
+  // Shape 1: the reported case. An unmatched `[[` in a code span with a real
+  // wikilink further down — four blocks became two, the second heading gone.
+  it('keeps every block when a code span holds an unmatched wikilink opener', async () => {
+    const body = [
+      '### Wikilinks',
+      '',
+      'Type `[[` to trigger autocomplete.',
+      '',
+      '### Tasks',
+      '',
+      'See [[welcome]] for more.',
+    ].join('\n');
+    const blocks = await bodyToBlocks(body);
+    expect(blocks.map((b) => b.type)).toEqual(['heading', 'paragraph', 'heading', 'paragraph']);
+    expect(text(blocks[2])).toBe('Tasks');
+    expect(await rt(body)).toBe(body);
+  });
+
+  // Shape 2: the same-line variant. The structure held, but the code span's
+  // closing backtick was encoded into the token, so the span never closed.
+  it('keeps the code span closed when the wikilink follows it on the same line', async () => {
+    const body = 'Type `[[` then [[welcome]].';
+    const [block] = await bodyToBlocks(body);
+    expect(spanStyles(block)).toEqual([{}, { code: true }, {}]);
+    expect(text(block)).toBe('Type [[ then ‹welcome›.');
+    expect(await rt(body)).toBe(body);
+  });
+
+  // Shape 3: a complete wikilink inside a fence is content, not a link — the
+  // wikilink pass runs before preProcessFences, so it had to learn fences itself.
+  it('leaves a wikilink inside a fenced block literal', async () => {
+    const body = '```\nUse [[some note]] to link.\n```';
+    const [block] = await bodyToBlocks(body);
+    expect(block.type).toBe('codeBlock');
+    expect(text(block)).toBe('Use [[some note]] to link.');
+    expect(await rt(body)).toBe(body);
+  });
+
+  it.each([
+    ['a bare opener before a real link on one line', 'Write `[[` before [[target]] here.'],
+    ['a complete wikilink in a code span', 'Write `[[note]]` to link.'],
+    ['an aliased wikilink in code beside a real one', 'Write `[[a|b]]` for [[target|alias]].'],
+    ['a code span containing `]]`', 'Close with `]]` then [[target]] after.'],
+    ['a lone opener with no closer anywhere', 'Type `[[` and nothing else.'],
+    ['an aliased wikilink inside a fence', '```\nUse [[a|b]] here.\n```'],
+    ['a labelled fence holding a wikilink', '```md\nSee [[welcome]].\n```'],
+    // The media pass shares the shape of the problem, so it gets the same cases.
+    ['a media link in a code span', 'Write `[c](attachments/a.mp4)` to embed.'],
+    ['a media link inside a fence', '```\n[c](attachments/a.mp4)\n```'],
+    ['an unmatched `[` in code before a real media link', 'Type `[` then [c](attachments/a.mp4).'],
+  ])('round-trips %s unchanged', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  // An unmatched `[` in code used to let the media pass run away across blocks
+  // in the same way; the structure is the assertion that catches it.
+  it('keeps every block when a code span holds an unmatched link opener', async () => {
+    const body = 'Type `[` here.\n\n## Next\n\nSee [c](attachments/a.mp4) below.';
+    expect(await types(body)).toEqual(['paragraph', 'heading', 'paragraph']);
+    expect(await rt(body)).toBe(body);
+  });
+
+  // Links outside code must still be protected — the narrowing must not turn
+  // into a blanket opt-out.
+  it('still tokenises links outside code', async () => {
+    const body = 'See [[target|alias]] and [c](attachments/a.mp4).';
+    const protectedBody = preProcessMediaLinks(preProcessWikilinks(body));
+    expect(protectedBody).toContain('‹target%7Calias›');
+    expect(protectedBody).toContain('⟦%5Bc%5D(attachments%2Fa.mp4)⟧');
+    expect(await rt(body)).toBe(body);
+  });
+
+  // preProcessWikilinks is only safe because postProcessWikilinks is its exact
+  // inverse: the pre pass rewrites an untouched note, and only a faithful
+  // inverse makes it commit byte-identical. Same for the media pass. Break
+  // either half and these fail.
+  it.each([
+    ['wikilinks', preProcessWikilinks, postProcessWikilinks],
+    ['media links', preProcessMediaLinks, postProcessMediaLinks],
+  ])('the %s post pass is the exact inverse of the pre pass', (_name, pre, post) => {
+    for (const body of [
+      'See [[target]] and [[a|b]] here.',
+      'Type `[[` then [[welcome]].',
+      '```\nUse [[a|b]] here.\n```',
+      'A [c](attachments/a.mp4) and `[c](attachments/b.mp4)` span.',
+      'Plain prose with no links at all.',
+    ]) {
+      expect(post(pre(body))).toBe(body);
+    }
+  });
+
+  it.each([
+    '### A\n\nType `[[` here.\n\n### B\n\nSee [[welcome]].',
+    'Write `[[note]]` to link.',
+    '```\nUse [[some note]] to link.\n```',
+  ])('is idempotent — a second round-trip of %j is a no-op', async (body) => {
+    const once = await rt(body);
+    expect(await rt(once)).toBe(once);
+  });
+});
+
 // Relaxing the `code` mark's exclusion is an editor-wide change, not only a
 // serialisation one: the same mark backs the formatting toolbar and paste. These
 // pin the behaviour that relaxation is supposed to enable, so a future revert of
