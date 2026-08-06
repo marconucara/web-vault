@@ -171,4 +171,4 @@ is editable, just not in the block editor — and outside this item's scope.
 
 ---
 
-Shipped at HEAD `f3c6a5b` — see the commit for the exact tree.
+Shipped at HEAD `c2cd6e0` — see the commit for the exact tree.
