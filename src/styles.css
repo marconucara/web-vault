@@ -904,8 +904,9 @@ a:hover { text-decoration: underline; }
    its element, which at the bottom of the viewport is off screen. Left-aligned
    rather than right, since these sit at the left edge of the bar where a
    right-aligned bubble would run backwards off it. A modifier on .tt, not a
-   second tooltip — the other status-bar items still use native `title` and are
-   meant to move onto this. */
+   second tooltip — the version indicator and the build chip both use it; the
+   items inside the commit popover still use native `title` and are meant to
+   move onto this. */
 .tt-up::after {
   top: auto;
   bottom: calc(100% + 6px);

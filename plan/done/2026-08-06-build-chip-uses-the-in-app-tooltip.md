@@ -96,4 +96,4 @@ at the running app would still be the thing that closes it fully.
 
 ---
 
-Shipped at HEAD `PENDING` — see the commit for the exact tree.
+Shipped at HEAD `dbf1028` — see the commit for the exact tree.
