@@ -60,7 +60,7 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
-- **ADR `0015` — code fence shape (2026-08-06, `1243c86`).** Four differences
+- **ADR `0015` r5 — code fence shape (2026-08-06, `1243c86`).** Four differences
   turned out to be one defect: a BlockNote code block keeps only its
   `language`, so an unlabelled fence gained `text`, a marker longer than three
   characters was shortened, a `~~~` fence became a backtick fence, and a fence

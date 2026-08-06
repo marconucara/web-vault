@@ -1,6 +1,7 @@
 # A block nested under a list item is flattened on export
 
-**Owning ADR(s):** `adr/0015-durable-markdown-round-trip.md`
+**Owning ADR(s):** `adr/0015-durable-markdown-round-trip.md` — recorded there as
+a known defect under Out of scope, and referenced by criterion 5 (r5).
 **Dependencies:** None. Shares its cause with
 `plan/done/2026-08-06-fence-shape-lost-on-round-trip.md`, which fixed the
 code-fence case only.

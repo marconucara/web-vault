@@ -11,7 +11,7 @@
 // script is top-level (it reads the vault and writes content.json at import time,
 // exporting nothing), and spawning it keeps dev byte-for-byte identical to
 // `wv gen` / `wv build` instead of growing a second copy of the pipeline.
-// See plan/todo/0005-dev-server-vault-watch.md.
+// See plan/done/2026-08-05-dev-server-vault-watch.md.
 import { spawn } from 'node:child_process';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';

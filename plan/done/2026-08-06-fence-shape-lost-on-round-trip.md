@@ -118,4 +118,4 @@ item is de-indented too — and repairing that in general means replacing
 Coverage: 78 → 91 tests. 15 of the new assertions were confirmed to fail against
 the unmodified tree, so they pin the behaviour rather than merely passing.
 
-**Shipped:** 2026-08-06 · HEAD 1243c86 · ADR 0015 (already `Implemented`, no status change)
+**Shipped:** 2026-08-06 · HEAD 1243c86 · ADR 0015 (r5; already `Implemented`, no status change)

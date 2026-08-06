@@ -60,9 +60,10 @@ The value left in this item is therefore coverage, not a fix.
   need its own derivation of where the token boundaries should fall. If a future
   change breaks the symmetry these tests protect, that is the moment to revisit.
 - Escaping wikilinks outside code (e.g. a `\[[` escape hatch).
-- The fence-language defect found during the same verification (an unlabelled
-  fence comes back labelled `text`) — tracked separately as
-  `plan/todo/0005-fence-language-added-on-round-trip.md`.
+- The fence defect found during the same verification (an unlabelled fence came
+  back labelled `text`) — shipped separately on 2026-08-06, where it turned out
+  to be one of four symptoms of the same cause. See
+  `plan/done/2026-08-06-fence-shape-lost-on-round-trip.md`.
 
 ## Exit criteria
 

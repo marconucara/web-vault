@@ -218,7 +218,8 @@ export function joinListContinuations(body) {
 
 // A code block keeps only its language, so everything else about how the fence
 // was written is dropped on parse and re-invented by the exporter, which always
-// emits three backticks and labels an unlabelled block `text`:
+// emits three backticks and labels an unlabelled block `text`
+// (see adr/0015-durable-markdown-round-trip.md, criterion 5):
 //
 //   ```      -> language "text" -> ```text   (a language the author never wrote)
 //   ~~~js    -> language "js"   -> ```js     (the marker kind is gone)

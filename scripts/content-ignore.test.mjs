@@ -1,7 +1,7 @@
 // The watcher must agree with the content walker about which files matter:
 // regenerating on a file the walker ignores is wasted work, and ignoring one it
 // reads means the dev server serves stale content.
-// See plan/todo/0005-dev-server-vault-watch.md.
+// See plan/done/2026-08-05-dev-server-vault-watch.md.
 import { describe, it, expect } from 'vitest';
 import { isWalkedNote } from './content-ignore.mjs';
 
