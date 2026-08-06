@@ -101,3 +101,21 @@ indistinguishable from one nested *inside* it.
 6. The sentinel never appears in round-tripped output.
 7. Idempotence: a second round trip is a no-op.
 8. `yarn verify` green.
+
+## Outcome
+
+All eight criteria met. The four symptoms had one cause — a code block keeps
+only its language — so they were fixed together by carrying the fence's written
+shape (marker kind, marker length, info string, indent) across the parse in that
+one surviving field.
+
+One difference found here is left for a separate item: the same flattening
+applies to *any* nested block type — a paragraph or a blockquote under a list
+item is de-indented too — and repairing that in general means replacing
+`blocksToMarkdownLossy`, which is a change to every export path. Queued as
+`plan/todo/0004-nested-blocks-flattened-on-export.md`.
+
+Coverage: 78 → 91 tests. 15 of the new assertions were confirmed to fail against
+the unmodified tree, so they pin the behaviour rather than merely passing.
+
+**Shipped:** 2026-08-06 · HEAD 1243c86 · ADR 0015 (already `Implemented`, no status change)

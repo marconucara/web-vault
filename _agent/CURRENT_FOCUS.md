@@ -60,6 +60,24 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **ADR `0015` — code fence shape (2026-08-06, `1243c86`).** Four differences
+  turned out to be one defect: a BlockNote code block keeps only its
+  `language`, so an unlabelled fence gained `text`, a marker longer than three
+  characters was shortened, a `~~~` fence became a backtick fence, and a fence
+  under a list item was flattened to column zero. The `text` case was the
+  unrecoverable one — it is BlockNote's default, so a bare fence and one that
+  really declares `text` parse to the *same* block, and no export-side rule
+  could tell them apart. All four are carried across the parse in the one field
+  that survives it, by rewriting the opening fence into a `wv-fence-<kind>
+  <len>i<indent>-<info>` sentinel and restoring it after export — a fourth
+  pre/post pair beside the wikilink, media-link and map-link ones. The indent
+  had to travel the same way: `blocksToHTMLLossy` lifts every non-list child out
+  of its `<li>`, keeping the depth only in a `data-nesting-level` attribute the
+  markdown step never reads, and in the emitted markdown a fence that *follows*
+  a list is indistinguishable from one nested *inside* it. That flattening
+  affects every nested block type and is now `plan/todo/0004`. 78 → 91 tests,
+  15 confirmed failing against the unmodified tree. See
+  `plan/done/2026-08-06-fence-shape-lost-on-round-trip.md`.
 - **ADR `0028` r2 — maps resolver cache poisoning (2026-08-02, `v0.5.1`).** A
   Google `429` was being cached as a resolved place: after the retries ran out
   `fetchPage` returned the blocked response, `extractCoords` harvested
@@ -109,20 +127,24 @@ authoritative.
 
 ## Next item
 
-The queue holds three items after the 2026-08-05 audit. Suggested order:
+The queue holds two items. Suggested order:
 
-1. **`plan/todo/0004`** — emphasis around an inline code span is split on
-   export. Re-verified 2026-08-05: all four tabulated rows reproduce exactly,
-   two of them lossy (the code span loses its emphasis outright). Confirmed
-   defect, tight scope, testable criteria — the best next implementation.
-2. **`plan/todo/0005`** — an unlabelled code fence comes back as ```` ```text ````.
-   Found while re-verifying 0003. Not content loss, but it rewrites a note
-   nobody edited, against the open-and-save-is-a-no-op promise of ADR `0015`.
-3. **`plan/todo/0003`** — *rewritten by the audit and deprioritised.* The bug it
-   originally described no longer reproduces: `preProcessWikilinks` still builds
-   a malformed token across a code span, but `postProcessWikilinks` reverses it
-   symmetrically, so the round trip is clean end to end. Nothing enforces that
-   symmetry, so the item is now test coverage, not a fix.
+1. **`plan/todo/0004`** — a block nested under a list item is flattened on
+   export. Filed 2026-08-06 while fixing the code fence, which turned out to be
+   this same defect seen through the one block type that could be worked around.
+   Worse than a rewrite: the indent is what holds the block *inside* its item,
+   so losing it changes the document. Every non-list child type is affected
+   (paragraph, blockquote, table, heading), and the fix reaches every export
+   path — the largest of the round-trip items, and the one with a real
+   user-visible consequence.
+2. **`plan/todo/0003`** — *rewritten by the 2026-08-05 audit and deprioritised.*
+   The bug it originally described no longer reproduces: `preProcessWikilinks`
+   still builds a malformed token across a code span, but `postProcessWikilinks`
+   reverses it symmetrically, so the round trip is clean end to end. Nothing
+   enforces that symmetry, so the item is now test coverage, not a fix.
+
+The 0004 slot was previously the emphasis-around-inline-code item, shipped
+2026-08-05; the number was free and has been reused.
 Not queued, because it needs a decision first: **ADR `0044`** — what the URL
 addresses. Written by the 2026-08-05 audit, promoted from
 `_agent/prompts/routing-adr.md` (now removed) where it had been invisible to
