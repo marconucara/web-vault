@@ -57,9 +57,12 @@ model.
    approach.
 5. Where a block model field cannot represent how a construct was written, the
    written form is carried across the parse rather than re-invented on export.
-   For a code fence this covers the marker kind and length, the presence and
-   content of the info string, and the indent that nests it under a list item;
-   no marking used to carry it appears in the vault.
+   For a code fence this covers the marker kind and length and the presence and
+   content of the info string; no marking used to carry it appears in the vault.
+6. A block nested under a list item — paragraph, blockquote, table, heading or
+   code fence, under a bullet, ordered or checklist item, at any depth — keeps
+   the indent that holds it inside that item, and a list's ordinals survive the
+   round trip.
 
 ## Out of scope
 
@@ -67,18 +70,10 @@ model.
   the minimum durable set is frontmatter + wikilinks; the rest can follow.
 - Map place-card blocks, whose exact round-trip is covered separately
   (`adr/0028-google-maps-places.md`).
-- **Nesting depth for non-code blocks under a list item — a known defect, not a
-  decision.** A paragraph, blockquote, table or heading indented under an item
-  comes back at column zero, and unlike a rewrite this changes the document: the
-  indent is what holds the block *inside* the item. `blocksToHTMLLossy` lifts
-  every such child out of its `<li>` and records the depth only in a
-  `data-nesting-level` attribute the markdown step never reads, so it cannot be
-  repaired afterwards — a block that merely follows a list is indistinguishable
-  there from one nested inside it. r5 fixed the code-fence case by carrying the
-  indent through the block's `language`; no equivalent field exists on the other
-  types, so the general repair means replacing `blocksToMarkdownLossy` across
-  every export path. Queued as
-  `plan/todo/0004-nested-blocks-flattened-on-export.md`.
+- **Spacing around a list nested under a checklist item — a known defect.** A
+  blank line before it is dropped, turning a loose list tight. Spacing rather
+  than structure, and consistent with the map-link post-processing, which
+  already compacts loose lists.
 
 ## Open questions
 
@@ -99,6 +94,7 @@ model.
 | 2026-08-03 | r3 | marco | Extended the fold to prose: the parser kept a paragraph's soft wraps as literal newlines inside the block's text, so the editor displayed a break at whatever column the source happened to wrap at — the round-trip was clean but the reading experience was not. Paragraph continuations are now joined before the parse alongside list ones, leaving structural newlines (headings, tables, blockquotes, fences, thematic breaks) untouched. |
 | 2026-08-05 | r4 | marco | Criterion 1 did not hold for an emphasis run containing an inline code span: the emphasis was lost outright where the code span sat at an edge of the run. Two causes, both addressed. TipTap's `code` mark excludes every other mark, so the emphasis was already stripped at parse time — the schema now relaxes that exclusion, making `code` combinable with bold/italic/strike. BlockNote's exporter then brackets each span separately, so a run is now rendered as a whole on export rather than one span at a time. Emphasis inside a link (`[**bold**](url)`) remains unnormalized and is not covered here. |
 | 2026-08-06 | r5 | marco | Criterion 1 did not hold for code fences, which it names explicitly. A BlockNote code block keeps only its `language`, so four properties of the written fence were dropped on parse and re-invented on export: an unlabelled fence gained `text`, a marker longer than three characters was shortened, a `~~~` fence became a backtick fence, and a fence indented under a list item was flattened to column zero. The `text` case was unrecoverable after the parse — `text` is BlockNote's default, so a bare fence and one that really declares `text` produce the same block. All four are now carried across the parse in the language field itself, via a sentinel written onto the opening fence and stripped after export. Added criterion 5 to state the general rule the four symptoms shared. The same flattening applies to every non-list child of a list item (paragraph, blockquote, table, heading) and is recorded under Out of scope as a known defect; it is not fixed here because the repair reaches every export path. |
+| 2026-08-06 | r6 | marco | Closed the known defect r5 left open, which criterion 1 also covered: a paragraph, blockquote, table or heading nested under a list item was exported at column zero, and unlike a rewrite that changes the document — the indent is what holds the block inside the item. Replacing the exporter proved unnecessary: each block exports correctly on its own and only the composition was wrong, so the export now walks the block tree and indents each child under its parent, calling the stock exporter on the parts. A run of items goes through it in one call (or every ordered list restarts at 1) and stops at a change of list type (or one emitted line stops pairing with one item, which dropped a whole list). Also fixed the checklist case, whose cause is separate and lives in the dependency: BlockNote's markdown parser counts a task item's content column including the `[ ] ` marker, so a child at the idiomatic column is read as a sibling — such children are re-indented to the column the parser expects before the parse and put back after it. The fence sentinel no longer carries an indent, since the tree walk applies it. Added criterion 6 for nesting depth, and narrowed criterion 5 to the fence properties the sentinel still carries. |
 
 ## Approvals
 

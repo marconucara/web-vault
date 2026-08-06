@@ -65,17 +65,28 @@ same trick does not generalise.
   indent handling into the general mechanism if the result is simpler than the
   two living side by side.
 
-## Approach (to confirm when the work starts)
+## Approach — as implemented
 
-The likely shape is to stop going through `blocksToMarkdownLossy` and drive the
-markdown export from a stage that still knows the block tree — either exporting
-from the blocks directly, or from `blocksToFullHTML`, whose output does keep the
-nesting (`<div class="bn-block-group">` inside the item's block). Reading
-`data-nesting-level` back is the cheaper alternative but re-derives structure
-from an attribute rather than from the tree.
+The item expected to *replace* `blocksToMarkdownLossy`. That turned out to be
+unnecessary: each block exports correctly on its own, and only the composition
+was wrong. `exportBlocks` walks the block tree and indents each child under its
+parent, calling the stock exporter on the parts — additive, not a rewrite, and
+used by both export paths (`blocksToBody`, `serializeEditorBody`).
 
-This touches every export path (`blocksToBody`, `serializeEditorBody`), so it
-wants its own verification against a real vault, not only the fixtures.
+Three constraints the walk has to respect, each found by testing rather than by
+reading:
+
+1. **A run of items goes through the exporter in one call.** One call per item
+   restarts every ordered list at 1, because the exporter counts the ordinals
+   within a call.
+2. **The run stops at a change of list type.** The exporter separates two
+   different lists with a blank line, so one emitted line no longer pairs with
+   one item. The first implementation paired them regardless and *dropped the
+   second list outright* — content loss, caught by diffing edge cases against
+   the unmodified tree, not by a failing test. A length guard now falls back to
+   the exporter's output verbatim, losing the indent rather than content.
+3. **A child indents to the item's text column**, which is the width of the
+   marker actually emitted: two for a bullet, three for `1. `, four for `10. `.
 
 ## Out of scope
 
@@ -98,3 +109,33 @@ wants its own verification against a real vault, not only the fixtures.
 6. Idempotence: a second round trip is a no-op.
 7. The new assertions are confirmed to fail against the unmodified tree.
 8. `yarn verify` green.
+
+## Outcome
+
+All eight criteria met, plus two cases the item did not list: a child three
+levels deep, and the checklist item.
+
+The checklist needed its own fix, with a different cause. BlockNote's markdown
+parser counts a task item's content column *including* the `[ ] ` marker
+(`markdownToHtml.ts`, `contentIndent`), so it expects a continuation at column 6
+and reads the idiomatic column 2 as a sibling — while the same child under a
+plain bullet nests correctly. A nested *list* survived only because a second
+rule admits sub-lists between the marker and the content column; nothing covered
+a paragraph, quote or table. The defect is in the dependency, so children of a
+checklist item are re-indented to the column the parser expects before the parse
+and put back after it.
+
+Two parts of the fence item folded into this one: the sentinel no longer carries
+the fence's indent (`exportBlocks` applies it, so carrying it too applied it
+twice), and `compactTableLine` keeps the leading whitespace it used to trim.
+
+Left as-is, and confirmed pre-existing by diffing against the unmodified tree: a
+blank line before a list nested under a checklist item is dropped, which makes a
+loose list tight. Spacing, not structure, and consistent with
+`postProcessMapLinks`, which already compacts loose lists.
+
+Coverage: 91 → 121 tests. 16 of the new assertions were confirmed to fail
+against the unmodified tree, so they pin the behaviour rather than merely
+passing. Verified against a real vault by the owner, as the item required.
+
+**Shipped:** 2026-08-06 · HEAD 1f81806 · ADR 0015 (r6; already `Implemented`, no status change)

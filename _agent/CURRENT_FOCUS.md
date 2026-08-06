@@ -15,7 +15,15 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Current tag: `v0.6.0`** — the brand identity (ADR `0042`, now Implemented).
+- **Current tag: `v0.6.1`** — round-trip fidelity for code fences and for blocks
+  nested under a list item (ADR `0015` r5/r6). A patch by semver: bug fixes, no
+  API change. Two defects with one shape — the block model drops something about
+  how the markdown was written, and the exporter re-invents it — but different
+  consequences. The fence one rewrote bytes (an unlabelled fence came back
+  ```` ```text ````); the nesting one changed the document, since the indent is
+  what holds a block inside its list item. Pinned in `SETUP.md`, `README.md`,
+  `package.json`, and both consumer repos' `.web/`.
+- **`v0.6.0`** — the brand identity (ADR `0042`, now Implemented).
   A minor, not a patch: adopters get a visible change they did not ask for —
   the sidebar reads `WebVault` behind the mark instead of `Vault`, and the tab
   carries an icon. The icon set is committed pre-rendered under `brand/` and
@@ -60,6 +68,27 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **ADR `0015` r6 — nested block indent (2026-08-06, `1f81806`, `v0.6.1`).** A
+  paragraph, blockquote, table or heading indented under a list item came back at
+  column zero. Worse than the fence rewrite it followed: the indent is what holds
+  the block *inside* the item, so the block left the list. Replacing
+  `blocksToMarkdownLossy`, as the plan item assumed, proved unnecessary — each
+  block exports correctly alone and only the composition was wrong, so the export
+  walks the block tree and indents each child under its parent, calling the stock
+  exporter on the parts. Three constraints, all found by testing: a run of items
+  goes through the exporter in **one** call (per-item calls restart every ordered
+  list at 1); the run **stops at a change of list type**, because the exporter
+  separates two lists with a blank line and one emitted line then stops pairing
+  with one item — the first attempt paired them anyway and **dropped a whole
+  list**, caught by diffing edge cases against the unmodified tree rather than by
+  a failing test; and a child indents to the width of the marker emitted (four
+  for `10. `). The checklist case had a separate cause, in the dependency:
+  BlockNote's markdown parser counts a task item's content column *including* the
+  `[ ] ` marker, so a child at the idiomatic column 2 reads as a sibling — those
+  children are re-indented to the column the parser expects before the parse.
+  91 → 121 tests, 16 confirmed failing against the unmodified tree. Verified
+  against a real vault. See
+  `plan/done/2026-08-06-nested-blocks-flattened-on-export.md`.
 - **ADR `0015` r5 — code fence shape (2026-08-06, `1243c86`).** Four differences
   turned out to be one defect: a BlockNote code block keeps only its
   `language`, so an unlabelled fence gained `text`, a marker longer than three
@@ -75,7 +104,7 @@ If status files and git disagree, git is authoritative; correct this file.
   of its `<li>`, keeping the depth only in a `data-nesting-level` attribute the
   markdown step never reads, and in the emitted markdown a fence that *follows*
   a list is indistinguishable from one nested *inside* it. That flattening
-  affects every nested block type and is now `plan/todo/0004`. 78 → 91 tests,
+  affects every nested block type and was fixed next, in r6. 78 → 91 tests,
   15 confirmed failing against the unmodified tree. See
   `plan/done/2026-08-06-fence-shape-lost-on-round-trip.md`.
 - **ADR `0028` r2 — maps resolver cache poisoning (2026-08-02, `v0.5.1`).** A
@@ -127,24 +156,17 @@ authoritative.
 
 ## Next item
 
-The queue holds two items. Suggested order:
+The queue holds one item.
 
-1. **`plan/todo/0004`** — a block nested under a list item is flattened on
-   export. Filed 2026-08-06 while fixing the code fence, which turned out to be
-   this same defect seen through the one block type that could be worked around.
-   Worse than a rewrite: the indent is what holds the block *inside* its item,
-   so losing it changes the document. Every non-list child type is affected
-   (paragraph, blockquote, table, heading), and the fix reaches every export
-   path — the largest of the round-trip items, and the one with a real
-   user-visible consequence.
-2. **`plan/todo/0003`** — *rewritten by the 2026-08-05 audit and deprioritised.*
+1. **`plan/todo/0003`** — *rewritten by the 2026-08-05 audit and deprioritised.*
    The bug it originally described no longer reproduces: `preProcessWikilinks`
    still builds a malformed token across a code span, but `postProcessWikilinks`
    reverses it symmetrically, so the round trip is clean end to end. Nothing
    enforces that symmetry, so the item is now test coverage, not a fix.
 
-The 0004 slot was previously the emphasis-around-inline-code item, shipped
-2026-08-05; the number was free and has been reused.
+Three round-trip items shipped in a row on 2026-08-05/06 (emphasis around inline
+code, fence shape, nested block indent), all under ADR `0015`. The `0004` and
+`0005` slots have each been used twice; numbers are reused once an item ships.
 Not queued, because it needs a decision first: **ADR `0044`** — what the URL
 addresses. Written by the 2026-08-05 audit, promoted from
 `_agent/prompts/routing-adr.md` (now removed) where it had been invisible to
