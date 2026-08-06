@@ -1,7 +1,7 @@
 ---
 adr: 0038
 title: In-app upgrade notice — fetch published tags, compare, notify
-status: Implemented
+status: Accepted
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -32,6 +32,27 @@ published tag (a maintainer working on `main` after tagging), so the comparison
 must be "strictly newer", not "different": inequality would show a permanent,
 wrong upgrade notice in that case.
 
+The check runs in two modes, and they have opposite requirements. The
+**automatic** one is background work nobody asked for: it must stay invisible
+unless it has something to report, so a failure is nothing and "no update" is
+nothing. The **manual** one — the adopter clicking the version to confirm they
+are current — is an invoked action, and the answer they came for is *"yes, you
+are up to date"*. That answer is the common case, far more common than an
+update being available. Treating both modes as "silent unless newer" makes the
+click produce no observable change at all in the case it exists to serve, which
+is indistinguishable from a broken control; and after a failed check it would
+be worse than silent, since showing the up-to-date answer would assert
+something the check did not establish. So the manual mode reports its own
+outcome, including the failure, while never surfacing an error the adopter is
+expected to act on.
+
+This also fixes what the indicator's colour means. An "everything is normal"
+state that is permanently lit is chronic noise, and the rest of the status bar
+already says nothing when there is nothing to say. Absence is therefore the
+up-to-date state; the marker appears only when an upgrade is waiting, and it is
+not green, because green already reads as "no action needed" everywhere else.
+Green is reserved for the transient confirmation of a manual check.
+
 ## Capability statement
 
 While the portal is open it fetches web-vault's published tag list from the
@@ -45,6 +66,12 @@ Performing the upgrade is `adr/0039-*.md`.
 
 - As an adopter, I see an unobtrusive notice when a newer web-vault version is
   published, so I know an update exists.
+- As an adopter who is already current, I click the version to make sure, and I
+  get a visible answer — the check is running, then it is done and I am up to
+  date — rather than nothing happening.
+- As an adopter clicking the version while offline, I am told the check could
+  not run, and I am never told I am up to date on the strength of a check that
+  failed.
 - As a maintainer running a build ahead of the newest tag, I see no notice.
 
 ## Acceptance criteria
@@ -67,12 +94,37 @@ Performing the upgrade is `adr/0039-*.md`.
    closes the panel, not the marker — the dot stays until the upgrade actually
    happens, since suppressing it would have to persist and would then outlive
    the moment it was clicked in.
-6. A network/API failure is silent — no error surfaced, no notice shown.
+6. A network/API failure never surfaces an error the adopter is asked to act
+   on, and never shows an upgrade notice. In the **automatic** check it is
+   entirely silent. In the **manual** check it resolves to a distinct
+   "could not check" outcome (AC9) — never the up-to-date outcome, which would
+   assert something the failed check did not establish.
 7. The check is throttled so that ordinary use stays well inside the
    unauthenticated GitHub rate limit (60 requests/hour per IP): at most one
    automatic check per hour, persisted across page loads.
-8. The indicator is clickable for a manual re-check, refused if the previous
-   check was under a minute ago.
+8. The indicator is clickable for a manual re-check, and the fetch is refused
+   if the previous check was under a minute ago. The refusal is not observable:
+   a refused re-check presents exactly as a completed one (AC9), reporting the
+   stored result of the last check. The rate limit is the implementation's
+   constraint, not something the adopter is shown or asked to wait out.
+9. A manual re-check is observable from click to outcome, in every case —
+   fetched, refused by the throttle (AC8), or failed (AC6):
+   1. a pending state appears next to the version and is legible as "working",
+      held long enough to be seen even when the answer is immediate;
+   2. it is followed by exactly one terminal outcome — *up to date*, *update
+      available*, or *could not check*;
+   3. the *up to date* outcome is a transient confirmation that clears itself
+      and leaves the indicator in its resting state; it never becomes a
+      persistent badge.
+10. Colour carries one meaning each. The resting, up-to-date indicator has no
+    marker at all. The update-available marker is not green. Green appears only
+    as the transient confirmation of a manual check (AC9.3), never as a standing
+    state.
+11. The indicator carries a tooltip, built from the same in-app tooltip
+    component used elsewhere in the app rather than the browser's native
+    `title`, naming the running version, whether an update is available, and
+    when the last successful check happened. It is positioned so it stays fully
+    on screen from the status bar at the bottom of the viewport.
 
 ## Out of scope
 
@@ -85,7 +137,10 @@ Performing the upgrade is `adr/0039-*.md`.
 
 ## Open questions
 
-- None.
+- How the last-check time (AC11) is rendered: relative ("2h ago", readable at a
+  glance) or absolute ("14:32", verifiable). The leaning is relative under an
+  hour and absolute beyond it, but this is a presentation preference and does
+  not follow from anything above; settle it during implementation.
 
 ## References
 
@@ -103,9 +158,10 @@ Performing the upgrade is `adr/0039-*.md`.
 | 2026-08-06 | r4 | marco | Settled the remaining open questions: hourly automatic check with a one-minute floor on manual re-checks (AC7/AC8), and an anchored panel that links to the new version on the repository host (AC4). |
 | 2026-08-06 | r5 | marco | Clarified AC5: dismissing closes the panel, not the marker. Found in use — an explicit Dismiss button hid the dot persistently, which outlives the click and leaves no way back. |
 | 2026-08-06 | r6 | marco | Implemented: tag fetch, semver selection, throttled checks, and the status-bar marker with its anchored panel. |
+| 2026-08-06 | r7 | marco | Back to Accepted. Found in use: the manual re-check (AC8) had no observable outcome in the commonest case — an adopter clicking to confirm they are current saw nothing change, since a check finding no update touches no rendered state. AC8 specified the action without specifying its feedback, and AC6's blanket silence, correct for the automatic check, made a failed manual check indistinguishable from "up to date". Qualified AC6 by mode, rewrote AC8 so a throttle refusal is unobservable, and added AC9 (pending state and exactly one terminal outcome), AC10 (colour semantics — the shipped marker was green, which reads as "no action needed" while meaning the opposite), and AC11 (in-app tooltip carrying the running version and last-check time). |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Maintainer | Marco Nucara | 2026-08-06 | — |
+| Maintainer | Marco Nucara | 2026-08-06 | — (r7) |

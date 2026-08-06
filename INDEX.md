@@ -42,7 +42,7 @@ hand-edit rows out of sync with the ADR files.
 | [0035](adr/0035-cloudflare-template-onboarding.md) | Second delivery path — Cloudflare starter template for near-one-click onboarding | Implemented | 2026-07-30 |
 | [0036](adr/0036-local-dev-edit-write-to-disk.md) | Local dev edit persistence — write to disk, no commit | Implemented | 2026-07-30 |
 | [0037](adr/0037-versioning-and-release-policy.md) | Versioning policy — semver over git tags, framework version in the build | Implemented | 2026-07-30 |
-| [0038](adr/0038-in-app-upgrade-notice.md) | In-app upgrade notice — fetch published tags, compare, notify | Implemented | 2026-07-30 |
+| [0038](adr/0038-in-app-upgrade-notice.md) | In-app upgrade notice — fetch published tags, compare, notify | Accepted | 2026-07-30 |
 | [0039](adr/0039-adopter-upgrade-path.md) | Adopter upgrade path — one-click pin bump from the upgrade notice | Implemented | 2026-07-30 |
 | [0040](adr/0040-cloudflare-workers-deploy-substrate.md) | Cloudflare Workers as the deploy substrate, superseding Pages | Implemented | 2026-07-31 |
 | [0041](adr/0041-automated-quality-gate-typecheck-and-tests.md) | Automated quality gate — typechecking and tests | Implemented | 2026-07-31 |

@@ -9,7 +9,9 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight.
+- **Active item:** none in flight. `plan/todo/0001-upgrade-check-feedback.md` is
+  queued — ADR `0038` went back to **Accepted** (r7) because the manual re-check
+  has no observable outcome.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 
@@ -167,6 +169,16 @@ If status files and git disagree, git is authoritative; correct this file.
   meant the panel). The feature is live but inert until a tag newer than an
   adopter's build exists. 137 → 159 tests. See
   `plan/done/2026-08-06-in-app-upgrade-notice.md`.
+  **Reopened 2026-08-06 (r7, back to Accepted).** The whole build was tested
+  against the update-available path, which is the rare one. In the common path —
+  an adopter clicking the version to confirm they are current — the click
+  renders *nothing*: a check finding no update writes only `checkedAt`, and
+  `VersionIndicator` never reads it, so the store re-renders an identical tree.
+  Refused-by-throttle and in-flight are equally invisible. Same blind spot as the
+  Dismiss button above: the mechanism was verified, the moment of use was not.
+  Two more fell out with it — AC6's blanket silence would have made a *failed*
+  check report "up to date", and the update dot is **green**, the colour this app
+  uses for `In sync`. Queued as `plan/todo/0001-upgrade-check-feedback.md`.
 - **ADR `0037` — versioning policy and framework version (2026-08-06, `7f192d8`,
   `d8cb7c2`, unreleased).** The decision was rewritten before being built. It had
   called for GitHub Releases and a `1.0.0`; both are gone. A parallel publication
