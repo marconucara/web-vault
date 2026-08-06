@@ -100,7 +100,7 @@ tolerable for choosing which of two labels a panel renders before any click.
 
 ## Shipped
 
-Released as `v0.8.0`.
+Shipped in `18b4511`, released as `v0.8.0`.
 
 **Where the deployed version had to come from.** The post-commit resolution
 (exit criterion 7) needs to observe the rebuild landing, and there was nothing to
