@@ -24,22 +24,23 @@ be made as guided as the install.
 ## Capability statement
 
 An adopter upgrades via a prompt/skill — the twin of the install prompt — that
-resolves the latest published release, updates the shell's `web-vault` pin to
+resolves the newest published tag, updates the shell's `web-vault` pin to
 that tag, and reinstalls, leaving the adopter's vault content untouched. The
 upgrade is an explicit, guided action, not an automatic background change.
 
 ## User stories / scenarios
 
 - As an adopter who installed via a prompt, I run an upgrade prompt and my shell
-  is bumped to the latest release and reinstalled, without hand-editing config.
+  is bumped to the newest published version and reinstalled, without
+  hand-editing config.
 - As an adopter, the upgrade changes only the framework pin, never my vault
   notes or my configuration values.
 
 ## Acceptance criteria
 
-1. A documented prompt/skill upgrades an existing shell: resolve latest release
-   (`adr/0037-*.md`), rewrite the `web-vault` pin in `.web/package.json`,
-   reinstall.
+1. A documented prompt/skill upgrades an existing shell: resolve the newest
+   published tag (`adr/0037-*.md`), rewrite the `web-vault` pin in
+   `.web/package.json`, reinstall.
 2. Only the dependency pin changes; adopter config and vault content are
    untouched.
 3. The upgrade is explicit (adopter-invoked); nothing upgrades automatically.
@@ -67,6 +68,7 @@ upgrade is an explicit, guided action, not an automatic background change.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
+| 2026-08-06 | r2 | marco | Reworded "latest release" as "newest published tag", following `adr/0037-*.md` r2 (editorial: no scope change). |
 
 ## Approvals
 

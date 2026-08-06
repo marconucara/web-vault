@@ -1,0 +1,71 @@
+# Bake the framework version into the build and show it in the status bar
+
+**Owning ADR(s):** `adr/0037-versioning-and-release-policy.md`
+**Dependencies:** None. Unblocks `adr/0038-in-app-upgrade-notice.md`.
+
+## Context
+
+`adr/0037-*.md` r3 settles the versioning contract: semver over `vX.Y.Z` git
+tags, no GitHub Releases, no `1.0.0` commitment. Its policy half is prose and
+lands with the ADR itself, and the release procedure that keeps the four version
+references in sync (AC3) lands in `AGENTS.md` with it. Its code half is AC4 +
+AC5 — bake the framework's own version into the build, and show it in the status
+bar.
+
+Today the build writes `build { sha, short, dirty, builtAt, repo }`
+(`scripts/build-content.mjs:188-194`), all of which describes the **adopter's
+vault**: the commit the site was built from, and the vault repo the toolbar chip
+links to (`adr/0012-build-version-chip.md`). Nothing describes the **framework**.
+So the app cannot name its own version — the missing half of the comparison
+`adr/0038-*.md` needs — and the adopter cannot see it.
+
+The status bar chip is an `<a>` to the vault commit
+(`src/components/StatusBar.jsx:180-191`). The framework version is a different
+identity and has no commit to link to, so it sits beside the chip rather than
+inside that anchor. `adr/0012-*.md` is untouched: this adds a neighbour, it does
+not redefine the commit chip.
+
+## Scope
+
+- Read `version` from the framework package's own `package.json` at build time.
+  It must resolve via `PACKAGE_DIR` (`scripts/paths.mjs`), which points at this
+  package's root, so it keeps working when the framework is installed inside the
+  adopter's `node_modules` — **not** via `PROJECT_DIR`/`VAULT_DIR`, which would
+  read the adopter's shell `package.json` and bake the wrong number.
+- Add it to the `build` object under a name that cannot be confused with the
+  vault commit fields it sits next to (e.g. `frameworkVersion`).
+- Record near `gitBuildInfo` why the version comes from `PACKAGE_DIR` while
+  everything else in that object comes from the vault — the two identities look
+  alike and the next reader will otherwise assume one source.
+- Render it in the status bar next to the existing build chip, outside that
+  anchor. Both the visible label and the tooltip must make clear which value is
+  the framework version and which is the vault commit; do not let them read as
+  one compound identity.
+- Test that the baked value equals the package's declared `version`, and that it
+  is not read from the consumer project.
+
+## Out of scope
+
+- Fetching tags, comparing versions, or any upgrade notice — that is
+  `adr/0038-*.md` and gets its own item. The indicator here states the running
+  version unconditionally and carries no update-available affordance.
+- Any change to the commit chip's own behaviour or to `adr/0012-*.md`.
+- Automating or enforcing the version bump across the four places that name a
+  version. `adr/0037-*.md` AC2/AC3 require them to match at a release commit, and
+  the procedure is documented in `AGENTS.md` (Cutting a release); making it a
+  mechanical check rather than a documented step would be its own item, and needs
+  a reason beyond "it drifted once".
+- Any change to the existing vault commit fields.
+
+## Exit criteria
+
+1. `content.json`'s `build` object carries the framework version, read from the
+   framework package's own `package.json`.
+2. Resolution goes through `PACKAGE_DIR`, verified to still be correct when the
+   package sits in a consumer's `node_modules` rather than being the cwd.
+3. A test asserts the baked value matches the package's declared `version`.
+4. The status bar shows the framework version beside the build chip, with the
+   two identities distinguishable in the rendered output and in the tooltip.
+5. The existing `sha` / `short` / `dirty` / `builtAt` / `repo` fields and the
+   commit chip's link and behaviour are unchanged.
+6. `yarn verify` green.

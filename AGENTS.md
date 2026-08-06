@@ -118,3 +118,27 @@ history; LOCKS discipline is not in use.
   vault and builds unrelated notes into a stray `dist/`. Those commands belong
   to a consumer `.web` project; linking one with `portal:` is a development aid,
   not a gate step.
+
+## Cutting a release
+
+Versioning follows `adr/0037-versioning-and-release-policy.md`: semver over
+annotated git tags `vX.Y.Z`, no GitHub Releases. In `0.x` a breaking change to
+the adopter-facing contract (CLI, shell config, vault layout, deploy substrate)
+rides the **minor**; additive changes and fixes ride the **patch**.
+
+The version lives in **four** places and they must move together, in the same
+commit as the tag. A stale one is silent — nothing fails, the damage shows up
+later in someone else's install:
+
+| Where | What | If it is stale |
+|-------|------|----------------|
+| `package.json` `version` | the declared version | the running app reports the wrong version, so the upgrade notice compares against it wrongly (`adr/0038-*.md`) |
+| git tag `vX.Y.Z` | the published version | — |
+| `SETUP.md` (dependency pin) | `web-vault#vX.Y.Z` | new adopters install an old version |
+| `README.md` (`blob/vX.Y.Z/SETUP.md`) | the onboarding prompt link | the agent follows outdated install instructions |
+
+The declared `version` and the tag name must match at the tagged commit — that
+is what makes a version *published*. This has drifted before: at `v0.5.0` the
+`SETUP.md` pin still said `v0.3.0`, two releases behind, and was caught by
+chance rather than by any check. Grep `v[0-9]` across the repo before tagging;
+treat any hit outside `_agent/` history as a place to update.
