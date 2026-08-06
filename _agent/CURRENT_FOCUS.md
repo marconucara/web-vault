@@ -9,16 +9,21 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. `plan/todo/0001-upgrade-check-feedback.md` is
-  queued — ADR `0038` went back to **Accepted** (r7) because the manual re-check
-  has no observable outcome.
+- **Active item:** none in flight; `plan/todo/` is empty.
 - **Blockers:** none.
 - **Uncommitted work:** none.
+- **Another session is working a separate bug.** This change was deliberately
+  left **untagged and without a version bump** so the two ride the same release.
+  Check what landed there before cutting one.
 
 ## Release state
 
-- **Unreleased on `main`:** ADR `0015` r7 — the link passes now skip code. A bug
-  fix with no contract change, so a **patch** when the next tag is cut.
+- **Unreleased on `main`:** ADR `0015` r7 — the link passes now skip code. ADR
+  `0038` r7–r9 — the manual update check is visible from click to answer, and
+  the update marker is amber rather than green. Both are bug fixes with no
+  adopter-facing contract change, so a **patch** when the next tag is cut. A
+  parallel session has a further fix in flight; deliberately not tagged here so
+  they release together.
 - **Current tag: `v0.8.0`** — the upgrade loop closes. ADR `0039`: the notice
   from `0038` gains an action, so a deployment that can write upgrades itself.
   Also carries what had accumulated since `v0.6.1` and was queued for a `v0.7.0`
@@ -178,7 +183,19 @@ If status files and git disagree, git is authoritative; correct this file.
   Dismiss button above: the mechanism was verified, the moment of use was not.
   Two more fell out with it — AC6's blanket silence would have made a *failed*
   check report "up to date", and the update dot is **green**, the colour this app
-  uses for `In sync`. Queued as `plan/todo/0001-upgrade-check-feedback.md`.
+  uses for `In sync`.
+  **Closed 2026-08-06 (r9, Implemented).** The store models the *outcome* now,
+  not the result: `{ ok, latest }` instead of `latest | null`, which had
+  collapsed "GitHub answered and you are current" together with "nothing
+  answered". The two timestamps had to split — `attemptedAt` throttles,
+  `checkedAt` records the last success and is the only one shown; sharing one
+  forces a choice between hammering a dead endpoint every render and calling a
+  failed check fresh. Pending state has a 450ms floor started *alongside* the
+  fetch, so it never delays a slow check, only stops a fast one flashing. Marker
+  is amber; green is now only the transient confirmation. Verified in a browser
+  for the two things unit tests cannot settle — the upward tooltip staying on
+  screen and the pending state being legible on a cached check. 210 → 228 tests.
+  See `plan/done/2026-08-06-upgrade-check-feedback.md`.
 - **ADR `0037` — versioning policy and framework version (2026-08-06, `7f192d8`,
   `d8cb7c2`, unreleased).** The decision was rewritten before being built. It had
   called for GitHub Releases and a `1.0.0`; both are gone. A parallel publication

@@ -1,7 +1,7 @@
 ---
 adr: 0038
 title: In-app upgrade notice — fetch published tags, compare, notify
-status: Accepted
+status: Implemented
 date: 2026-07-30
 owner: marco
 supersedes:
@@ -161,6 +161,7 @@ Performing the upgrade is `adr/0039-*.md`.
 | 2026-08-06 | r6 | marco | Implemented: tag fetch, semver selection, throttled checks, and the status-bar marker with its anchored panel. |
 | 2026-08-06 | r7 | marco | Back to Accepted. Found in use: the manual re-check (AC8) had no observable outcome in the commonest case — an adopter clicking to confirm they are current saw nothing change, since a check finding no update touches no rendered state. AC8 specified the action without specifying its feedback, and AC6's blanket silence, correct for the automatic check, made a failed manual check indistinguishable from "up to date". Qualified AC6 by mode, rewrote AC8 so a throttle refusal is unobservable, and added AC9 (pending state and exactly one terminal outcome), AC10 (colour semantics — the shipped marker was green, which reads as "no action needed" while meaning the opposite), and AC11 (in-app tooltip carrying the running version and last-check time). |
 | 2026-08-06 | r8 | marco | Closed the AC11 open question with the shipped format: relative under the hour, clock time within the day, date beyond. |
+| 2026-08-06 | r9 | marco | Implemented: outcome-aware store (success and attempt timestamps split), visible pending state with a floor, the three terminal outcomes, amber marker with green reserved for the transient confirmation, and the upward in-app tooltip. |
 
 ## Approvals
 

@@ -138,13 +138,17 @@ Component (`versionIndicator.test.jsx`):
    updated in the same change.
 9. `yarn verify` green.
 
-## Progress (2026-08-06) — implemented, awaiting the browser check
+## Outcome
 
-Code and tests are done and `yarn verify` is green (210 → 225 tests). **This item
-stays in `todo/` and ADR `0038` stays Accepted** until exit criteria 5 and 6 are
-confirmed in a browser: both are explicitly "verify in the real app, not only in
-a unit test", and no consumer project was linked to this working tree during
-implementation. Everything else is complete.
+All nine exit criteria met. `yarn verify` green, 210 → 228 tests. Criteria 5 and
+6 — the two that a unit test cannot settle, the upward tooltip staying on screen
+from the bottom of the viewport and the pending state being legible on a fast
+check — were confirmed in a browser against a linked consumer project before
+this shipped.
+
+**No version bump and no tag with this change.** Another fix is in flight in a
+parallel session; the two ride the same release, whenever it is cut. Nothing
+here is adopter-visible until then.
 
 **The store now models the outcome, not just the result.** `fetchLatest` returns
 `{ ok, latest }` instead of `latest | null`, which had collapsed "GitHub
