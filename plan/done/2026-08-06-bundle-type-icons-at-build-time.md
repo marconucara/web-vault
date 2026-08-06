@@ -94,4 +94,4 @@ the suite still runs from a bare clone with no vault.
 
 ---
 
-Shipped at HEAD `PENDING` — see the commit for the exact tree.
+Shipped at HEAD `7179ef6`, released as `v0.8.1` — see the commit for the exact tree.
