@@ -77,9 +77,18 @@ language selector.
 
 ## Open questions
 
-- The exact mechanism by which the client learns commit availability without
-  exposing the secret — a `build-info` flag vs a Pages Function / health response.
-  To be fixed in the plan for this ADR.
+- ~~The exact mechanism by which the client learns commit availability without
+  exposing the secret — a `build-info` flag vs a Pages Function / health
+  response.~~ **Resolved: a runtime capability endpoint.** Settled while
+  implementing `adr/0039-*.md`, which needs the same answer to choose which
+  action its notice offers. The deployment answers `GET /api/capabilities` with
+  `canWrite`, derived server-side from the presence of the token; the token
+  itself never leaves the server. Runtime rather than build-injected, because
+  the token is a host secret an adopter adds *after* deploying (the welcome note
+  instructs exactly that) — a build-time flag would report `false` on a
+  deployment that writes perfectly well, until the next rebuild. This ADR's
+  editor gating (criterion 3) consumes that endpoint; it does not need to define
+  it.
 
 ## References
 
@@ -88,6 +97,7 @@ language selector.
 - adr/0033-builtin-sidebar-views.md
 - adr/0014-wysiwyg-blocknote-editor.md
 - adr/0021-draft-state-optimistic-ui.md
+- adr/0039-adopter-upgrade-path.md (defines and consumes the capability endpoint)
 - CONVENTIONS.md (Language)
 
 ## Revision History
@@ -95,6 +105,7 @@ language selector.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
+| 2026-08-06 | r2 | marco | Resolved the open question: commit availability is read at runtime from a capability endpoint, not baked into the build. Settled and implemented under `adr/0039-*.md`, which consumes the same signal. No change to this ADR's scope or criteria. |
 
 ## Approvals
 

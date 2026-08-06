@@ -1102,6 +1102,22 @@ a:hover { text-decoration: underline; }
   margin-top: 8px;
 }
 .vp-link { color: var(--accent); }
+/* The upgrade action. A button, not a link: it acts on this deployment rather
+   than navigating away — the opposite of .vp-link, which leaves for GitHub. */
+.vp-action {
+  font: inherit;
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.vp-action:hover { filter: brightness(1.08); }
+.vp-action:disabled { opacity: 0.6; cursor: default; }
+/* In-progress and settled states read as text, not as something else to press. */
+.vp-status { color: var(--text-dim); }
+.vp-note { color: var(--text-dim); margin-top: 6px; }
 .sb-toast {
   display: inline-flex;
   align-items: center;

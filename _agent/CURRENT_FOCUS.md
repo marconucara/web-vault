@@ -15,13 +15,36 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Unreleased on `main` since `v0.6.1`:** the share-page task-list fix
-  (ADR `0025`), ADR `0037` (versioning policy, framework version in the build and
-  status bar) and ADR `0038` (the upgrade notice). The next tag is a **minor**
-  (`v0.7.0`): the status bar gains visible elements adopters did not ask for,
-  which is not a patch. When cutting it, follow `AGENTS.md` → "Cutting a
-  release": four places name a version and none of them fails loudly when stale.
-- **Current tag: `v0.6.1`** — round-trip fidelity for code fences and for blocks
+- **Unreleased on `main`:** none.
+- **Current tag: `v0.8.0`** — the upgrade loop closes. ADR `0039`: the notice
+  from `0038` gains an action, so a deployment that can write upgrades itself.
+  Also carries what had accumulated since `v0.6.1` and was queued for a `v0.7.0`
+  that was never cut: the share-page task-list fix (ADR `0025`), ADR `0037`
+  (versioning policy, framework version in the build and status bar) and ADR
+  `0038` (the notice itself). A **minor**: the status bar gains visible elements
+  adopters did not ask for, and the notice now acts on the adopter's repository.
+  - **The pin bump is a commit, not a new mechanism.** It targets the branch the
+    deployment was built from (`adr/0020-*.md`), so the push rebuilds and the
+    rebuild reinstalls. No separate reinstall step exists to orchestrate.
+  - **A dedicated endpoint, deliberately.** `isSafeNotePath` rejects
+    `.web/package.json` three times over (needs `.md`, no dot-segments) and that
+    guard is load-bearing — it keeps the note editor away from the toolchain.
+    `/api/upgrade` has one file and one field in its entire write scope. A test
+    asserts `/api/commit` still cannot reach the shell; if it ever fails, the
+    editor has gained write access to the build config.
+  - **The capability signal is runtime, and this is the trap.** The token is a
+    host secret an adopter adds *after* deploying — the welcome note says so. A
+    build-time flag would report `false` on a deployment that writes perfectly
+    well, until the next rebuild. This also answers the open question
+    `adr/0034-*.md` had parked for its own plan; 0034 now consumes the endpoint
+    instead of defining it, its editor gating still unbuilt.
+  - **The deployed version had to become fetchable.** The framework version is
+    compiled into the bundle, so a client polling for "did the rebuild land?"
+    would be watching a number that cannot change under it. It is now
+    build-injected into the Worker config and reported beside `canWrite`.
+  - Pinned in `SETUP.md`, `README.md`, `package.json`, and both consumer repos'
+    `.web/`.
+- **`v0.6.1`** — round-trip fidelity for code fences and for blocks
   nested under a list item (ADR `0015` r5/r6). A patch by semver: bug fixes, no
   API change. Two defects with one shape — the block model drops something about
   how the markdown was written, and the exporter re-invents it — but different

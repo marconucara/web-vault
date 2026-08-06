@@ -67,7 +67,7 @@ if you place the shell elsewhere).
     "maps:genkey": "wv genkey"
   },
   "dependencies": {
-    "web-vault": "github:marconucara/web-vault#v0.6.1"
+    "web-vault": "github:marconucara/web-vault#v0.8.0"
   },
   "packageManager": "yarn@4.5.3+sha512.3003a14012e2987072d244c720506549c1aab73ee728208f1b2580a9fd67b92d61ba6b08fe93f6dce68fd771e3af1e59a0afa28dd242dd0940d73b95fedd4e90"
 }
@@ -220,6 +220,22 @@ Publishing is optional and builds in the cloud (no local toolchain). The setup
 is documented once in [`DEPLOY.md`](DEPLOY.md) — follow it to add the deploy
 config to `.web/`, create the Cloudflare Pages project, and set the secrets and
 access. Do not duplicate those steps here.
+
+## 5. Upgrading later (nothing to do now)
+
+Nothing to set up — this is here so you know the pin above is a starting point,
+not something the user will have to maintain by hand.
+
+A deployed WebVault marks its version indicator when a newer version is
+published, and a deployment that can write (one with a GitHub token configured)
+offers to update itself from that notice. Accepting it commits the new pin to
+`.web/package.json` on the deployment's branch, which rebuilds and reinstalls at
+that version — the same commit-and-rebuild cycle as editing a note.
+
+A deployment with no token configured shows the published version and links to
+it instead, since it has no way to commit the change; there the pin is still
+edited by hand. Local development also stays manual: `wv dev` writes the new pin
+to disk, and the reinstall is the user's to run.
 
 ## Stop conditions
 

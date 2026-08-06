@@ -14,12 +14,29 @@ vi.mock('../lib/upgrade.js', () => ({
   releaseUrl: (v) => `https://github.com/marconucara/web-vault/tree/v${v}`,
 }));
 
+// Whether the deployment can write decides which action the panel offers, so it
+// is stated per case exactly like the upgrade state (adr/0039-*.md).
+let caps = { canWrite: false, known: true };
+vi.mock('../lib/capabilities.js', () => ({
+  useCapabilities: () => caps,
+  loadCapabilities: vi.fn(),
+}));
+vi.mock('../lib/upgradeAction.js', () => ({
+  requestUpgrade: vi.fn(),
+  pollForVersion: vi.fn(),
+}));
+
+// Opts React into act() support for the DOM-driven cases below; without it
+// every interaction logs a warning that buries real output.
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 const { default: VersionIndicator } = await import('./VersionIndicator.jsx');
 
 const render = () => renderToStaticMarkup(<VersionIndicator />);
 
 beforeEach(() => {
   upgrade = { running: '0.6.1', latest: '', available: false, checkedAt: 0 };
+  caps = { canWrite: false, known: true };
   checkForUpdate.mockClear();
 });
 afterEach(() => vi.restoreAllMocks());
@@ -70,5 +87,62 @@ describe('version indicator', () => {
     // panel waits for a click.
     upgrade = { running: '0.6.1', latest: '0.7.0', available: true, checkedAt: 1 };
     expect(render()).not.toContain('versionpanel');
+  });
+});
+
+// The panel opens on click, which static rendering does not perform; drive it
+// through the DOM so the two variants are asserted on what an adopter sees.
+describe('the action the panel offers', () => {
+  let root;
+  let container;
+
+  const open = async () => {
+    const { createRoot } = await import('react-dom/client');
+    const { act } = await import('react');
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => root.render(<VersionIndicator />));
+    await act(async () => {
+      container.querySelector('button.sb-version').click();
+    });
+    return container;
+  };
+
+  afterEach(async () => {
+    if (root) {
+      const { act } = await import('react');
+      await act(async () => root.unmount());
+    }
+    container?.remove();
+    root = null;
+  });
+
+  it('offers only the release link when the deployment cannot write', async () => {
+    // No token configured: an upgrade action here would fail on click, so it is
+    // not offered at all (adr/0039-*.md).
+    upgrade = { running: '0.6.1', latest: '0.7.0', available: true, checkedAt: 1 };
+    caps = { canWrite: false, known: true };
+    const el = await open();
+    expect(el.querySelector('.vp-link')?.textContent).toBe('View on GitHub');
+    expect(el.querySelector('.vp-action')).toBe(null);
+  });
+
+  it('offers the upgrade action when the deployment can write', async () => {
+    upgrade = { running: '0.6.1', latest: '0.7.0', available: true, checkedAt: 1 };
+    caps = { canWrite: true, known: true };
+    const el = await open();
+    expect(el.querySelector('.vp-action')?.textContent).toBe('Update to 0.7.0');
+    expect(el.querySelector('.vp-link')).toBe(null);
+  });
+
+  it('falls back to the safe affordance before the probe has answered', async () => {
+    // `canWrite` is false until the answer lands, so what renders first is the
+    // link — never an action that might turn out to be unavailable.
+    upgrade = { running: '0.6.1', latest: '0.7.0', available: true, checkedAt: 1 };
+    caps = { canWrite: false, known: false };
+    const el = await open();
+    expect(el.querySelector('.vp-action')).toBe(null);
+    expect(el.querySelector('.vp-link')).not.toBe(null);
   });
 });
