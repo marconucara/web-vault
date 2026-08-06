@@ -27,18 +27,42 @@ Found on 2026-08-05 while re-verifying `plan/todo/0003`; it is the only
 difference that survived in an otherwise clean set of wikilink/code round-trip
 cases.
 
+## Re-diagnosed 2026-08-06 — the fix cannot live in `normalizeMarkdown`
+
+This item first placed the fix in the export-side normalisation stage. Running
+the parse shows that stage cannot tell the two cases apart:
+
+| Source | Parsed block | Exported |
+|---|---|---|
+| ```` ``` ```` | `codeBlock`, `language: "text"` | ```` ```text ```` |
+| ```` ```text ```` | `codeBlock`, `language: "text"` | ```` ```text ```` |
+
+`text` is BlockNote's default for a code block, so a bare fence and one that
+declares `text` collapse into the *same* block on parse. By export time "the
+author wrote no info string" is already gone, and any rule in
+`normalizeMarkdown` would have to strip `text` blindly — which the second scope
+bullet rules out.
+
+The distinction therefore has to be preserved *before* the parse, the same way
+wikilinks, media links and map links already are.
+
 ## Scope
 
-- Stop an unlabelled fence from acquiring a language on export, in the same
-  normalisation stage that already rewrites list bullets and compacts tables
-  (`normalizeMarkdown` in `src/lib/richMarkdown.js`).
+- Mark a fence that has no info string before the parse, so it stays
+  distinguishable from one that declares `text`, and unmark it on the way out —
+  a fourth pre/post pair alongside the existing token pairs in
+  `src/lib/richMarkdown.js`.
 - Preserve a language the author *did* write, including one that happens to be
   `text` — the fix must distinguish "no info string in the source" from "the
   author wrote `text`", so it cannot be a blanket strip.
 
 ## Out of scope
 
-- Any other exporter-introduced formatting difference not observed here.
+- Any other exporter-introduced formatting difference not observed here. Three
+  such differences surfaced while fixing this one and are all pre-existing,
+  unchanged by this item: a longer fence marker (```` ```` ````) is normalised
+  back to three characters, a `~~~` fence becomes a backtick fence, and a fence
+  indented inside a list item is de-indented.
 - Normalising the info string's casing or aliases (`js` vs `javascript`).
 
 ## Exit criteria

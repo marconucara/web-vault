@@ -246,6 +246,58 @@ describe('emphasis around an inline code span (ADR 0015)', () => {
   });
 });
 
+// A bare fence and one declaring `text` both parse to a code block whose
+// language is `text`, so only the pre-parse marking keeps them apart. These
+// assert both directions: dropping the marking relabels the bare fence, and
+// stripping `text` unconditionally would break the explicit case.
+describe('an unlabelled code fence stays unlabelled (ADR 0015)', () => {
+  const rt = async (body) => (await roundTripBody(body)).replace(/\n+$/, '');
+
+  it.each([
+    ['bare', '```\nSee [[welcome]] here\n```'],
+    ['explicit text', '```text\nSee [[welcome]] here\n```'],
+    ['a real language', '```js\nconst a = 1;\n```'],
+  ])('round-trips %s unchanged', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  // The exporter normalises a longer marker back to three characters, which is
+  // its own difference and not this one's: assert only that no language is
+  // added, so this stays a test about the info string.
+  it('adds no language to a longer bare fence', async () => {
+    expect(await rt('````\nplain\n````')).not.toMatch(/```\w/);
+  });
+
+  it('keeps the language prop the author declared', async () => {
+    const [bare] = await bodyToBlocks('```\nplain\n```');
+    const [explicit] = await bodyToBlocks('```text\nplain\n```');
+    // Same block type, told apart only by the sentinel riding on the bare one.
+    expect(bare.type).toBe('codeBlock');
+    expect(explicit.props.language).toBe('text');
+    expect(bare.props.language).not.toBe(explicit.props.language);
+  });
+
+  // A shorter marker inside a longer fence is content, not a close: if it were
+  // treated as one, the fence state would invert and the marking would land on
+  // the wrong lines.
+  it('leaves a fence marker inside another fence alone', async () => {
+    const body = '````\n```\nnested\n```\n````';
+    expect(await rt(body)).toBe(body);
+  });
+
+  // Two adjacent bare fences: the second opening must still be marked, which
+  // only holds if the first one was correctly closed.
+  it('marks every bare fence, not only the first', async () => {
+    const body = '```\none\n```\n\n```\ntwo\n```';
+    expect(await rt(body)).toBe(body);
+  });
+
+  it('is idempotent — a second round-trip is a no-op', async () => {
+    const once = await rt('```\nplain\n```');
+    expect(await rt(once)).toBe(once);
+  });
+});
+
 // Relaxing the `code` mark's exclusion is an editor-wide change, not only a
 // serialisation one: the same mark backs the formatting toolbar and paste. These
 // pin the behaviour that relaxation is supposed to enable, so a future revert of

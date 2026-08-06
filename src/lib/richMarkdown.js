@@ -216,10 +216,59 @@ export function joinListContinuations(body) {
   return out.join('\n');
 }
 
-// Full pre/post pipeline (wikilink + media link + map link).
+// A fence with no info string parses to a code block whose `language` prop is
+// `text` — BlockNote's default — which is exactly what a fence that DID declare
+// `text` parses to. The two collapse into the same block, so by export time
+// "the author wrote nothing" is no longer recoverable and the exporter labels
+// both ```text. Marking the bare fence before the parse keeps them apart: the
+// sentinel rides along as the block's language and is stripped on the way out,
+// so a bare fence stays bare and an explicit `text` stays `text`.
+//
+// Only the OPENING fence of a block carries an info string; the closing one is
+// bare by definition, so the fence state has to be tracked rather than matching
+// every bare marker. The sentinel is not a plausible language name, so a fence
+// that really declares it is not a case worth protecting.
+const BARE_FENCE_LANG = 'wv-plain';
+// The marker is the full run of backticks/tildes, so a longer fence (````) is
+// matched whole and the leftover backticks are not mistaken for an info string.
+const FENCE_OPEN = /^(\s*)(`{3,}|~{3,})(.*)$/;
+
+export function preProcessBareFences(body) {
+  const out = [];
+  let fence = null; // marker of the open fence, null outside one
+  for (const line of (body || '').split('\n')) {
+    const m = line.match(FENCE_OPEN);
+    if (!m) { out.push(line); continue; }
+    const [, indent, marker, info] = m;
+    if (fence) {
+      // A closing marker is of the same kind, at least as long as the opening
+      // one, and carries no info string. Anything else is literal content of
+      // the fence that is open — including a shorter fence marker.
+      const sameKind = marker[0] === fence[0];
+      if (sameKind && marker.length >= fence.length && info.trim() === '') fence = null;
+      out.push(line);
+      continue;
+    }
+    fence = marker;
+    out.push(info.trim() === '' ? `${indent}${marker}${BARE_FENCE_LANG}` : line);
+  }
+  return out.join('\n');
+}
+
+export function postProcessBareFences(md) {
+  return (md || '').replace(
+    new RegExp(`^(\\s*)(\`{3,}|~{3,})${BARE_FENCE_LANG}\\s*$`, 'gm'),
+    '$1$2'
+  );
+}
+
+// Full pre/post pipeline (wikilink + media link + map link + bare fences).
 const preProcess = (body) =>
-  preProcessMapLinks(preProcessMediaLinks(preProcessWikilinks(joinListContinuations(body || ''))));
-const postProcess = (md) => postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md)));
+  preProcessBareFences(
+    preProcessMapLinks(preProcessMediaLinks(preProcessWikilinks(joinListContinuations(body || ''))))
+  );
+const postProcess = (md) =>
+  postProcessBareFences(postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md))));
 
 // Normalizes BlockNote's output to the vault style (like Tolaria):
 // - unordered lists `* ` -> `- `;
