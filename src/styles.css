@@ -915,6 +915,13 @@ a:hover { text-decoration: underline; }
 }
 .tt-up:hover::after, .tt-up:focus-visible::after { transform: none; }
 
+/* For a tip written across more than one line. `data-tip` renders through
+   `content: attr()`, where a newline is collapsed like any other whitespace —
+   unlike native `title`, which breaks on it — so the line breaks have to be
+   honoured explicitly. A modifier rather than a change to `.tt`, whose other
+   users are all single-line and rely on `nowrap` to stay on one. */
+.tt-multi::after { white-space: pre-line; }
+
 /* CodeMirror editor */
 .editor-wrap {
   border: 1px solid var(--border);

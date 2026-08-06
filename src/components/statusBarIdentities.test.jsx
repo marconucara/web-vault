@@ -50,10 +50,10 @@ describe('status bar identities', () => {
     // The version is its own element and stays outside the commit anchor: it is
     // not a property of that commit and has nowhere to link to.
     expect(html).toMatch(/class="sb-version[^"]*"[^>]*>v1\.2\.3</);
-    const anchor = html.match(/<a class="sb-build"[\s\S]*?<\/a>/)[0];
+    const anchor = html.match(/<a class="sb-build[^"]*"[\s\S]*?<\/a>/)[0];
     expect(anchor).not.toContain('1.2.3');
-    // Each carries its own tooltip naming what it is — the version's is the
-    // in-app one (`data-tip`), the commit chip's is still a native `title`.
+    // Each carries its own tooltip naming what it is. Both are now the in-app
+    // tooltip (`data-tip`); neither uses the native `title`.
     expect(html).toContain('WebVault 1.2.3');
     expect(anchor).toContain('Content built from commit abcdef1');
   });
@@ -78,5 +78,40 @@ describe('status bar identities', () => {
     const html = render({ ...buildInfo, dirty: true });
     expect(html).toContain('abcdef1+');
     expect(html).toMatch(/class="sb-version[^"]*"[^>]*>v1\.2\.3</);
+  });
+
+  // The chip used to carry a native `title`, which gave the status bar two
+  // different tooltips side by side: the browser's here, the app's on the
+  // version indicator next to it. See adr/0012-build-version-chip.md.
+  describe('the commit chip tooltip', () => {
+    const anchorOf = (html) => html.match(/<a class="sb-build[^"]*"[\s\S]*?<\/a>/)[0];
+
+    it('uses the in-app tooltip rather than the browser default', () => {
+      const anchor = anchorOf(render(buildInfo));
+      expect(anchor).toContain('data-tip="');
+      expect(anchor).not.toContain('title="');
+    });
+
+    it('opens upward and allows more than one line, like the version does', () => {
+      // Without tt-up the bubble hangs below an element already at the bottom
+      // of the viewport; without tt-multi the two lines collapse into one,
+      // since `content: attr()` folds a newline like any other whitespace.
+      const anchor = anchorOf(render(buildInfo));
+      expect(anchor).toMatch(/class="sb-build tt tt-up tt-multi"/);
+    });
+
+    it('keeps both lines of the tip, and the commit reaches a screen reader', () => {
+      // The chip shows only the short SHA, so the accessible name — not the
+      // visible text — is what carries the commit and the build time.
+      const anchor = anchorOf(render(buildInfo));
+      const tip = 'Content built from commit abcdef1\n2026-08-06T00:00:00.000Z';
+      expect(anchor).toContain(`data-tip="${tip}"`);
+      expect(anchor).toContain(`aria-label="${tip}"`);
+    });
+
+    it('says so in the tip when the build had uncommitted changes', () => {
+      const anchor = anchorOf(render({ ...buildInfo, dirty: true }));
+      expect(anchor).toContain('Content built from commit abcdef1 (uncommitted local changes)');
+    });
   });
 });

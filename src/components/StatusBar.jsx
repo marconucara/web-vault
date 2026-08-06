@@ -184,18 +184,29 @@ export default function StatusBar({ pending, onOpen }) {
           version is not a property of that commit, and only the commit has
           somewhere to link to. */}
       <VersionIndicator />
-      {build?.short && (
-        <a
-          className="sb-build"
-          href={build.repo ? `https://github.com/${build.repo}/commit/${build.sha}` : undefined}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={`Content built from commit ${build.short}${build.dirty ? ' (uncommitted local changes)' : ''}\n${build.builtAt}`}
-        >
-          <Icon name="git-commit" size={12} />
-          <span className="sb-build-sha">{build.short}{build.dirty ? '+' : ''}</span>
-        </a>
-      )}
+      {build?.short && (() => {
+        const tip = `Content built from commit ${build.short}${
+          build.dirty ? ' (uncommitted local changes)' : ''
+        }\n${build.builtAt}`;
+        return (
+          // The in-app tooltip (`.tt` + `data-tip`), not the native `title`, so
+          // this matches the version indicator it sits next to; `tt-up` because
+          // the status bar is at the bottom of the viewport, `tt-multi` because
+          // the tip is two lines. The visible text is only the short SHA, so the
+          // label carries the same tip to a screen reader.
+          <a
+            className="sb-build tt tt-up tt-multi"
+            href={build.repo ? `https://github.com/${build.repo}/commit/${build.sha}` : undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-tip={tip}
+            aria-label={tip}
+          >
+            <Icon name="git-commit" size={12} />
+            <span className="sb-build-sha">{build.short}{build.dirty ? '+' : ''}</span>
+          </a>
+        );
+      })()}
       <div className="statusbar-spacer" />
       {toast && <span className="sb-toast"><Icon name="check" size={13} /> {toast}</span>}
       {inSync ? (
