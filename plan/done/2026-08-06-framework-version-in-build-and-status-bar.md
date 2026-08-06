@@ -100,4 +100,4 @@ mechanical gate check needs a reason beyond the one drift at `v0.5.0`.
 
 Coverage: 130 → 137 tests.
 
-**Shipped:** 2026-08-06 · HEAD <pending> · ADR 0037 (r4, Proposed → Implemented)
+**Shipped:** 2026-08-06 · HEAD d8cb7c2 · ADR 0037 (r4, Proposed → Implemented)
