@@ -314,6 +314,105 @@ describe('a code fence round-trips as it was written (ADR 0015)', () => {
   });
 });
 
+// BlockNote's HTML step lifts every non-list child out of its `<li>`, keeping
+// the depth only in an attribute the markdown step never reads, so the export
+// walks the block tree itself. The indent is what holds the block inside the
+// item, so these are about the document's structure, not only its bytes.
+describe('a block nested under a list item keeps its indent (ADR 0015)', () => {
+  const rt = async (body) => (await roundTripBody(body)).replace(/\n+$/, '');
+
+  it.each([
+    ['a paragraph', '- item\n\n  more prose'],
+    ['a blockquote', '- item\n\n  > quoted'],
+    ['a heading', '- item\n\n  # nope'],
+    ['a table', '- item\n\n  | a | b |\n  |---|---|\n  | 1 | 2 |'],
+    ['a code fence', '- item\n\n  ```\n  x\n  ```'],
+    ['two paragraphs in one item', '- item\n\n  first\n\n  second'],
+    ['a child two levels down', '- a\n  - b\n\n    prose'],
+    ['a child three levels down', '- a\n  - b\n    - c\n\n      prose'],
+  ])('round-trips %s unchanged', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  // Children line up with the item's text column, so the indent is the width of
+  // the marker actually emitted — two for a bullet, three for `1. `, four for
+  // `10. `. A fixed two-space indent passes the bullet cases and fails these.
+  it.each([
+    ['an ordered item', '1. one\n\n   prose'],
+    ['a two-digit ordinal', '10. ten\n\n    prose'],
+  ])('indents a child of %s to the marker width', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  // A run of items is exported in one call so the exporter counts the ordinals;
+  // exporting item by item restarts every list at 1.
+  it('keeps ordinals across a run', async () => {
+    expect(await rt('1. one\n2. two\n3. three')).toBe('1. one\n2. two\n3. three');
+  });
+
+  it('keeps ordinals when a nested block interrupts the run', async () => {
+    const body = '1. one\n\n   prose\n\n2. two';
+    expect(await rt(body)).toBe(body);
+  });
+
+  // Two lists of different types are separated by a blank line in the exporter's
+  // output, so one emitted line no longer pairs with one item. Pairing them
+  // regardless dropped the second list outright — content loss, not a rewrite.
+  it.each([
+    ['a bullet list followed by an ordered one', '- a\n\n1. b'],
+    ['three alternating lists', '- a\n\n1. b\n\n- c'],
+    ['a nested block before the type changes', '- a\n\n  prose\n\n1. b'],
+  ])('does not lose %s', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  // The one child type the exporter already indented: it must not regress.
+  it.each([
+    ['a nested list', '- a\n  - b'],
+    ['a tight list', '- one\n- two'],
+    ['a top-level table', '| a | b |\n|---|---|\n| 1 | 2 |'],
+    ['a mixed document', '# H\n\npara\n\n- a\n- b\n\n| x | y |\n|---|---|\n| 1 | 2 |'],
+  ])('leaves %s unchanged', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  it.each([
+    '- item\n\n  more prose',
+    '1. one\n\n   prose\n\n2. two',
+    '- a\n\n1. b',
+  ])('is idempotent — a second round-trip of %j is a no-op', async (body) => {
+    const once = await rt(body);
+    expect(await rt(once)).toBe(once);
+  });
+
+  // A checklist item needs its own handling: the markdown parser counts the
+  // item's content column including the `[ ] ` marker, so a child written at the
+  // idiomatic column 2 is read as a sibling and leaves the item. The same child
+  // under a plain bullet nests correctly, which is what makes these worth
+  // pinning separately from the cases above.
+  it.each([
+    ['a paragraph', '- [ ] todo\n\n  note'],
+    ['a paragraph under a checked item', '- [x] done\n\n  note'],
+    ['a blockquote', '- [ ] todo\n\n  > q'],
+    ['a code fence', '- [ ] todo\n\n  ```\n  x\n  ```'],
+    ['a child between two items', '- [ ] a\n\n  note\n\n- [ ] b'],
+  ])('keeps %s inside a checklist item', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  it.each([
+    ['a plain checklist', '- [ ] a\n- [x] b'],
+    ['a block that follows the list', '- [ ] a\n\nafter'],
+  ])('leaves %s unchanged', async (_name, body) => {
+    expect(await rt(body)).toBe(body);
+  });
+
+  it('is idempotent for a checklist child', async () => {
+    const once = await rt('- [ ] todo\n\n  note');
+    expect(await rt(once)).toBe(once);
+  });
+});
+
 // Relaxing the `code` mark's exclusion is an editor-wide change, not only a
 // serialisation one: the same mark backs the formatting toolbar and paste. These
 // pin the behaviour that relaxation is supposed to enable, so a future revert of

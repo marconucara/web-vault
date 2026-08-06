@@ -242,19 +242,16 @@ const FENCE_SENTINEL = 'wv-fence';
 // The marker is the full run of backticks/tildes, so a longer fence (````) is
 // matched whole and the leftover backticks are not mistaken for an info string.
 const FENCE_OPEN = /^(\s*)(`{3,}|~{3,})(.*)$/;
-// `wv-fence-<kind><length>i<indent>-<encoded info string>`, e.g. ```` ```` ````
-// with no info string becomes `wv-fence-b4i0-`, and `~~~js` indented by two
-// columns becomes `wv-fence-t3i2-js`. The info string is encoded so a space or
-// a backtick in it cannot break the language token apart.
+// `wv-fence-<kind><length>-<encoded info string>`, e.g. ```` ```` ```` with no
+// info string becomes `wv-fence-b4-`, and `~~~js` becomes `wv-fence-t3-js`.
+// The info string is encoded so a space or a backtick in it cannot break the
+// language token apart.
 //
-// The indent is carried for the same reason as the marker: a fence nested under
-// a list item is exported flattened to column zero, because BlockNote's HTML
-// exporter lifts every non-list child out of its `<li>` and records the depth
-// only in a `data-nesting-level` attribute the markdown step does not read.
-// Restoring it from the emitted markdown alone is not possible — a fence that
-// merely follows a list is indistinguishable there from one nested inside it.
+// The fence's indent is NOT carried here. `exportBlocks` re-indents every block
+// nested under a list item, code fences included, so carrying it too would
+// apply it twice.
 const SENTINEL_LINE = new RegExp(
-  `^(\\s*)(\`{3,})${FENCE_SENTINEL}-([bt])(\\d+)i(\\d+)-(\\S*)\\s*$`
+  `^(\\s*)(\`{3,})${FENCE_SENTINEL}-([bt])(\\d+)-(\\S*)\\s*$`
 );
 
 /**
@@ -285,7 +282,7 @@ export function preProcessFences(body) {
     const kind = marker[0] === '`' ? 'b' : 't';
     const encoded = encodeURIComponent(info.trim());
     out.push(
-      `${indent}${marker}${FENCE_SENTINEL}-${kind}${marker.length}i${indent.length}-${encoded}`
+      `${indent}${marker}${FENCE_SENTINEL}-${kind}${marker.length}-${encoded}`
     );
   }
   return out.join('\n');
@@ -310,7 +307,7 @@ export function postProcessFences(md) {
     if (closing === null) {
       const m = line.match(SENTINEL_LINE);
       if (!m) { out.push(line); continue; }
-      const [, emittedIndent, emitted, kind, length, indentWidth, encoded] = m;
+      const [, indent, emitted, kind, length, encoded] = m;
       let info = encoded;
       try {
         info = decodeURIComponent(encoded);
@@ -321,34 +318,119 @@ export function postProcessFences(md) {
       // fence; never shorten below what it chose, or the block would close
       // early on its own content.
       const marker = (kind === 'b' ? '`' : '~').repeat(Math.max(Number(length), emitted.length));
-      // The source indent wins over the one the exporter emitted: a nested
-      // fence comes back flattened to column zero, and only the carried width
-      // puts it back under its list item.
-      const indent = ' '.repeat(Number(indentWidth) || emittedIndent.length);
+      // `exportBlocks` has already placed the fence at its own indent; this
+      // step only swaps the marker and the info string back under it.
       closing = { marker, emitted, indent };
       out.push(`${indent}${marker}${info}`);
       continue;
     }
     // The exporter closes with the same marker it opened with, so that is the
-    // line to swap back; anything else is the block's content, which is
-    // re-indented alongside it so the whole block stays inside its list item.
+    // line to swap back. Everything else is the block's own content and is left
+    // exactly as it stands — it already carries the indent `exportBlocks` gave
+    // it, and code content must not be rewritten.
     if (line.trim() === closing.emitted) {
       out.push(closing.indent + closing.marker);
       closing = null;
     } else {
-      out.push(line === '' ? line : closing.indent + line);
+      out.push(line);
     }
   }
   return out.join('\n');
 }
 
-// Full pre/post pipeline (wikilink + media link + map link + bare fences).
+// A block indented under a CHECKLIST item escapes it on parse, where the same
+// block under a plain bullet nests correctly. BlockNote's markdown parser counts
+// the item's content column including the `[ ] ` marker, so it expects a
+// continuation at column 6 and treats the idiomatic column 2 as a sibling:
+//
+//   - [ ] todo      ->  <ul><li><input><p>todo</p></li></ul><p>note</p>
+//     note              (the paragraph left the item)
+//
+//   - todo          ->  <ul><li><p>todo</p><p>note</p></li></ul>
+//     note              (nested, as written)
+//
+// A nested *list* survives because a second rule admits sub-lists between the
+// marker and the content column; nothing covers a paragraph, quote or table.
+//
+// The defect is in the dependency, so it is neutralised here instead: children
+// of a checklist item are re-indented to the column the parser expects, and put
+// back on the way out. Only lines that are already children are moved, so an
+// item's own text and a following top-level block are untouched.
+const CHECK_ITEM = /^(\s*)([-*+])(\s+)(\[[ xX]\])(\s+)/;
+
+export function preProcessCheckItemChildren(body) {
+  const lines = (body || '').split('\n');
+  /** @type {string[]} */
+  const out = [];
+  let child = null; // { from: number, to: number } indent columns being remapped
+  for (const line of lines) {
+    const m = line.match(CHECK_ITEM);
+    if (m) {
+      const [, indent, marker, gap, box, boxGap] = m;
+      child = {
+        from: indent.length + marker.length + gap.length,
+        to: indent.length + marker.length + gap.length + box.length + boxGap.length,
+      };
+      out.push(line);
+      continue;
+    }
+    if (!child) { out.push(line); continue; }
+    if (line.trim() === '') { out.push(line); continue; }
+    const width = (line.match(/^\s*/) || [''])[0].length;
+    // A line indented to the item's text column (or deeper) is its child; one
+    // at or left of the marker ends the item.
+    if (width >= child.from) {
+      out.push(' '.repeat(child.to - child.from) + line);
+    } else {
+      child = null;
+      out.push(line);
+    }
+  }
+  return out.join('\n');
+}
+
+export function postProcessCheckItemChildren(md) {
+  const lines = (md || '').split('\n');
+  /** @type {string[]} */
+  const out = [];
+  let child = null;
+  for (const line of lines) {
+    const m = line.match(CHECK_ITEM);
+    if (m) {
+      const [, indent, marker, gap, box, boxGap] = m;
+      child = {
+        from: indent.length + marker.length + gap.length,
+        extra: box.length + boxGap.length,
+      };
+      out.push(line);
+      continue;
+    }
+    if (!child) { out.push(line); continue; }
+    if (line.trim() === '') { out.push(line); continue; }
+    const width = (line.match(/^\s*/) || [''])[0].length;
+    if (width >= child.from + child.extra) {
+      out.push(line.slice(child.extra));
+    } else {
+      child = null;
+      out.push(line);
+    }
+  }
+  return out.join('\n');
+}
+
+// Full pre/post pipeline (wikilink + media link + map link + fences + checklist).
 const preProcess = (body) =>
-  preProcessFences(
-    preProcessMapLinks(preProcessMediaLinks(preProcessWikilinks(joinListContinuations(body || ''))))
+  preProcessCheckItemChildren(
+    preProcessFences(
+      preProcessMapLinks(
+        preProcessMediaLinks(preProcessWikilinks(joinListContinuations(body || '')))
+      )
+    )
   );
 const postProcess = (md) =>
-  postProcessFences(postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md))));
+  postProcessCheckItemChildren(
+    postProcessFences(postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md))))
+  );
 
 // Normalizes BlockNote's output to the vault style (like Tolaria):
 // - unordered lists `* ` -> `- `;
@@ -356,17 +438,20 @@ const postProcess = (md) =>
 //   padding that BlockNote's exporter adds.
 // All outside code fences (inside code nothing is touched).
 function compactTableLine(line) {
+  // The leading whitespace is what keeps a table nested inside its list item,
+  // so it is preserved and only the cells are compacted.
+  const indent = (line.match(/^\s*/) || [''])[0];
   let cells = line.trim().split('|');
   if (cells[0] === '') cells = cells.slice(1);
   if (cells.length && cells[cells.length - 1] === '') cells = cells.slice(0, -1);
   const isSep = cells.length > 0 && cells.every((c) => /^\s*:?-+:?\s*$/.test(c));
   if (isSep) {
-    return '|' + cells.map((c) => {
+    return indent + '|' + cells.map((c) => {
       const t = c.trim();
       return (t.startsWith(':') ? ':' : '') + '---' + (t.endsWith(':') ? ':' : '');
     }).join('|') + '|';
   }
-  return '| ' + cells.map((c) => c.trim()).join(' | ') + ' |';
+  return indent + '| ' + cells.map((c) => c.trim()).join(' | ') + ' |';
 }
 
 // A source-level soft wrap (a plain newline inside a paragraph) has no meaning
@@ -403,6 +488,95 @@ function normalizeMarkdown(md) {
   return out.join('\n');
 }
 
+// A block nested under a list item — a paragraph, a quote, a table, a heading —
+// is exported at column zero, because BlockNote's HTML step lifts every non-list
+// child out of its `<li>` and keeps the depth only in a `data-nesting-level`
+// attribute the markdown step never reads. The indent is what holds the block
+// INSIDE the item, so losing it does not merely rewrite the note: the block
+// leaves the list. It cannot be repaired afterwards either, since a block that
+// merely follows a list is indistinguishable there from one nested inside it.
+//
+// The block tree still knows the nesting, and each block exports correctly on
+// its own — only the composition is wrong. So the export walks the tree and
+// indents each child under its parent, calling the stock exporter on the parts.
+// (see adr/0015-durable-markdown-round-trip.md)
+const LIST_TYPES = new Set(['bulletListItem', 'numberedListItem', 'checkListItem']);
+const MARKER = /^\s*(?:[-*+]|\d+[.)])\s+/;
+
+const indentLines = (s, indent) =>
+  indent ? s.split('\n').map((l) => (l ? indent + l : l)).join('\n') : s;
+
+/**
+ * Exports a block tree to markdown, preserving the indent of blocks nested
+ * under a list item.
+ * @param {{ blocksToMarkdownLossy: (blocks: any[]) => Promise<string> }} ed
+ * @param {any[]} blocks
+ * @param {string} indent
+ * @returns {Promise<string>}
+ */
+async function exportBlocks(ed, blocks, indent = '') {
+  /** @type {string[]} */
+  const parts = [];
+  const flatten = async (/** @type {any} */ b) =>
+    (await ed.blocksToMarkdownLossy([{ ...b, children: [] }])).replace(/\n+$/, '');
+
+  for (let i = 0; i < blocks.length; ) {
+    // Separate blocks are separated by a blank line, the same way the stock
+    // exporter does it — a list run counts as one block, so its items stay
+    // tight against each other.
+    if (parts.length) parts.push('');
+    if (!LIST_TYPES.has(blocks[i].type)) {
+      parts.push(indentLines(await flatten(blocks[i]), indent));
+      i += 1;
+      continue;
+    }
+    // A contiguous run of items goes through the exporter together: it counts
+    // the ordinals itself, and one call per item would restart every list at 1.
+    // The run stops at a change of list type — the exporter separates two
+    // different lists with a blank line, which would break the one-line-per-item
+    // correspondence the loop below relies on.
+    /** @type {any[]} */
+    const run = [];
+    const runType = blocks[i].type;
+    while (i < blocks.length && blocks[i].type === runType) run.push(blocks[i++]);
+    const flat = (await ed.blocksToMarkdownLossy(run.map((b) => ({ ...b, children: [] }))))
+      .replace(/\n+$/, '');
+    const emitted = flat.split('\n');
+    // The loop below pairs one emitted line with one item. If the exporter ever
+    // emits a different number, pairing them would drop or duplicate content —
+    // fall back to its output verbatim, losing only the nesting indent.
+    if (emitted.length !== run.length) {
+      parts.push(indentLines(flat, indent));
+      for (const b of run) {
+        for (const child of b.children || []) {
+          parts.push(`\n${await exportBlocks(ed, [child], `${indent}  `)}`);
+        }
+      }
+      continue;
+    }
+
+    for (let n = 0; n < run.length; n += 1) {
+      const line = emitted[n] ?? '';
+      parts.push(indent + line);
+      const children = run[n].children || [];
+      if (!children.length) continue;
+      // Children line up with the item's TEXT column, so the indent is the
+      // width of the marker actually emitted — `1. ` is three, `10. ` is four.
+      const childIndent = indent + ' '.repeat((line.match(MARKER) || [''])[0].length);
+      for (const child of children) {
+        const sub = await exportBlocks(ed, [child], childIndent);
+        // A nested list continues the item directly; any other block is a
+        // separate one and needs the blank line that marks it as such.
+        parts.push(LIST_TYPES.has(child.type) ? sub : `\n${sub}`);
+      }
+      // Once an item has carried a nested block, the item that follows starts a
+      // new block too — without the blank line it would read as a continuation.
+      if (n + 1 < run.length) parts.push('');
+    }
+  }
+  return parts.join('\n');
+}
+
 // A reusable editor for parse/serialize (the methods do not mutate the document).
 let _editor = null;
 function editor() {
@@ -420,7 +594,7 @@ export async function blocksToBody(blocks) {
   // extractCustomBlocks also renders emphasis runs the exporter would otherwise
   // split around an inline code span, so it runs on this path too — not only on
   // the mounted-editor one.
-  const out = await editor().blocksToMarkdownLossy(extractCustomBlocks(blocks));
+  const out = await exportBlocks(editor(), extractCustomBlocks(blocks));
   return normalizeMarkdown(postProcess(out));
 }
 
@@ -442,7 +616,7 @@ export async function loadBodyIntoEditor(ed, body) {
 // leading blank line and the trailing newline as in the vault notes.
 export async function serializeEditorBody(ed) {
   const extracted = extractCustomBlocks(ed.document);
-  const out = await ed.blocksToMarkdownLossy(extracted);
+  const out = await exportBlocks(ed, extracted);
   const s = normalizeMarkdown(postProcess(out)).replace(/\s+$/, '');
   return `\n${s}\n`;
 }
