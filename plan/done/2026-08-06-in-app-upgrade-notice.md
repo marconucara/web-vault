@@ -142,4 +142,4 @@ in both themes, as no test settles it.
 
 Coverage: 137 → 159 tests.
 
-**Shipped:** 2026-08-06 · HEAD <pending> · ADR 0038 (r6, Accepted → Implemented)
+**Shipped:** 2026-08-06 · HEAD 07173a2 · ADR 0038 (r6, Accepted → Implemented)
