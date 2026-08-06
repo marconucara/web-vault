@@ -88,6 +88,10 @@ tree, `wv dev` run from its `.web`. The vault's commit (`dd428b7`, dirty) and
 the framework version (`0.6.1`) came out as different values from different
 sources, which is the point of criterion 4.
 
+The rendered result was then confirmed in a browser by the owner: the two
+indicators read as distinct values, which is the part the markup tests cannot
+settle.
+
 Both regressions were confirmed to be caught rather than merely covered:
 pointing `PACKAGE_DIR` at `PROJECT_DIR` fails the build test, and removing the
 indicator fails 3 of the 5 status-bar tests (the other 2 assert the degradation

@@ -15,6 +15,12 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
+- **Unreleased on `main` since `v0.6.1`:** the share-page task-list fix
+  (ADR `0025`) and ADR `0037` — the versioning policy plus the framework version
+  in the build and status bar. The next tag is a **minor** (`v0.7.0`): the status
+  bar gains a visible element adopters did not ask for, which is not a patch.
+  When cutting it, follow `AGENTS.md` → "Cutting a release": four places name a
+  version and none of them fails loudly when stale.
 - **Current tag: `v0.6.1`** — round-trip fidelity for code fences and for blocks
   nested under a list item (ADR `0015` r5/r6). A patch by semver: bug fixes, no
   API change. Two defects with one shape — the block model drops something about
@@ -86,6 +92,28 @@ If status files and git disagree, git is authoritative; correct this file.
   and stylesheet in one string, so the rules are verifiable without a browser.
   121 → 130 tests. No version bump — rides along with a later release. See
   `plan/done/2026-08-06-shared-task-lists-show-bullet-and-checkbox.md`.
+- **ADR `0037` — versioning policy and framework version (2026-08-06, `7f192d8`,
+  `d8cb7c2`, unreleased).** The decision was rewritten before being built. It had
+  called for GitHub Releases and a `1.0.0`; both are gone. A parallel publication
+  surface — Releases, or a moving `latest` ref — buys nothing the tags do not
+  already give: they are public, machine-readable, and already what adopters pin,
+  while a moving ref resolves to a commit SHA rather than a version, so naming the
+  version still means reading the tag list. Release notes were the one genuine
+  addition and nothing downstream needs them. The `1.0.0` went because the major
+  has no mechanical consequence here — a git-tag dependency's lockfile pins a
+  resolved commit either way — so freezing the contract is a decision for when it
+  is wanted, not a promise made in advance. What is left is a policy (semver, 0.x
+  breaking changes on the minor) plus the missing local half of the upgrade
+  comparison. **The trap worth remembering:** `frameworkVersion` must come from
+  `PACKAGE_DIR`, this package's own root. `PROJECT_DIR` is the consumer's `.web`
+  and would bake the adopter's shell version — wrong, and *invisible here*, since
+  in this repo's checkout the two coincide. That is why it was verified against a
+  throwaway consumer with a `portal:` link rather than from this root, and why the
+  test drives `paths.mjs` from a foreign cwd. The status bar shows the version as
+  its own element outside the commit anchor: two identities, and the version is
+  not a property of that commit. Both tooltips now name what they describe.
+  Rendering confirmed in a browser by the owner. 130 → 137 tests. See
+  `plan/done/2026-08-06-framework-version-in-build-and-status-bar.md`.
 - **ADR `0015` r6 — nested block indent (2026-08-06, `1f81806`, `v0.6.1`).** A
   paragraph, blockquote, table or heading indented under a list item came back at
   column zero. Worse than the fence rewrite it followed: the indent is what holds
