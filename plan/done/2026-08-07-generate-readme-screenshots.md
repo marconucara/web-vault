@@ -270,7 +270,7 @@ consciously not met.
 
 ---
 
-**Shipped:** 2026-08-07 · commit `b728a27` · ADR 0042 (already Implemented; this
+**Shipped:** 2026-08-07 · commit `6e78697` · ADR 0042 (already Implemented; this
 adds the README's use of the mark, no status change). Untagged: no
 adopter-facing change, no version bump. Requires libwebp (`img2webp`) on the
 machine that regenerates the asset.
