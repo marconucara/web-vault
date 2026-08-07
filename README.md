@@ -1,12 +1,14 @@
-# WebVault
+# <img src="docs/logo.svg" alt="" width="40" height="40" valign="middle"> WebVault
 
 **Your Markdown vault, on the web.**
 
 Read, edit and selectively share your notes — without changing how your vault
 works.
 
-![WebVault showing a note from a Markdown vault, with the vault's views and note
-types in the sidebar](docs/screenshot.png)
+![WebVault walking through a note from a Markdown vault: sharing it as a public
+link, its places on an inline map and on a full map view, the light theme, and
+the phone layout with the vault's views and note types in the
+sidebar](docs/screenshot.webp)
 
 [Deploy the template](https://github.com/marconucara/web-vault-template) ·
 [Add to an existing vault](#add-webvault-to-your-existing-vault) ·

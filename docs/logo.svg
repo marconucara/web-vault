@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 32 32" fill="none" role="img" aria-label="WebVault">
+  <!-- Same geometry as brand/mark.svg, with the colours resolved to literals:
+       GitHub strips CSS variables and does not supply a currentColor, so the
+       inline version would render half-invisible in a README. The brand blue
+       reads on both the light and the dark GitHub theme, so one file serves
+       both. Keep in step with brand/mark.svg if that geometry ever changes. -->
+  <g stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.65 16.65V4.55H7.65"/>
+    <path d="M25.15 4.55H28.35V8.9"/>
+    <path d="M28.35 12.6V27.45H25.3"/>
+  </g>
+  <circle cx="5.1" cy="22.4" r="2.7" fill="#3B82F6"/>
+  <path d="M8.05 19.4L12.67 13.46H21.9V21.25H23.35" stroke="#8A94A6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="10.62" y="11.41" width="4.1" height="4.1" rx="0.9" fill="#8A94A6"/>
+</svg>
