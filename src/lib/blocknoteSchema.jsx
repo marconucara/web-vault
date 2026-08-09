@@ -4,6 +4,7 @@ import { BlockNoteSchema, defaultInlineContentSpecs, defaultBlockSpecs, defaultS
 import Icon from '../components/Icon.jsx';
 import MapCard from '../components/MapCard.jsx';
 import { MEDIA_EXT } from './mdLinks.js';
+import { chipClickIntent, isChipAuxClick } from './chipClick.js';
 import { titleIndex, idTitle } from '../content.js';
 
 // Resolves a wikilink target (path form `folder/filename`, title, or filename)
@@ -12,39 +13,59 @@ function resolveWikilink(target) {
   return titleIndex[String(target).trim().toLowerCase()] || null;
 }
 
-// Custom "wikilink" inline content: atomic, clickable chip. Navigates to the
-// target note (in-app hash route) as in Tolaria; if the target doesn't exist it
-// stays a "dead", non-clickable chip. Shows the note title (not the path).
+// Opens `href` per the gesture behind `e`: a plain click follows it, a modifier
+// or middle click opens a new tab, anything else is left to the browser. Shared
+// by the wikilink and media chips. `alwaysNewTab` is for a target that is not an
+// app route — media — where even a plain click should leave the editor standing.
+function handleChipClick(e, href, { alwaysNewTab = false } = {}) {
+  const intent = chipClickIntent(e);
+  if (intent === 'ignore') return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (intent === 'new-tab' || alwaysNewTab) window.open(href, '_blank', 'noopener,noreferrer');
+  else window.location.hash = href;
+}
+
+// The pair of listeners every chip installs, splitting the buttons so no gesture
+// can ever be answered twice (see isChipAuxClick).
+function chipClickHandlers(href, options) {
+  return {
+    onClick: (e) => {
+      if (isChipAuxClick(e)) return;
+      handleChipClick(e, href, options);
+    },
+    onAuxClick: (e) => {
+      if (!isChipAuxClick(e)) return;
+      handleChipClick(e, href, options);
+    },
+  };
+}
+
+// Custom "wikilink" inline content: atomic chip that opens its target note (the
+// in-app hash route) on a plain click or tap, like every other link surface in
+// the product; if the target doesn't exist it stays a "dead", inert chip. Shows
+// the note title (not the path). A resolved chip is a real anchor, which is what
+// gives the context menu, middle click and long-press "Open in new tab" for
+// free. See adr/0016-wikilink-and-media-blocks.md.
+export function WikilinkChip({ target, alias }) {
+  const id = resolveWikilink(target);
+  const label = alias || (id && idTitle[id]) || target;
+  if (!id) return <span className="wl-chip dead" title={target}>{label}</span>;
+  const href = `#/n/${encodeURIComponent(id)}`;
+  return (
+    <a className="wl-chip" href={href} title={target} {...chipClickHandlers(href)}>
+      {label}
+    </a>
+  );
+}
+
 export const Wikilink = createReactInlineContentSpec(
   {
     type: 'wikilink',
     propSchema: { target: { default: '' }, alias: { default: '' } },
     content: 'none',
   },
-  {
-    render: ({ inlineContent }) => {
-      const { target, alias } = inlineContent.props;
-      const id = resolveWikilink(target);
-      const label = alias || (id && idTitle[id]) || target;
-      // Like Tolaria: a normal click does NOT navigate (it lets you place the
-      // cursor and edit the chip); Cmd/Ctrl+click is needed to open the target note.
-      const onClick = (e) => {
-        if (!id || !(e.metaKey || e.ctrlKey)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        window.location.hash = `#/n/${encodeURIComponent(id)}`;
-      };
-      return (
-        <span
-          className={`wl-chip${id ? '' : ' dead'}`}
-          title={id ? `${target} — Cmd/Ctrl+click to open` : target}
-          onClick={onClick}
-        >
-          {label}
-        </span>
-      );
-    },
-  }
+  { render: ({ inlineContent }) => <WikilinkChip {...inlineContent.props} /> }
 );
 
 // Custom "medialink" inline content: chip for media/file links (video, audio,
@@ -57,24 +78,37 @@ function kindOf(url) {
   return 'file';
 }
 
+export function MedialinkChip({ name, url, kind }) {
+  const icon = kind === 'video' ? 'video' : kind === 'audio' ? 'music' : 'paperclip';
+  const body = (
+    <>
+      <Icon name={icon} size={13} />
+      {name || url}
+    </>
+  );
+  if (!url) return <span className={`media-chip ${kind}`} title={url}>{body}</span>;
+  return (
+    <a
+      className={`media-chip ${kind}`}
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={url}
+      // Media lives outside the app's routes, so every gesture opens a new tab.
+      {...chipClickHandlers(url, { alwaysNewTab: true })}
+    >
+      {body}
+    </a>
+  );
+}
+
 export const Medialink = createReactInlineContentSpec(
   {
     type: 'medialink',
     propSchema: { name: { default: '' }, url: { default: '' }, kind: { default: 'file' } },
     content: 'none',
   },
-  {
-    render: ({ inlineContent }) => {
-      const { name, url, kind } = inlineContent.props;
-      const icon = kind === 'video' ? 'video' : kind === 'audio' ? 'music' : 'paperclip';
-      return (
-        <span className={`media-chip ${kind}`} title={url}>
-          <Icon name={icon} size={13} />
-          {name || url}
-        </span>
-      );
-    },
-  }
+  { render: ({ inlineContent }) => <MedialinkChip {...inlineContent.props} /> }
 );
 
 // Custom "mapcard" block: a Google Maps link alone on its own line, rendered as
