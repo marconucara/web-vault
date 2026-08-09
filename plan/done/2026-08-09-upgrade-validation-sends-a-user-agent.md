@@ -118,3 +118,12 @@ unconfirmed target.
 - ADR `0039` AC5 gains the failure distinction; AC8 is already satisfied in
   wording but was not in behaviour. Revise to r5 (the ADR is already at r4) on the
   implementing commit and keep the status at `Implemented`.
+
+---
+
+**Shipped:** 2026-08-09 · commit `0af571a` · ADR 0039 r5 (stays Implemented).
+Released as `v0.8.3` — a patch: the endpoint's contract is unchanged, it merely
+works now. Exit criterion 1 (a real Worker completing an upgrade) can only be
+met once a deployment runs this version, so it is verified on the first upgrade
+away from `v0.8.3` rather than at merge time; the 403 path that caused the
+defect is covered by tests that fail without the fix.
