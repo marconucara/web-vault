@@ -140,3 +140,11 @@ depends on and no unit test of the handler can observe it.
 - No version bump or tag with this item. `_agent/CURRENT_FOCUS.md` records a
   parallel session holding a fix for the same release; this is a bug fix and
   rides the next patch with it.
+
+---
+
+**Shipped:** 2026-08-09 · commit `3088de3` · ADR 0016 r2 (stays Implemented; the
+behaviour ships in the same commit). Untagged: rides the next patch with the
+parallel fix noted above. Exit criteria 1–4 and 8 were verified by hand in the
+running app; middle click was not reachable on the test machine, so the
+click/auxclick partition is covered by tests instead.
