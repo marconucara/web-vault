@@ -16,13 +16,21 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Release state
 
-- **Unreleased on `main`:** nothing. `v0.8.2` is the tip.
-- **Current tag: `v0.8.2`** — three fixes, no adopter-facing contract change, so
-  a **patch** per `0037`. ADR `0016` r2: an editor link chip opens on a plain
-  click or tap instead of Cmd/Ctrl+click, which a touch device cannot produce at
-  all, so on mobile a wikilink could not be followed; a resolved chip is now an
-  anchor and modifier/middle click opens a new tab. Plus the build chip using the
-  app's own tooltip, and a command that regenerates the README hero animation.
+- **Unreleased on `main`:** nothing. `v0.8.3` is the tip.
+- **Current tag: `v0.8.3`** — the one-click upgrade actually works. ADR `0039`
+  r5: the tag lookup sent no `User-Agent`, which GitHub refuses with a 403, and
+  every non-OK response was read as "not published" — so the action failed for
+  every adopter on a Worker while blaming the release. A **patch**: the
+  endpoint's contract is unchanged, it merely works now.
+  - **Adopters on `v0.8.2` or earlier cannot upgrade from the UI**, because the
+    broken validator is the one running. They need the pin moved by hand once;
+    from `v0.8.3` on, the button works.
+- **`v0.8.2`** — three fixes, no adopter-facing contract change, so a **patch**
+  per `0037`. ADR `0016` r2: an editor link chip opens on a plain click or tap
+  instead of Cmd/Ctrl+click, which a touch device cannot produce at all, so on
+  mobile a wikilink could not be followed; a resolved chip is now an anchor and
+  modifier/middle click opens a new tab. Plus the build chip using the app's own
+  tooltip, and a command that regenerates the README hero animation.
 - **Previous tag: `v0.8.1`** — type icons bundled at build time.
 - **`v0.8.0`** — the upgrade loop closes. ADR `0039`: the notice
   from `0038` gains an action, so a deployment that can write upgrades itself.
