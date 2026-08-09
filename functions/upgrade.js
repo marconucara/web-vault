@@ -50,23 +50,51 @@ export function setPin(source, version) {
   return src.replace(PIN, `$1github:$2#v${version}$4`);
 }
 
+// GitHub rejects any REST request that carries no User-Agent, with a 403 whose
+// body reads "Request forbidden by administrative rules". A browser sets one
+// itself, a Worker does not — which is why the notice's own check works while a
+// call made from here does not. Every request in this file goes through these
+// headers so the two cannot drift apart again.
+const GH_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'User-Agent': 'web-vault-upgrade',
+  'X-GitHub-Api-Version': '2022-11-28',
+};
+
+// The outcome of asking whether a tag exists. `unknown` is not a detail: reading
+// it as "absent" is what told adopters their release was unpublished when the
+// request had merely been refused.
+export const TAG = /** @type {const} */ ({
+  published: 'published',
+  absent: 'absent',
+  unknown: 'unknown',
+});
+
 // Confirms the target is a PUBLISHED tag before anything is written. Without
 // this an upgrade could pin a tag that does not exist, and the resulting build
 // would fail at install with the adopter's site already committed to it.
+//
+// Unauthenticated on purpose: this reads a public tag of the FRAMEWORK repo, and
+// the adopter's token has no business reaching it.
 /**
  * @param {string} version
  * @param {(url: string, init?: any) => Promise<any>} [fetchImpl]
+ * @returns {Promise<'published' | 'absent' | 'unknown'>}
  */
-export async function isPublishedTag(version, fetchImpl = fetch) {
-  if (!SEMVER.test(String(version ?? ''))) return false;
+export async function tagStatus(version, fetchImpl = fetch) {
+  if (!SEMVER.test(String(version ?? ''))) return TAG.absent;
   try {
     const res = await fetchImpl(
       `https://api.github.com/repos/${FRAMEWORK_REPO}/git/ref/tags/v${version}`,
-      { headers: { Accept: 'application/vnd.github+json' } }
+      { headers: { ...GH_HEADERS } }
     );
-    return res.ok;
+    if (res.ok) return TAG.published;
+    // Only a 404 is evidence of absence. A 403 (no UA, rate limit) or a 5xx says
+    // the question went unanswered, which is a different thing entirely.
+    return res.status === 404 ? TAG.absent : TAG.unknown;
   } catch {
-    return false;
+    // Network failure: also unanswered, never absence.
+    return TAG.unknown;
   }
 }
 
@@ -80,10 +108,8 @@ const gh = (env, path, init = {}) =>
   fetch(`https://api.github.com${path}`, {
     ...init,
     headers: {
+      ...GH_HEADERS,
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'web-vault-upgrade',
-      'X-GitHub-Api-Version': '2022-11-28',
       ...(init.body ? { 'content-type': 'application/json' } : {}),
     },
   });
@@ -120,9 +146,17 @@ export function makeUpgradeHandler(config = {}) {
     if (!SEMVER.test(version)) return json({ error: `invalid version: ${version}` }, 400);
 
     // Validate BEFORE writing. Pinning a tag that does not exist would commit
-    // the adopter's site to a build that cannot install.
-    if (!(await isPublishedTag(version))) {
+    // the adopter's site to a build that cannot install. Nothing below runs
+    // unless the tag was positively confirmed.
+    const status = await tagStatus(version);
+    if (status === TAG.absent) {
       return json({ error: `version ${version} is not published` }, 400);
+    }
+    if (status !== TAG.published) {
+      // The target may well be fine — we could not reach GitHub to find out. A
+      // 502 says the upstream call failed; a 400 would blame the adopter's
+      // request, which is what the old "not published" did.
+      return json({ error: `could not verify that version ${version} exists` }, 502);
     }
 
     const url = `/repos/${repo}/contents/${SHELL_MANIFEST.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(branch)}`;

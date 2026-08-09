@@ -3,7 +3,7 @@
 // The manifest under test is the ADOPTER's file, so the property that matters
 // most is not "the version changed" but "nothing else did".
 import { describe, expect, it } from 'vitest';
-import { readPin, setPin, isPublishedTag } from '../functions/upgrade.js';
+import { readPin, setPin, tagStatus, TAG, makeUpgradeHandler } from '../functions/upgrade.js';
 import { isSafeNotePath } from '../functions/commit.js';
 
 // A realistic shell manifest, verbatim from SETUP.md.
@@ -77,27 +77,105 @@ describe('rewriting the pin', () => {
 });
 
 describe('validating the target tag', () => {
+  const reply = (status) => async () => ({ ok: status >= 200 && status < 300, status });
+
   it('accepts a tag the framework repository publishes', async () => {
-    const fake = async () => ({ ok: true });
-    expect(await isPublishedTag('0.7.0', fake)).toBe(true);
+    expect(await tagStatus('0.7.0', reply(200))).toBe(TAG.published);
   });
 
-  it('rejects a tag that does not exist', async () => {
-    const fake = async () => ({ ok: false });
-    expect(await isPublishedTag('99.0.0', fake)).toBe(false);
+  // GitHub refuses any REST call with no User-Agent — a browser sets one, a
+  // Worker does not. Nothing observed the request before, so a missing header
+  // read as "your release is not published" and no test could see it.
+  it('sends a User-Agent, which GitHub refuses the request without', async () => {
+    let sent = /** @type {any} */ (null);
+    const fake = async (_url, init) => { sent = init; return { ok: true, status: 200 }; };
+    await tagStatus('0.7.0', fake);
+    // Asserted before the header, so "never called" cannot pass as "has a UA".
+    expect(sent).not.toBe(null);
+    expect(sent.headers['User-Agent']).toBeTruthy();
   });
 
-  it('rejects rather than throws when the lookup fails', async () => {
-    // Network down must not become "upgrade to an unverified tag".
+  it('asks the framework repository, not the adopter vault', async () => {
+    let url = null;
+    const fake = async (u) => { url = u; return { ok: true, status: 200 }; };
+    await tagStatus('0.7.0', fake);
+    expect(url).toContain('marconucara/web-vault');
+    expect(url).toContain('/git/ref/tags/v0.7.0');
+  });
+
+  it('reads a 404 as the tag being absent', async () => {
+    expect(await tagStatus('99.0.0', reply(404))).toBe(TAG.absent);
+  });
+
+  // The three below are the distinction the endpoint turns on: the question went
+  // unanswered, which is not the same as the tag being missing.
+  it('does not read a refused request as an absent tag', async () => {
+    expect(await tagStatus('0.7.0', reply(403))).toBe(TAG.unknown);
+  });
+
+  it('does not read a server error as an absent tag', async () => {
+    expect(await tagStatus('0.7.0', reply(500))).toBe(TAG.unknown);
+  });
+
+  it('does not read a network failure as an absent tag', async () => {
+    // Network down must not become "upgrade to an unverified tag" either.
     const fake = async () => { throw new Error('offline'); };
-    expect(await isPublishedTag('0.7.0', fake)).toBe(false);
+    expect(await tagStatus('0.7.0', fake)).toBe(TAG.unknown);
   });
 
   it('does not call out at all for a malformed version', async () => {
     let called = false;
-    const fake = async () => { called = true; return { ok: true }; };
-    expect(await isPublishedTag('main', fake)).toBe(false);
+    const fake = async () => { called = true; return { ok: true, status: 200 }; };
+    expect(await tagStatus('main', fake)).toBe(TAG.absent);
     expect(called).toBe(false);
+  });
+});
+
+// The guard's purpose is that nothing is written until the target is confirmed.
+// Widening the failure handling must not open a path around that, so these drive
+// the whole handler and watch for writes rather than only reading the status.
+describe('the endpoint when the tag lookup does not answer', () => {
+  const env = { GITHUB_TOKEN: 't', GITHUB_REPO: 'someone/vault', GITHUB_BRANCH: 'main' };
+  const request = { json: async () => ({ version: '0.9.9' }) };
+
+  // Records every non-GET call so a write cannot pass unnoticed.
+  const harness = (tagReply) => {
+    const writes = [];
+    const fetchImpl = async (url, init = {}) => {
+      if (String(url).includes('/git/ref/tags/')) return tagReply;
+      if (init.method && init.method !== 'GET') writes.push(init.method);
+      return { ok: true, status: 200, json: async () => ({ content: '', sha: 'x' }) };
+    };
+    return { writes, fetchImpl };
+  };
+
+  it('answers 502 and writes nothing when the request is refused', async () => {
+    const { writes, fetchImpl } = harness({ ok: false, status: 403 });
+    const original = globalThis.fetch;
+    globalThis.fetch = fetchImpl;
+    try {
+      const res = await makeUpgradeHandler()({ request, env });
+      expect(res.status).toBe(502);
+      // The old message named the one cause that was not happening.
+      expect((await res.json()).error).not.toContain('not published');
+      expect(writes).toEqual([]);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('still answers 400 "not published" for a genuinely absent tag', async () => {
+    const { writes, fetchImpl } = harness({ ok: false, status: 404 });
+    const original = globalThis.fetch;
+    globalThis.fetch = fetchImpl;
+    try {
+      const res = await makeUpgradeHandler()({ request, env });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toContain('not published');
+      expect(writes).toEqual([]);
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 });
 

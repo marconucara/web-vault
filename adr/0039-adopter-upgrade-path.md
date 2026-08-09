@@ -88,7 +88,10 @@ changes the dependency pin and nothing else.
    endpoint remains unable to write `.web/`.
 5. The target version is validated as a published `vX.Y.Z` tag of the framework
    repository before anything is written; an unresolvable or malformed target
-   writes nothing.
+   writes nothing. The validation distinguishes a tag confirmed absent from a
+   check that could not be completed — a refused, failed or unreachable request
+   is reported as such rather than as an unpublished version, and neither
+   writes.
 6. An upgrade attempted when the pin already names the target version, or when
    the file has no resolvable pin, writes nothing and reports that plainly.
 7. After a successful commit the notice reports that the upgrade is building, and
@@ -137,9 +140,10 @@ changes the dependency pin and nothing else.
 | 2026-08-06 | r2 | marco | Reworded "latest release" as "newest published tag", following `adr/0037-*.md` r2 (editorial: no scope change). |
 | 2026-08-06 | r3 | marco | Reshaped the capability from an out-of-band prompt/skill to a one-click action on the upgrade notice, gated by the deployment's write capability and served by a dedicated endpoint. Added the capability signal, the pin-only write scope, and the post-commit resolution as acceptance criteria. |
 | 2026-08-06 | r4 | marco | Accepted and Implemented. Shipped in `v0.8.0`. The capability endpoint resolves the open question `adr/0034-*.md` had left for its own plan; that ADR now consumes it rather than defining it. |
+| 2026-08-09 | r5 | marco | AC5 gains the failure distinction: the tag lookup sent no `User-Agent`, which GitHub refuses with a 403, and every non-OK response was read as "not published" — so the upgrade failed for every adopter on a Worker while blaming the release. A check that cannot be completed is now reported as such, and still writes nothing. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Owner | marco | 2026-08-06 | approved |
+| Owner | marco | 2026-08-09 | approved |

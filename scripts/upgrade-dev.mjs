@@ -11,7 +11,7 @@
 // kind of divergence this file exists to avoid.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { readPin, setPin, isPublishedTag } from '../functions/upgrade.js';
+import { readPin, setPin, tagStatus, TAG } from '../functions/upgrade.js';
 import { PROJECT_DIR } from './paths.mjs';
 
 // The shell IS the dev server's own project directory — `wv dev` runs from
@@ -58,8 +58,14 @@ export function upgradeDev() {
         if (!/^\d+\.\d+\.\d+$/.test(version)) {
           return sendJson(res, 400, { error: `invalid version: ${version}` });
         }
-        if (!(await isPublishedTag(version))) {
+        const status = await tagStatus(version);
+        if (status === TAG.absent) {
           return sendJson(res, 400, { error: `version ${version} is not published` });
+        }
+        if (status !== TAG.published) {
+          return sendJson(res, 502, {
+            error: `could not verify that version ${version} exists`,
+          });
         }
 
         if (!existsSync(MANIFEST)) {

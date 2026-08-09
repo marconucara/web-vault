@@ -116,5 +116,5 @@ unconfirmed target.
   capability is currently broken for every adopter on a Worker, so it is worth
   publishing on its own rather than waiting for the next item.
 - ADR `0039` AC5 gains the failure distinction; AC8 is already satisfied in
-  wording but was not in behaviour. Revise to r2 on the implementing commit and
-  keep the status at `Implemented`.
+  wording but was not in behaviour. Revise to r5 (the ADR is already at r4) on the
+  implementing commit and keep the status at `Implemented`.
