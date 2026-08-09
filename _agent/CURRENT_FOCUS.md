@@ -9,22 +9,22 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight; `plan/todo/` is empty.
+- **Active item:** none in flight. `plan/todo/` holds `0006` (prune the dynamic
+  icon chunk map), which waits on whether ADR `0045` lands an icon picker.
 - **Blockers:** none.
 - **Uncommitted work:** none.
-- **Another session is working a separate bug.** This change was deliberately
-  left **untagged and without a version bump** so the two ride the same release.
-  Check what landed there before cutting one.
 
 ## Release state
 
-- **Unreleased on `main`:** ADR `0015` r7 — the link passes now skip code. ADR
-  `0038` r7–r9 — the manual update check is visible from click to answer, and
-  the update marker is amber rather than green. Both are bug fixes with no
-  adopter-facing contract change, so a **patch** when the next tag is cut. A
-  parallel session has a further fix in flight; deliberately not tagged here so
-  they release together.
-- **Current tag: `v0.8.0`** — the upgrade loop closes. ADR `0039`: the notice
+- **Unreleased on `main`:** nothing. `v0.8.2` is the tip.
+- **Current tag: `v0.8.2`** — three fixes, no adopter-facing contract change, so
+  a **patch** per `0037`. ADR `0016` r2: an editor link chip opens on a plain
+  click or tap instead of Cmd/Ctrl+click, which a touch device cannot produce at
+  all, so on mobile a wikilink could not be followed; a resolved chip is now an
+  anchor and modifier/middle click opens a new tab. Plus the build chip using the
+  app's own tooltip, and a command that regenerates the README hero animation.
+- **Previous tag: `v0.8.1`** — type icons bundled at build time.
+- **`v0.8.0`** — the upgrade loop closes. ADR `0039`: the notice
   from `0038` gains an action, so a deployment that can write upgrades itself.
   Also carries what had accumulated since `v0.6.1` and was queued for a `v0.7.0`
   that was never cut: the share-page task-list fix (ADR `0025`), ADR `0037`
