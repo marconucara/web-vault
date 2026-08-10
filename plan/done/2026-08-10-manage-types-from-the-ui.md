@@ -78,3 +78,16 @@ Four things in the current code decide the shape of the work:
 
 Marco tests manually before anything is committed; the verify gate is necessary
 but not sufficient here, since most of this is UI over a real vault.
+
+---
+
+Shipped at HEAD `4317d66`. Not tagged: `v0.9.0` remains the current release.
+
+Landed beyond the plan as written: type names are now matched case-insensitively
+everywhere (ADR criterion 15). The exact-match derivation predated this work but
+contradicted the new uniqueness check, and left a vault showing `note`, `Note`
+and `NOTE` as three sidebar rows splitting one type's notes between them.
+
+`plan/todo/0006` is unblocked by this item rather than done by it: the picker
+offers the whole lucide catalogue, so `DynamicIcon` stays and the remaining fix
+is `manualChunks`. A build still emits ~1,750 single-icon chunks.
