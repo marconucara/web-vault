@@ -70,7 +70,17 @@ a shell scaffolded before this ships takes the line by hand, once.
    `YN0028`, and the new version goes live without manual intervention in the
    vault repo.
 2. `SETUP.md` scaffolds `.web/.yarnrc.yml` with `enableImmutableInstalls: false`
-   and states why, and the upgrade section names the setting existing adopters
-   need to add.
+   and states why.
 3. `.web/yarn.lock` remains versioned and still resolves the transitive tree.
 4. `yarn verify` green.
+
+---
+
+Shipped in `2bab00e`, released as `v0.9.0`. Minor rather than patch: the shell
+config gains a required line, so this is a breaking adopter-facing change under
+`adr/0037-*.md`.
+
+Exit criterion 1 is the one that cannot be verified from this repo — it needs a
+real upgrade on a deployed vault, whose shell must first take the new
+`.yarnrc.yml` line by hand (the upgrade endpoint writes only the pin, so nothing
+else can put it there). Confirmed on the first upgrade away from `v0.9.0`.
