@@ -95,3 +95,15 @@ override being silent, not about migrating anyone.
 5. Tests cover: the generated header rules (1), the boundary's fallback and its
    copy (2, 3), and the suppression warning (4).
 6. `yarn verify` green.
+
+---
+
+**Shipped:** 2026-08-10 · commit `49b8ed9` · ADR 0040 r3 (stays Implemented),
+ADR 0030 gains an implementation note and stays Proposed. Released as `v0.8.4` —
+a patch: no adopter-facing contract changes, the generated header rules gain a
+directive and a crash becomes a recoverable message.
+
+Exit criterion 1 is verified by `scripts/build-headers.test.mjs` parsing the
+generated rules rather than by a live deploy; the 404-after-deploy sequence that
+motivated it can only be reproduced against a real deployment running this
+version, so it is confirmed on the first deploy away from `v0.8.4`.
