@@ -96,7 +96,8 @@ changes the dependency pin and nothing else.
    the file has no resolvable pin, writes nothing and reports that plainly.
 7. After a successful commit the notice reports that the upgrade is building, and
    resolves on its own to the new version being live once the rebuild has
-   published it.
+   published it. The rebuild's install reconciles the shell lockfile with the
+   committed pin; the shell does not require an install that refuses to do so.
 8. A failed upgrade — no token, endpoint error, rejected commit — leaves the
    adopter with a stated failure and an unchanged deployment, never a silent
    no-op.
@@ -141,6 +142,7 @@ changes the dependency pin and nothing else.
 | 2026-08-06 | r3 | marco | Reshaped the capability from an out-of-band prompt/skill to a one-click action on the upgrade notice, gated by the deployment's write capability and served by a dedicated endpoint. Added the capability signal, the pin-only write scope, and the post-commit resolution as acceptance criteria. |
 | 2026-08-06 | r4 | marco | Accepted and Implemented. Shipped in `v0.8.0`. The capability endpoint resolves the open question `adr/0034-*.md` had left for its own plan; that ADR now consumes it rather than defining it. |
 | 2026-08-09 | r5 | marco | AC5 gains the failure distinction: the tag lookup sent no `User-Agent`, which GitHub refuses with a 403, and every non-OK response was read as "not published" — so the upgrade failed for every adopter on a Worker while blaming the release. A check that cannot be completed is now reported as such, and still writes nothing. |
+| 2026-08-10 | r6 | marco | AC7 gains the install side: the pin-only write scope (AC3) is correct, but the shell's versioned `yarn.lock` still named the old tag, and CI installs immutably — so every upgrade committed the pin and then failed the rebuild at install (`YN0028`), leaving "building" unresolved and the vault to be fixed by hand. Only a real install can rewrite that lockfile, and the build already performs one, so the shell no longer demands an immutable install. Write scope unchanged. |
 
 ## Approvals
 

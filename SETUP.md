@@ -67,7 +67,7 @@ if you place the shell elsewhere).
     "maps:genkey": "wv genkey"
   },
   "dependencies": {
-    "web-vault": "github:marconucara/web-vault#v0.8.4"
+    "web-vault": "github:marconucara/web-vault#v0.9.0"
   },
   "packageManager": "yarn@4.5.3+sha512.3003a14012e2987072d244c720506549c1aab73ee728208f1b2580a9fd67b92d61ba6b08fe93f6dce68fd771e3af1e59a0afa28dd242dd0940d73b95fedd4e90"
 }
@@ -75,12 +75,17 @@ if you place the shell elsewhere).
 
 ### `.web/.yarnrc.yml`
 
-Forces the `node-modules` linker. Required for local testing (step 3): the CLI
-relies on real `node_modules` symlink resolution (`--preserve-symlinks`), which
-Yarn PnP breaks.
-
 ```yaml
+# The CLI relies on real node_modules symlink resolution
+# (--preserve-symlinks), which Yarn PnP breaks.
 nodeLinker: node-modules
+
+# Let an install update yarn.lock instead of refusing to run. CI enables
+# immutable installs by default, which makes the cloud build fail the moment the
+# web-vault pin changes (step 5) — the lockfile still names the old tag, and only
+# a real install can rewrite it correctly. There is one direct dependency here,
+# pinned to a tag, so there is little for the immutable check to catch.
+enableImmutableInstalls: false
 ```
 
 ### `.web/.node-version`
@@ -236,6 +241,14 @@ A deployment with no token configured shows the published version and links to
 it instead, since it has no way to commit the change; there the pin is still
 edited by hand. Local development also stays manual: `wv dev` writes the new pin
 to disk, and the reinstall is the user's to run.
+
+The upgrade commits the pin and nothing else — `.web/yarn.lock` is rewritten by
+the install the rebuild performs. That is why `.web/.yarnrc.yml` sets
+`enableImmutableInstalls: false`: without it the build refuses the changed
+lockfile (`YN0028: The lockfile would have been modified by this install, which
+is explicitly forbidden`) and the upgrade never goes live. Keep `.web/yarn.lock`
+committed: it still pins the transitive tree, and a local `yarn install` brings
+its `web-vault` entry back in step.
 
 ## Stop conditions
 
