@@ -9,20 +9,22 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. `plan/todo/` holds `0006` (prune the dynamic
-  icon chunk map), no longer blocked: `0045` landed a picker over the whole
-  lucide catalogue, so `DynamicIcon` stays and the fix is `manualChunks`.
+- **Active item:** none in flight. **The queue is empty** — `0006` (prune the
+  dynamic icon chunk map) shipped 2026-08-10.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 
 ## Release state
 
-- **Unreleased on `main`:** ADR `0045` — manage note types from the UI. Adds a
-  create/edit/delete panel for types, an icon picker, and a type derivation that
-  reads the live note set instead of a build-time constant. Not yet tagged; it is
-  additive to the adopter contract, so it rides a **patch** or **minor** per
-  `0037` when cut.
-- **Current tag: `v0.9.0`** — the tip before this work.
+- **Unreleased on `main`:** the icon chunk grouping (plan
+  `done/2026-08-10-prune-the-dynamic-icon-chunk-map`). Build-pipeline only —
+  `dist/` goes from ~1,760 files to ~34, with every icon still resolving and no
+  change to what renders. A **patch** per `0037` when cut: nothing in the
+  adopter-facing contract moves.
+- **Current tag: `v0.9.0`** — ADR `0045`, manage note types from the UI: a
+  create/edit/delete panel for types, an icon picker over the whole lucide
+  catalogue, and a type derivation that reads the live note set instead of a
+  build-time constant.
 - **Current tag: `v0.8.3`** — the one-click upgrade actually works. ADR `0039`
   r5: the tag lookup sent no `User-Agent`, which GitHub refuses with a 403, and
   every non-OK response was read as "not published" — so the action failed for
@@ -128,6 +130,26 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **Icon chunks grouped into buckets (2026-08-10, unreleased).** lucide's
+  dynamic entry point states the whole catalogue as a map of ~1,750 `import()`s,
+  so Rollup emitted one chunk per icon — nothing slow at runtime, but a `dist/`
+  full of noise. `0045` settled the shape by landing a picker over the full
+  catalogue: the set must stay reachable, so the icons are **grouped, not
+  removed**. Buckets key on a **hash of the name**, not the first letter:
+  alphabetical groups are lopsided (`s` 146 KB, `c` 144 KB against a ~40 KB
+  mean), and the path that pays is not the picker but `Icon.jsx`'s step-3
+  fallback — a type icon chosen in the running app, painted in the sidebar —
+  where the rest of the letter is dead weight. ~1,760 → 34 assets on a real
+  vault. **Both rendering paths were checked, because they fail differently:**
+  the vault's type icons are still eager in the main bundle (the 2026-08-06
+  bundling item untouched, first paint unchanged), and the dynamic map still
+  resolves 2,007 names across 24 buckets. That second check greps the
+  *minified* bundle, where the map reads
+  `s(()=>import("./lucide-NN-*.js").then(t=>t.aq))` — two plausible regexes
+  matched nothing and read as "the map is gone" before the real shape was
+  inspected; re-verify by looking at the emitted code, not by trusting a
+  pattern. 327 → 333 tests. See
+  `plan/done/2026-08-10-prune-the-dynamic-icon-chunk-map.md`.
 - **ADR `0015` r7 — the link passes must skip code (2026-08-06, unreleased).**
   An unmatched `[[` inside a code span — what a note documenting the wikilink
   syntax naturally contains — started a match that ran to the next `]]` anywhere
@@ -313,20 +335,17 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## ADR state
 
-`0001`–`0043` exist. All **Implemented** except: `0026` **Superseded** (by
-`0040`), and `0030`, `0031`, `0032`, `0034`, `0037`, `0038`, `0039`, `0042`,
-`0043` still **Proposed** — decisions drafted, not built. `INDEX.md` is
-authoritative.
+`0001`–`0045` exist. All **Implemented** except: `0026` **Superseded** (by
+`0040`), and `0030`, `0031`, `0032`, `0034`, `0043`, `0044` still **Proposed** —
+decisions drafted, not built. `INDEX.md` is authoritative.
 
 ## Next item
 
-**The queue is empty.**
+**The queue is empty.** `0006` was the last item; it shipped 2026-08-10.
 
-Four round-trip items shipped in a row on 2026-08-05/06 (emphasis around inline
-code, fence shape, nested block indent, and now the link passes skipping code),
-all under ADR `0015`, plus the share-page task-list fix under ADR `0025`. The
-`0003`, `0004` and `0005` slots have each been used more than once; numbers are
-reused once an item ships.
+Numbers in `plan/todo/` are reused once an item ships — the `0003`, `0004` and
+`0005` slots have each been used more than once, so a new item takes the lowest
+free number, not the next unused one.
 Not queued, because it needs a decision first: **ADR `0044`** — what the URL
 addresses. Written by the 2026-08-05 audit, promoted from
 `_agent/prompts/routing-adr.md` (now removed) where it had been invisible to

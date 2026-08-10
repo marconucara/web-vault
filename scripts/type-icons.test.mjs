@@ -5,6 +5,8 @@ import {
   usedIconNamesFromFile,
   availableIconNames,
   renderIconModule,
+  iconChunkName,
+  ICON_CHUNKS,
   UI_LUCIDE_ICONS,
 } from './type-icons.mjs';
 
@@ -88,5 +90,45 @@ describe('availableIconNames', () => {
     expect(names.size).toBeGreaterThan(1000);
     expect(names.has('file-text')).toBe(true);
     expect(names.has('lucide-react')).toBe(false);
+  });
+});
+
+describe('iconChunkName', () => {
+  const idFor = (name) => `/repo/node_modules/lucide-react/dist/esm/icons/${name}.mjs`;
+
+  it('groups an icon module into one of the buckets', () => {
+    expect(iconChunkName(idFor('file-text'))).toMatch(/^lucide-\d{2}$/);
+  });
+
+  it('claims nothing that is not a lucide icon module', () => {
+    expect(iconChunkName('/repo/src/components/Icon.jsx')).toBeUndefined();
+    expect(iconChunkName('/repo/node_modules/lucide-react/dist/esm/lucide-react.mjs')).toBeUndefined();
+    // The dynamic entry point itself must stay with the code that imports it.
+    expect(iconChunkName('/repo/node_modules/lucide-react/dynamic.mjs')).toBeUndefined();
+    // A path that merely contains the icons segment deeper in another package.
+    expect(iconChunkName('/repo/node_modules/other/lucide-react/dist/esm/icons/x/y.mjs')).toBeUndefined();
+  });
+
+  it('is stable, so an unchanged icon set keeps its chunks cached', () => {
+    expect(iconChunkName(idFor('calendar'))).toBe(iconChunkName(idFor('calendar')));
+  });
+
+  it('normalises Windows separators to the same bucket', () => {
+    const win = '\\repo\\node_modules\\lucide-react\\dist\\esm\\icons\\file-text.mjs';
+    expect(iconChunkName(win)).toBe(iconChunkName(idFor('file-text')));
+  });
+
+  it('spreads the real icon set evenly across the buckets', () => {
+    const counts = new Map();
+    for (const name of availableIconNames()) {
+      const chunk = iconChunkName(idFor(name));
+      counts.set(chunk, (counts.get(chunk) || 0) + 1);
+    }
+    expect(counts.size).toBe(ICON_CHUNKS);
+    // The point of hashing over first-letter grouping: no bucket dominates.
+    // Alphabetical buckets peak at ~4x the mean; this stays well under 2x.
+    const sizes = [...counts.values()];
+    const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
+    expect(Math.max(...sizes)).toBeLessThan(mean * 2);
   });
 });

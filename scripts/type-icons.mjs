@@ -68,6 +68,36 @@ export function availableIconNames() {
 }
 
 /**
+ * How many chunks the icons lucide ships are grouped into (see iconChunkName).
+ * 24 keeps each group in the tens of kilobytes for the ~1,750-icon set: small
+ * enough that pulling one is cheap, few enough that the build stays readable.
+ */
+export const ICON_CHUNKS = 24;
+
+/**
+ * Rollup chunk name for a module id, or undefined if it is not a lucide icon.
+ *
+ * DynamicIcon (Icon.jsx step 3) reaches the whole lucide catalogue, because the
+ * type panel's icon picker offers all of it — an icon chosen in the running app
+ * has to resolve without a rebuild. lucide's dynamic entry point states that as
+ * a map of ~1,750 `import()`s, so by default Rollup emits one chunk per icon,
+ * nearly all unreachable in practice. Grouping them keeps every name resolvable
+ * while turning that into a couple of dozen files.
+ *
+ * Buckets are by hashed name rather than by first letter: letter groups are
+ * lopsided (`s` and `c` are each ~145 KB, ~4x the average), and a fallback icon
+ * would drag the whole letter down with it. The hash is stable across builds,
+ * so an unchanged icon set keeps its chunk and stays cached.
+ */
+export function iconChunkName(id) {
+  const m = id.replace(/\\/g, '/').match(/\/lucide-react\/dist\/esm\/icons\/([^/]+)\.mjs$/);
+  if (!m) return undefined;
+  let h = 0;
+  for (let i = 0; i < m[1].length; i++) h = (h * 31 + m[1].charCodeAt(i)) >>> 0;
+  return `lucide-${String(h % ICON_CHUNKS).padStart(2, '0')}`;
+}
+
+/**
  * The source of the generated module: a name -> component map of every icon
  * above that lucide actually ships. Unknown names (a typo in a Type document)
  * are dropped rather than breaking the build; Icon.jsx falls back for them.

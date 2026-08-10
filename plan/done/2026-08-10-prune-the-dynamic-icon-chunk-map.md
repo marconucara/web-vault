@@ -39,6 +39,21 @@ Settled: `0045` landed the picker over the full catalogue, so `manualChunks` it 
 A build of a two-type vault after `0045` still emits ~1,750 single-icon chunks —
 the number to bring down.
 
+## Decision
+
+`manualChunks` grouping, with buckets keyed on a **hash of the icon name** rather
+than its first letter (`iconChunkName` in `scripts/type-icons.mjs`, wired from
+`lib/vite-config.mjs`).
+
+Alphabetical buckets were measured first and rejected: they are lopsided, `s` at
+146 KB and `c` at 144 KB against a ~40 KB mean. The path that pays for a bucket
+is not the picker but `Icon.jsx`'s step-3 fallback — a type icon chosen in the
+running app between builds, rendered in the sidebar — where the rest of the
+letter is pure cost. Hashing gives even ~35-52 KB buckets, and being stable
+across builds it keeps an unchanged icon set cached.
+
+24 buckets: small enough that pulling one is cheap, few enough to read.
+
 ## Out of scope
 
 - The bundled-icon mechanism itself; that shipped and works.
@@ -53,3 +68,40 @@ the number to bring down.
    time.
 3. The decision between the two options above is recorded, with its reason.
 4. `yarn verify` green.
+
+---
+
+## Outcome
+
+`iconChunkName` in `scripts/type-icons.mjs`, wired into
+`build.rollupOptions.output.manualChunks` from `lib/vite-config.mjs`. It lives
+beside the icon set the build already reasons about, so the reason travels with
+the code rather than sitting in the Vite config as a bare regex.
+
+Measured on the `Getting Started` vault through a `portal:` link:
+**~1,760 → 34 assets** in `dist/`, of which 24 are icon buckets and the rest the
+app's own chunks. `BlockEditor` and `MapView` are untouched, as scoped.
+
+Criterion 2 was checked on both halves of the rendering path, which fail
+differently:
+
+- The five type icons the vault uses (`airplay`, `note`, `rocket`, `tag`,
+  `user`) plus the UI's `list` are still **eager in the main bundle** — the
+  bundling mechanism from `plan/done/2026-08-06-bundle-type-icons-at-build-time.md`
+  is unaffected and first paint does not change.
+- The dynamic map still carries **2,007 names across the 24 buckets**, so an
+  icon picked in the running app between builds resolves as before.
+
+Worth knowing if that last number is ever re-checked: it comes from grepping the
+**minified** bundle, where the map is emitted as
+`s(()=>import("./lucide-NN-*.js").then(t=>t.aq))`. Two plausible-looking regexes
+matched nothing and read as "the map is gone" before the real shape was
+inspected. It is the most fragile check in this item; the others rest on tests
+or on `ls`.
+
+Tested by hand against a real vault before the commit landed, per the standing
+rule that the gate is necessary but not sufficient for anything the user sees.
+
+333 tests (6 new). No ADR moves: `adr/0003-stack-react-vite.md` was already
+`Implemented`, and this is a build-pipeline change under it, not a new decision.
+No version bump — rides along with a later release.
