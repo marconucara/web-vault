@@ -98,4 +98,4 @@ Verified by hand against the reporting vault note before the commit landed.
 
 ---
 
-Shipped at HEAD `6c59bbb`, released as `v0.9.1`.
+Shipped at HEAD `2ebcf6b`, released as `v0.9.1`.
