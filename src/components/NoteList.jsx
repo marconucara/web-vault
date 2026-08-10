@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
+import { lookupTypeMeta } from '../lib/typeMetaContext.jsx';
 import { sortNotes } from '../lib/views.js';
 
 const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -150,7 +151,9 @@ export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta
 
       <ul>
         {shown.map((n) => {
-          const meta = (typeMeta && typeMeta[n.type]) || {};
+          // Case-insensitive: a note's `type:` may be spelled differently from
+          // the Type document that declares it, but it is the same type.
+          const meta = lookupTypeMeta(typeMeta, n.type);
           return (
             <li key={n.id}>
               <button

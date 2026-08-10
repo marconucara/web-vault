@@ -59,13 +59,71 @@ export function removeShareLine(fmBlock) {
   return fmBlock.replace(/^[ \t]*share_id[ \t]*:.*\r?\n/m, '');
 }
 
-// Applies a file's operations: body replacement and share_id add/remove, always
-// preserving the rest of the frontmatter.
+// Frontmatter keys the type panel owns and may write (adr/0045). A closed list:
+// everything else in the document is preserved verbatim, never re-serialized.
+const SETTABLE_KEYS = new Set(['icon', 'color', 'order']);
+export function isSettableKey(k) {
+  return SETTABLE_KEYS.has(k);
+}
+
+// Sets `<key>: <value>` in the frontmatter block, replacing the line in place if
+// the key is there and appending it just before the closing `---` otherwise. A
+// null/empty value removes the line instead. Only the key's own line is touched,
+// so unknown keys — including the underscore-prefixed spellings this app reads
+// but does not write — survive exactly as the author left them.
+export function setFrontmatterKey(fmBlock, key, value) {
+  const remove = value == null || value === '';
+  const line = `${key}: ${value}`;
+  const present = new RegExp(`^[ \\t]*${key}[ \\t]*:.*\\r?\\n`, 'm');
+  if (!fmBlock) return remove ? '' : `---\n${line}\n---\n`;
+  if (present.test(fmBlock)) {
+    return remove
+      ? fmBlock.replace(present, '')
+      : fmBlock.replace(present, (m) => `${line}${m.endsWith('\r\n') ? '\r\n' : '\n'}`);
+  }
+  if (remove) return fmBlock;
+  return fmBlock.replace(/(\r?\n)---(\r?\n?)$/, (_m, nl, tail) => `${nl}${line}${nl}---${tail}`);
+}
+
+// Rewrites the `type:` value when a type is renamed, and only when the line
+// currently holds the old name — a note whose type drifted meanwhile is left
+// alone rather than being reassigned by a stale rename.
+export function retypeLine(fmBlock, from, to) {
+  if (!fmBlock) return fmBlock;
+  return fmBlock.replace(
+    /^([ \t]*type[ \t]*:[ \t]*)(.*?)([ \t]*\r?\n)/m,
+    (m, head, val, tail) => {
+      const bare = val.replace(/^["']|["']$/g, '').trim();
+      return bare === from ? `${head}${to}${tail}` : m;
+    }
+  );
+}
+
+// Replaces the document's H1 — the type's name lives there, not in the filename.
+export function setH1(body, title) {
+  if (/^#[ \t]+.+$/m.test(body)) return body.replace(/^#[ \t]+.*$/m, `# ${title}`);
+  // No H1 yet: put one at the top, keeping whatever body follows.
+  const rest = body.replace(/^\n+/, '');
+  return rest ? `# ${title}\n\n${rest}` : `# ${title}\n`;
+}
+
+// Applies a file's operations: body replacement, share_id add/remove, the type
+// panel's frontmatter keys, a type rename, and the H1. The rest of the
+// frontmatter is always preserved.
 export function applyOps(rawCurrent, op) {
   let fm = (rawCurrent.match(FRONTMATTER) || [''])[0];
-  const body = typeof op.body === 'string' ? op.body : rawCurrent.slice(fm.length);
+  let body = typeof op.body === 'string' ? op.body : rawCurrent.slice(fm.length);
   if (op.unshare) fm = removeShareLine(fm);
   else if (op.shareId) fm = ensureShareId(fm, String(op.shareId));
+  if (op.frontmatter && typeof op.frontmatter === 'object') {
+    for (const [k, v] of Object.entries(op.frontmatter)) {
+      if (isSettableKey(k)) fm = setFrontmatterKey(fm, k, v);
+    }
+  }
+  if (op.retype && op.retype.from && op.retype.to) {
+    fm = retypeLine(fm, String(op.retype.from), String(op.retype.to));
+  }
+  if (typeof op.h1 === 'string' && op.h1) body = setH1(body, op.h1);
   return fm + body;
 }
 
@@ -149,9 +207,30 @@ export function makeCommitHandler(config = {}) {
         continue;
       }
       if (hasDelete) continue; // deletion needs only the path
-      if (!hasBody && !hasShare && !hasUnshare) return json({ error: `no operation for ${f?.path}` }, 400);
+      // Type-panel operations (adr/0045): a closed set of frontmatter keys, a
+      // type rename, and the H1 that carries the type's name.
+      const hasFm = f?.frontmatter != null && typeof f.frontmatter === 'object';
+      const hasRetype = f?.retype != null && typeof f.retype === 'object';
+      const hasH1 = typeof f?.h1 === 'string' && f.h1 !== '';
+      if (!hasBody && !hasShare && !hasUnshare && !hasFm && !hasRetype && !hasH1) {
+        return json({ error: `no operation for ${f?.path}` }, 400);
+      }
       if (hasBody && utf8Bytes(f.body) > MAX_BYTES) return json({ error: `note too large: ${f.path}` }, 413);
       if (hasShare && !SAFE_ID.test(String(f.shareId))) return json({ error: `invalid share_id: ${f.path}` }, 400);
+      if (hasFm) {
+        for (const [k, v] of Object.entries(f.frontmatter)) {
+          if (!isSettableKey(k)) return json({ error: `frontmatter key not settable: ${k}` }, 400);
+          // A value must stay a single frontmatter line: no newline may smuggle
+          // extra keys into the block.
+          if (v != null && /[\r\n]/.test(String(v))) {
+            return json({ error: `invalid value for ${k}: ${f.path}` }, 400);
+          }
+        }
+      }
+      if (hasRetype && (!f.retype.from || !f.retype.to || /[\r\n]/.test(String(f.retype.to)))) {
+        return json({ error: `invalid retype for ${f.path}` }, 400);
+      }
+      if (hasH1 && /[\r\n]/.test(f.h1)) return json({ error: `invalid h1 for ${f.path}` }, 400);
     }
 
     // 1. SHA of the commit at the tip of the branch.

@@ -3,7 +3,7 @@ import Icon from './Icon.jsx';
 import VersionIndicator from './VersionIndicator.jsx';
 import { discard, discardAll, discardMany } from '../lib/pending.js';
 import { useDrafts, discardDraft, discardDrafts } from '../lib/drafts.js';
-import { useCreated, markCreated } from '../lib/created.js';
+import { useLocalNotes, markCreated } from '../lib/localNotes.js';
 import { deriveTitle, draftPath, draftFileContent } from '../lib/noteFile.js';
 import { commitFiles } from '../lib/commit.js';
 import { build, notes } from '../content.js';
@@ -22,7 +22,7 @@ export default function StatusBar({ pending, onOpen }) {
   const ref = useRef(null);
 
   const drafts = useDrafts();
-  const created = useCreated();
+  const created = useLocalNotes();
 
   // One list mixing new notes (drafts) and body edits of existing notes. Each
   // entry has a stable `key`: the draft id for new notes, the path for edits.

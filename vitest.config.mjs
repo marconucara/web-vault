@@ -26,7 +26,7 @@ export default defineConfig({
   plugins: [virtualContentTestPlugin],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{js,jsx}', 'scripts/**/*.test.mjs'],
+    include: ['src/**/*.test.{js,jsx}', 'scripts/**/*.test.mjs', 'functions/**/*.test.js'],
     pool: 'forks',
     fileParallelism: true,
     isolate: true,

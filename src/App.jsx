@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { notes, contentNotes, views, types, typeMeta, titleIndex, notesById } from './content.js';
+import { notes, views, titleIndex, notesById, build } from './content.js';
 import { filterNotes, sortNotes } from './lib/views.js';
 import { RESERVED_VIEW_IDS, isInboxNote, isSharedNote } from './lib/builtins.js';
 import Sidebar from './components/Sidebar.jsx';
@@ -9,7 +9,10 @@ import StatusBar from './components/StatusBar.jsx';
 import { usePending } from './lib/pending.js';
 import { useDrafts, createDraft, draftToNote } from './lib/drafts.js';
 import { useDeleted, reconcileDeleted } from './lib/deleted.js';
-import { useCreated, reconcileCreated } from './lib/created.js';
+import { useLocalNotes, reconcileLocal } from './lib/localNotes.js';
+import { deriveTypes, contentOnly, sameTypeName } from './lib/types.js';
+import { TypeMetaProvider } from './lib/typeMetaContext.jsx';
+import TypePanel from './components/TypePanel.jsx';
 
 // Vault saved views minus those whose id is owned by a built-in view (adr/0033).
 const vaultViews = views.filter((v) => !RESERVED_VIEW_IDS.includes(v.id));
@@ -38,57 +41,82 @@ export default function App() {
   const pending = usePending();
   const draftMap = useDrafts();
   const deleted = useDeleted();
-  const created = useCreated();
+  const local = useLocalNotes();
 
-  // Self-heal the optimistic delete/create sets against the current build (runs
-  // once: content.json is fixed per build).
+  // Self-heal the optimistic sets against the current build (runs once:
+  // content.json is fixed per build). Modified entries heal on the build's
+  // timestamp rather than on the id, which they share with the build by
+  // definition (see lib/localNotes.js).
   useEffect(() => {
     reconcileDeleted(new Set(notes.map((n) => n.path)));
-    reconcileCreated(new Set(notes.map((n) => n.id)));
+    const builtAt = build?.builtAt ? Date.parse(build.builtAt) : null;
+    reconcileLocal(new Set(notes.map((n) => n.id)), Number.isFinite(builtAt) ? builtAt : null);
   }, []);
 
-  // Notes just created from the web client, kept locally (real id/path) until a
-  // build includes them. Drop any the build already has (self-heal covers LS).
+  // Notes written from the web client and not yet superseded by a build: the
+  // created ones (absent from the build) and the modified ones (present, but
+  // with stale content the local copy overrides).
   const createdNotes = useMemo(
-    () => Object.values(created).filter((n) => !notesById[n.id]),
-    [created]
+    () => Object.values(local).filter((n) => n.origin !== 'modified' && !notesById[n.id]),
+    [local]
+  );
+  const modifiedById = useMemo(() => {
+    const out = {};
+    for (const n of Object.values(local)) if (n.origin === 'modified') out[n.id] = n;
+    return out;
+  }, [local]);
+
+  // Live set: build-time notes minus optimistic deletes, with locally modified
+  // notes standing in for their build-time selves, plus optimistic creations.
+  // Type documents stay in — the type derivation reads them — and are filtered
+  // out of the lists below.
+  const liveNotes = useMemo(
+    () =>
+      [
+        ...notes.filter((n) => !deleted[n.path]).map((n) => modifiedById[n.id] || n),
+        ...createdNotes,
+      ],
+    [deleted, createdNotes, modifiedById]
   );
 
-  // Live set for lists: build-time content minus optimistic deletes, plus
-  // optimistic creations. Created notes behave like real notes (they have a
-  // real path), so views/types/sort include them naturally.
-  const liveNotes = useMemo(
-    () => [...contentNotes.filter((n) => !deleted[n.path]), ...createdNotes],
-    [deleted, createdNotes]
+  // Types derived from the live set, so a type created, renamed or deleted from
+  // the app is visible before the next build (adr/0045, criteria 13-14).
+  const { names: types, meta: typeMeta, declared: declaredTypeNames } = useMemo(
+    () => deriveTypes(liveNotes),
+    [liveNotes]
   );
+
+  // What the lists show: everything except the Type documents (criterion 12).
+  const liveContent = useMemo(() => contentOnly(liveNotes), [liveNotes]);
 
   // Not-yet-committed new notes (drafts), shaped like build-time notes.
   const draftNotes = useMemo(() => Object.values(draftMap).map(draftToNote), [draftMap]);
   const allNotesById = useMemo(() => {
     const base = {};
-    for (const n of notes) if (!deleted[n.path]) base[n.id] = n;
+    for (const n of notes) if (!deleted[n.path]) base[n.id] = modifiedById[n.id] || n;
     for (const n of createdNotes) base[n.id] = n;
     for (const n of draftNotes) base[n.id] = n;
     return base;
-  }, [createdNotes, draftNotes, deleted]);
+  }, [createdNotes, modifiedById, draftNotes, deleted]);
 
   // Sidebar counters, composed exactly like each list: drafts count under "All
   // notes" and their matching type, but not inside views (whose filter stays pure).
   const counts = useMemo(() => {
-    const c = { all: liveNotes.length + draftNotes.length };
+    const c = { all: liveContent.length + draftNotes.length };
     // Built-in views: drafts are unorganized, so they count under Inbox (like All
     // notes) but never under Shared.
-    c.inbox = liveNotes.filter(isInboxNote).length + draftNotes.length;
-    c.shared = liveNotes.filter(isSharedNote).length;
+    c.inbox = liveContent.filter(isInboxNote).length + draftNotes.length;
+    c.shared = liveContent.filter(isSharedNote).length;
     for (const t of types) {
       c[`type:${t}`] =
-        liveNotes.filter((n) => n.type === t).length + draftNotes.filter((n) => n.type === t).length;
+        liveContent.filter((n) => sameTypeName(n.type, t)).length +
+        draftNotes.filter((n) => sameTypeName(n.type, t)).length;
     }
     for (const v of vaultViews) {
-      c[`view:${v.id}`] = filterNotes(liveNotes, v).length;
+      c[`view:${v.id}`] = filterNotes(liveContent, v).length;
     }
     return c;
-  }, [liveNotes, draftNotes]);
+  }, [liveContent, draftNotes]);
 
   useEffect(() => {
     const on = () => setOpenId(parseHash());
@@ -104,41 +132,45 @@ export default function App() {
   // so the back button doesn't return to the now-dead draft URL).
   useLayoutEffect(() => {
     if (!openId || !openId.startsWith('draft-')) return;
-    const target = Object.values(created).find((n) => n.fromDraftId === openId);
+    const target = Object.values(local).find((n) => n.fromDraftId === openId);
     if (target) {
       history.replaceState(null, '', `#/n/${encodeURIComponent(target.id)}`);
       setOpenId(target.id);
     }
-  }, [created, openId]);
+  }, [local, openId]);
 
   const { list, title } = useMemo(() => {
     // Contextual drafts pinned at the top of the list: all of them under "All
     // notes", the matching type under a type view. Views keep their filter pure.
     let draftsForList = [];
     if (selection.kind === 'all' || selection.kind === 'inbox') draftsForList = draftNotes;
-    else if (selection.kind === 'type') draftsForList = draftNotes.filter((n) => n.type === selection.id);
+    else if (selection.kind === 'type')
+      draftsForList = draftNotes.filter((n) => sameTypeName(n.type, selection.id));
 
     if (selection.kind === 'view') {
       const v = vaultViews.find((x) => x.id === selection.id);
-      return { list: v ? filterNotes(liveNotes, v) : [], title: v?.name || selection.id };
+      return { list: v ? filterNotes(liveContent, v) : [], title: v?.name || selection.id };
     }
     if (selection.kind === 'inbox') {
       return {
-        list: [...draftsForList, ...sortNotes(liveNotes.filter(isInboxNote), 'modified:desc')],
+        list: [...draftsForList, ...sortNotes(liveContent.filter(isInboxNote), 'modified:desc')],
         title: 'Inbox',
       };
     }
     if (selection.kind === 'shared') {
-      return { list: sortNotes(liveNotes.filter(isSharedNote), 'modified:desc'), title: 'Shared' };
+      return { list: sortNotes(liveContent.filter(isSharedNote), 'modified:desc'), title: 'Shared' };
     }
     if (selection.kind === 'type') {
       return {
-        list: [...draftsForList, ...sortNotes(liveNotes.filter((n) => n.type === selection.id), 'title:asc')],
+        list: [
+          ...draftsForList,
+          ...sortNotes(liveContent.filter((n) => sameTypeName(n.type, selection.id)), 'title:asc'),
+        ],
         title: selection.id,
       };
     }
-    return { list: [...draftsForList, ...sortNotes(liveNotes, 'modified:desc')], title: 'All notes' };
-  }, [selection, draftNotes, liveNotes]);
+    return { list: [...draftsForList, ...sortNotes(liveContent, 'modified:desc')], title: 'All notes' };
+  }, [selection, draftNotes, liveContent]);
 
   const note = openId ? allNotesById[openId] : null;
 
@@ -152,8 +184,27 @@ export default function App() {
     setNavOpen(false);
   };
 
+  // Type management (adr/0045): `{ mode, name }`, or null when the panel is shut.
+  const [typePanel, setTypePanel] = useState(/** @type {{ mode: string, name?: string } | null} */ (null));
+
+  // The Type document behind a name, when one declares it. A type only the notes
+  // carry has none: the panel opens prefilled with its name and creates it.
+  const typeDocFor = (name) => {
+    const path = typeMeta[name]?.path;
+    return path ? liveNotes.find((n) => n.path === path) || null : null;
+  };
+
   const sidebar = (
-    <Sidebar views={vaultViews} types={types} typeMeta={typeMeta} counts={counts} selection={selection} onSelect={onSelect} />
+    <Sidebar
+      views={vaultViews}
+      types={types}
+      typeMeta={typeMeta}
+      counts={counts}
+      selection={selection}
+      onSelect={onSelect}
+      onNewType={() => setTypePanel({ mode: 'create' })}
+      onEditType={(name) => setTypePanel({ mode: 'edit', name })}
+    />
   );
 
   const main = isDesktop ? (
@@ -185,9 +236,29 @@ export default function App() {
   );
 
   return (
-    <div className="shell">
-      {main}
-      <StatusBar pending={pending} onOpen={openNote} />
-    </div>
+    <TypeMetaProvider value={typeMeta}>
+      <div className="shell">
+        {main}
+        <StatusBar pending={pending} onOpen={openNote} />
+        {typePanel && (
+          <TypePanel
+            mode={typePanel.mode}
+            typeName={typePanel.name || null}
+            meta={typePanel.name ? typeMeta[typePanel.name] : null}
+            doc={typePanel.name ? typeDocFor(typePanel.name) : null}
+            declared={declaredTypeNames}
+            notes={liveNotes}
+            onClose={() => setTypePanel(null)}
+            onRenamed={(newName) => {
+              // Follow the rename, so the user stays on the type they were in.
+              setSelection((s) => (s.kind === 'type' && s.id === typePanel.name ? { kind: 'type', id: newName } : s));
+            }}
+            onDeleted={() => {
+              setSelection((s) => (s.kind === 'type' && s.id === typePanel.name ? { kind: 'all' } : s));
+            }}
+          />
+        )}
+      </div>
+    </TypeMetaProvider>
   );
 }

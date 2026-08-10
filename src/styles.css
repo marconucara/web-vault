@@ -107,6 +107,57 @@ a:hover { text-decoration: underline; }
 .nav-item:hover { background: var(--bg-active); }
 .nav-item.active { background: var(--bg-active); font-weight: 600; }
 
+/* Type rows carry an edit affordance, so the row is a container and the
+   navigating part is its own button (adr/0045). The edit button appears on
+   hover/focus only: it must not compete with the type name at rest. */
+/* The row keeps `.nav-item`'s own padding, so the count badge lands on the same
+   right edge as it does on the view rows. Only the navigating button's padding
+   is zeroed — the row already supplies it. */
+.nav-item-row { padding: 0 10px 0 0; }
+.nav-main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 7px 0 7px 10px;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+/* Sits between the label and the badge, in the slack the label leaves. Hidden
+   at rest so it never competes with the type name. */
+.nav-edit {
+  flex: none;
+  display: inline-flex;
+  padding: 3px;
+  margin-left: 6px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-dim);
+  opacity: 0;
+}
+.nav-item-row:hover .nav-edit,
+.nav-edit:focus-visible { opacity: 1; }
+.nav-edit:hover { background: var(--bg); color: var(--text); }
+.group-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.group-action {
+  display: inline-flex;
+  padding: 3px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-dim);
+}
+.group-action:hover { background: var(--bg-active); color: var(--text); }
+
 /* Note list */
 .notelist { border-right: 1px solid var(--border); }
 .list-header {
@@ -1477,3 +1528,123 @@ a:hover { text-decoration: underline; }
 .pdc-confirm:disabled,
 .pdc-cancel:disabled { opacity: 0.6; cursor: default; }
 .props-del-error { color: #e5484d; font-size: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+
+/* Type panel (adr/0045): create/edit a note type. Shares the properties panel's
+   slide-in shell, with a form body and a footer that keeps delete away from the
+   save action. */
+.type-panel .props-body { display: flex; flex-direction: column; gap: 16px; }
+.tp-field { display: flex; flex-direction: column; gap: 6px; }
+.tp-label { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.tp-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.tp-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+.tp-input[aria-invalid='true'] { border-color: #e5484d; }
+.tp-textarea { resize: vertical; min-height: 62px; line-height: 1.45; }
+.tp-order { width: 88px; }
+.tp-hint { font-size: 11.5px; color: var(--text-dim); }
+.tp-error { font-size: 12px; color: #e5484d; }
+.tp-error-block { padding: 8px 10px; background: rgba(229, 72, 77, 0.08); border-radius: 6px; }
+.tp-swatches { display: flex; flex-wrap: wrap; gap: 7px; }
+.tp-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--border);
+  padding: 0;
+}
+.tp-swatch.sel { border-color: var(--bg); box-shadow: 0 0 0 2px var(--accent); }
+
+.tp-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+.tp-delete { display: flex; align-items: center; gap: 8px; min-height: 26px; }
+.tp-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.tp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 13px;
+}
+.tp-btn.primary { background: var(--accent); color: #fff; }
+.tp-btn.ghost { background: var(--bg); border-color: var(--border); color: var(--text); }
+.tp-btn.danger { background: #e5484d; color: #fff; }
+.tp-btn.danger-text { color: #e5484d; }
+.tp-btn:disabled { opacity: 0.55; cursor: default; }
+/* Delete blocked while notes carry the type: stated, not hidden (criterion 9). */
+.tp-blocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Icon picker: the whole lucide catalogue, previewed through Icon. */
+.icon-picker { display: flex; flex-direction: column; gap: 8px; }
+.ip-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-dim);
+}
+.ip-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 0;
+}
+.ip-input:focus-visible { outline: none; }
+.ip-search:focus-within { border-color: var(--accent); }
+.ip-clear { display: inline-flex; padding: 3px; border: none; border-radius: 4px; background: none; color: inherit; }
+.ip-clear:hover { background: var(--bg-active); color: var(--text); }
+.ip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 3px;
+  max-height: 188px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.ip-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-dim);
+}
+.ip-cell:hover { background: var(--bg-active); color: var(--text); }
+.ip-cell.sel { background: var(--bg-active); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.ip-more { align-self: flex-start; border: none; background: none; color: var(--accent); font-size: 12px; padding: 0; }
+.ip-empty { margin: 0; font-size: 12px; color: var(--text-dim); }

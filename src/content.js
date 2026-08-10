@@ -9,16 +9,13 @@ export const build = data.build || null;
 export const maps = data.maps || {};
 export const notesById = Object.fromEntries(notes.map((n) => [n.id, n]));
 
-// Icon and color per type, taken from the Type documents (H1 == type name).
-export const typeMeta = Object.fromEntries(
-  notes
-    .filter((n) => n.type === 'Type')
-    .map((n) => {
-      const fm = n.frontmatter || {};
-      return [n.title, { icon: fm.icon || fm._icon || null, color: fm.color || fm._color || null }];
-    })
-);
+// Type metadata and the type list are NOT exported from here any more: they are
+// derived at render time from the live note set — the bundle composed with the
+// app's optimistic overlay — so a type created, renamed or deleted from the UI
+// shows up before the next build. See lib/types.js and App.jsx
+// (adr/0045-manage-types-from-the-ui.md, criteria 13-14). Deriving them here,
+// from the bundle alone, would silently ignore that overlay.
 
-// Content notes: excludes the Type documents.
+// Content notes: excludes the Type documents. Build-time only; the live
+// equivalent is `contentOnly(liveNotes)` in App.jsx.
 export const contentNotes = notes.filter((n) => n.type !== 'Type');
-export const types = [...new Set(contentNotes.map((n) => n.type).filter(Boolean))].sort();

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Icon from './Icon.jsx';
 import { wikilinkTargets } from '../lib/wikilinks.js';
-import { typeMeta, titleIndex, idTitle, build } from '../content.js';
+import { titleIndex, idTitle, build } from '../content.js';
+import { useTypeMeta } from '../lib/typeMetaContext.jsx';
 import { commitFiles } from '../lib/commit.js';
 import { discard } from '../lib/pending.js';
 import { discardDraft } from '../lib/drafts.js';
@@ -55,6 +56,8 @@ function Chips({ targets }) {
 }
 
 export default function PropertiesPanel({ note, onClose }) {
+  // Live type metadata: it changes as soon as the app writes a type.
+  const typeMetaForNote = useTypeMeta(note?.type);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [delErr, setDelErr] = useState(null);
@@ -99,7 +102,7 @@ export default function PropertiesPanel({ note, onClose }) {
     else if (val != null && val !== '') scalars.push([key, val]);
   }
 
-  const tm = note.type ? typeMeta[note.type] : null;
+  const tm = typeMetaForNote;
   const lc = note.lastCommit;
   const commitUrl = lc && build?.repo ? `https://github.com/${build.repo}/commit/${lc.sha}` : null;
 

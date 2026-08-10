@@ -19,8 +19,12 @@ and uploads, and a deploy listing that is hard to read.
 
 ## Scope
 
-The fix depends on a decision that has not been made yet, which is why this is
-queued rather than done:
+**The decision this waited on has landed.** `adr/0045-manage-types-from-the-ui.md`
+is Implemented and its icon picker offers the **whole** lucide catalogue: a vault
+owner can pick any icon at runtime, so the full set must stay reachable and
+`DynamicIcon` stays. That settles the fork below in favour of the first branch —
+group the icons rather than remove them. The second branch is dead; it is kept
+here only to record why.
 
 - **If `0045` lands an icon picker**, the full set has to stay reachable — a user
   can pick any lucide icon at runtime. The work is then to stop it being ~1,750
@@ -31,7 +35,9 @@ queued rather than done:
   icon a build can know about, and the fallback would only need to handle icons
   chosen between builds — which, with no picker, cannot happen.
 
-Settle which of the two applies before implementing, and record why.
+Settled: `0045` landed the picker over the full catalogue, so `manualChunks` it is.
+A build of a two-type vault after `0045` still emits ~1,750 single-icon chunks —
+the number to bring down.
 
 ## Out of scope
 

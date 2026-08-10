@@ -10,13 +10,19 @@ If status files and git disagree, git is authoritative; correct this file.
 
 - **Branch:** main
 - **Active item:** none in flight. `plan/todo/` holds `0006` (prune the dynamic
-  icon chunk map), which waits on whether ADR `0045` lands an icon picker.
+  icon chunk map), no longer blocked: `0045` landed a picker over the whole
+  lucide catalogue, so `DynamicIcon` stays and the fix is `manualChunks`.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 
 ## Release state
 
-- **Unreleased on `main`:** nothing. `v0.8.3` is the tip.
+- **Unreleased on `main`:** ADR `0045` — manage note types from the UI. Adds a
+  create/edit/delete panel for types, an icon picker, and a type derivation that
+  reads the live note set instead of a build-time constant. Not yet tagged; it is
+  additive to the adopter contract, so it rides a **patch** or **minor** per
+  `0037` when cut.
+- **Current tag: `v0.9.0`** — the tip before this work.
 - **Current tag: `v0.8.3`** — the one-click upgrade actually works. ADR `0039`
   r5: the tag lookup sent no `User-Agent`, which GitHub refuses with a 403, and
   every non-OK response was read as "not published" — so the action failed for

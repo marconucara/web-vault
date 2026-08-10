@@ -49,4 +49,4 @@ hand-edit rows out of sync with the ADR files.
 | [0042](adr/0042-brand-identity-and-logo.md) | Brand identity and logo | Implemented | 2026-08-01 |
 | [0043](adr/0043-map-link-resolution-diagnostics.md) | Map link resolution diagnostics — unresolved links surfaced to the client and an opt-in strict gate | Proposed | 2026-08-02 |
 | [0044](adr/0044-what-the-url-addresses.md) | What the URL addresses — note, heading anchor, and what stays out | Proposed | 2026-08-05 |
-| [0045](adr/0045-manage-types-from-the-ui.md) | Manage note types from the UI — create, edit, and guarded delete | Proposed | 2026-08-06 |
+| [0045](adr/0045-manage-types-from-the-ui.md) | Manage note types from the UI — create, edit, and guarded delete | Implemented | 2026-08-06 |
