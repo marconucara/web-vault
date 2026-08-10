@@ -8,6 +8,7 @@ import ShareSheet from './ShareSheet.jsx';
 import Markdown from './Markdown.jsx';
 import Icon from './Icon.jsx';
 import PropertiesPanel from './PropertiesPanel.jsx';
+import ChunkBoundary from './ChunkBoundary.jsx';
 
 const BlockEditor = lazy(() => import('./BlockEditor.jsx'));
 const MapView = lazy(() => import('./MapView.jsx'));
@@ -109,9 +110,11 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
         </div>
       </div>
       {mapView ? (
-        <Suspense fallback={<div className="mapview"><div className="mapview-map" /></div>}>
-          <MapView body={body} />
-        </Suspense>
+        <ChunkBoundary>
+          <Suspense fallback={<div className="mapview"><div className="mapview-map" /></div>}>
+            <MapView body={body} />
+          </Suspense>
+        </ChunkBoundary>
       ) : (
       <div className="note-inner">
         <div className="meta">
@@ -132,9 +135,11 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
         {raw ? (
           <Editor value={body} onChange={onBodyChange} />
         ) : (
-          <Suspense fallback={<EditorSkeleton />}>
-            <BlockEditor key={note.id} value={body} onChange={onBodyChange} newNote={newNote} />
-          </Suspense>
+          <ChunkBoundary>
+            <Suspense fallback={<EditorSkeleton />}>
+              <BlockEditor key={note.id} value={body} onChange={onBodyChange} newNote={newNote} />
+            </Suspense>
+          </ChunkBoundary>
         )}
       </div>
       )}

@@ -86,9 +86,29 @@ preserved; that case is governed by the drift-policy decision.
 
 - None.
 
+## Implementation note — the reactive backstop that already exists
+
+Shipped ahead of this ADR, and useful context whenever it is implemented: a tab
+left open across a deploy can request a lazy chunk whose content hash no longer
+exists on the server, because the entry bundle it is running predates the deploy.
+`src/components/ChunkBoundary.jsx` catches that failed dynamic import and offers a
+reload, and `scripts/build-headers.mjs` keeps the HTML entry always-revalidated so
+the *next* navigation starts fresh.
+
+That is the crude, reactive form of this capability: it acts only once something
+has already broken, costs a full page reload, and reaches only the surfaces behind
+a lazy boundary. This ADR is the proactive form. When it lands, the polled SHA
+gives a real signal to act on before a 404 happens, and the boundary should become
+the fallback for the case polling cannot cover rather than the primary path. Note
+the copy constraint the boundary already follows: this situation is described to
+the user as **new content**, never as a new version — the latter belongs to the
+upgrade notice (`adr/0038-in-app-upgrade-notice.md`) and means a new web-vault
+release.
+
 ## References
 
 - scripts/build-content.mjs (`gitBuildInfo`), src/components/StatusBar.jsx
+- src/components/ChunkBoundary.jsx, scripts/build-headers.mjs
 - adr/0012-build-version-chip.md
 - adr/0021-draft-state-optimistic-ui.md
 - adr/0018-edit-commit-via-pages-function.md

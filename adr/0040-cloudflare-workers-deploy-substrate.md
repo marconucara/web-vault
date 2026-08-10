@@ -114,9 +114,12 @@ Workers model.
 
 ## Open questions
 
-- Whether `dist/_headers` (security + immutable asset caching) is applied via a
-  Workers Static Assets `_headers` file or moved into the Worker response — to be
-  settled in the plan, keeping the same header rules either way.
+- ~~Whether `dist/_headers` (security + immutable asset caching) is applied via a
+  Workers Static Assets `_headers` file or moved into the Worker response.~~
+  **Settled: the `_headers` file.** Static Assets serves it natively, so the rules
+  stay declarative and out of the Worker, which keeps `run_worker_first` limited
+  to `/api/*` and the asset path free of a Worker invocation. The rules now also
+  cover cache policy for the HTML entry, not only security and asset caching.
 - Whether the migrated `marconucaravault` reuses the existing Access applications
   or recreates them on the new hostname.
 
@@ -135,6 +138,7 @@ Workers model.
 |------|----------|--------|--------|
 | 2026-07-31 | r1 | marco | Initial draft. Records the Pages→Workers substrate migration validated by the wv-access-spike. |
 | 2026-07-31 | r2 | marco | Accepted and implemented in web-vault v0.4.0 (`functions/worker.js`, `scripts/generate-worker.mjs`, `wv build` wiring; Pages `generate-functions.mjs` removed) and migrated in marconucaravault (`.web/wrangler.toml` → Workers shape). DEPLOY.md rewritten for Workers. |
+| 2026-08-10 | r3 | marco | Settled the `_headers` open question in favour of the Static Assets file, and extended the generated rules with a `no-cache` policy for the HTML entry — without it a stale `index.html` requests deleted chunk hashes after a deploy. Stays Implemented. |
 
 ## Approvals
 
