@@ -357,6 +357,36 @@ function mediaBlock(enc, id) {
   return { ...(id ? { id } : {}), type: kind, props, children: [] };
 }
 
+// A table's content is not an inline array but a `tableContent` object holding
+// rows of cells, so mapping only `Array.isArray(content)` skipped every cell:
+// a wikilink written inside a table kept its ‹…› token as literal text, both on
+// screen and on the way back out. Each cell is itself either a bare inline array
+// or a `tableCell` object wrapping one, so both shapes are handled.
+const isTableContent = (c) => c && !Array.isArray(c) && Array.isArray(c.rows);
+
+function mapTableContent(content, mapInline) {
+  return {
+    ...content,
+    rows: content.rows.map((row) => ({
+      ...row,
+      cells: (row.cells || []).map((cell) =>
+        Array.isArray(cell)
+          ? mapInline(cell)
+          : cell && Array.isArray(cell.content)
+            ? { ...cell, content: mapInline(cell.content) }
+            : cell
+      ),
+    })),
+  };
+}
+
+// Inline content of a block, whatever shape the block uses for it.
+function mapBlockContent(content, mapInline) {
+  if (Array.isArray(content)) return mapInline(content);
+  if (isTableContent(content)) return mapTableContent(content, mapInline);
+  return content;
+}
+
 export function injectCustomBlocks(blocks) {
   if (!Array.isArray(blocks)) return blocks;
   return blocks.map((b) => {
@@ -373,7 +403,7 @@ export function injectCustomBlocks(blocks) {
     }
     return {
       ...b,
-      content: Array.isArray(b.content) ? injectInline(b.content) : b.content,
+      content: mapBlockContent(b.content, injectInline),
       children: Array.isArray(b.children) ? injectCustomBlocks(b.children) : b.children,
     };
   });
@@ -409,7 +439,7 @@ export function extractCustomBlocks(blocks) {
     }
     return {
       ...b,
-      content: Array.isArray(b.content) ? extractInline(b.content) : b.content,
+      content: mapBlockContent(b.content, extractInline),
       children: Array.isArray(b.children) ? extractCustomBlocks(b.children) : b.children,
     };
   });

@@ -9,23 +9,30 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** — `0006` (prune the
-  dynamic icon chunk map) shipped 2026-08-10.
+- **Active item:** none in flight. **The queue is empty** — the wikilink-in-a-
+  table fix (`done/2026-08-10-wikilinks-inside-a-table`) shipped 2026-08-10.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 
 ## Release state
 
-- **Unreleased on `main`:** the icon chunk grouping (plan
-  `done/2026-08-10-prune-the-dynamic-icon-chunk-map`). Build-pipeline only —
-  `dist/` goes from ~1,760 files to ~34, with every icon still resolving and no
-  change to what renders. A **patch** per `0037` when cut: nothing in the
-  adopter-facing contract moves.
-- **Current tag: `v0.9.0`** — ADR `0045`, manage note types from the UI: a
+- **Unreleased on `main`:** nothing.
+- **Current tag: `v0.9.1`** — a wikilink inside a table cell is a link again
+  (plan `done/2026-08-10-wikilinks-inside-a-table`). A table's content is a
+  `tableContent` object, not an inline array, so the guard that maps a block's
+  inline content skipped every cell: the ‹…› token showed on screen verbatim
+  and was written back on save, so correcting it by hand did not hold. Fixing
+  that exposed a second defect on the way out — the alias pipe was restored
+  before the row was compacted, and `compactTableLine` split the cell on it.
+  Carries what was unreleased since `v0.9.0`: the icon chunk grouping (plan
+  `done/2026-08-10-prune-the-dynamic-icon-chunk-map`), which took `dist/` from
+  ~1,760 files to ~34 with every icon still resolving. A **patch** per `0037`:
+  nothing in the adopter-facing contract moves.
+- **`v0.9.0`** — ADR `0045`, manage note types from the UI: a
   create/edit/delete panel for types, an icon picker over the whole lucide
   catalogue, and a type derivation that reads the live note set instead of a
   build-time constant.
-- **Current tag: `v0.8.3`** — the one-click upgrade actually works. ADR `0039`
+- **`v0.8.3`** — the one-click upgrade actually works. ADR `0039`
   r5: the tag lookup sent no `User-Agent`, which GitHub refuses with a 403, and
   every non-OK response was read as "not published" — so the action failed for
   every adopter on a Worker while blaming the release. A **patch**: the

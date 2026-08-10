@@ -488,6 +488,10 @@ const preProcess = (body) =>
       )
     )
   );
+// `normalizeMarkdown` runs BEFORE this, never after: it splits a table row on
+// every `|`, so a wikilink alias (`[[a/b|Alias]]`) restored first would be torn
+// into two cells. While the payload is still inside its token the pipe is
+// url-encoded (`%7C`) and the row is compacted correctly around it.
 const postProcess = (md) =>
   postProcessCheckItemChildren(
     postProcessFences(postProcessMapLinks(postProcessMediaLinks(postProcessWikilinks(md))))
@@ -656,7 +660,7 @@ export async function blocksToBody(blocks) {
   // split around an inline code span, so it runs on this path too — not only on
   // the mounted-editor one.
   const out = await exportBlocks(editor(), extractCustomBlocks(blocks));
-  return normalizeMarkdown(postProcess(out));
+  return postProcess(normalizeMarkdown(out));
 }
 
 // Round-trip of the body only (to measure fidelity).
@@ -678,7 +682,7 @@ export async function loadBodyIntoEditor(ed, body) {
 export async function serializeEditorBody(ed) {
   const extracted = extractCustomBlocks(ed.document);
   const out = await exportBlocks(ed, extracted);
-  const s = normalizeMarkdown(postProcess(out)).replace(/\s+$/, '');
+  const s = postProcess(normalizeMarkdown(out)).replace(/\s+$/, '');
   return `\n${s}\n`;
 }
 

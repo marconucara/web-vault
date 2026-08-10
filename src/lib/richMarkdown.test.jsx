@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BlockNoteEditor } from '@blocknote/core';
-import { schema } from './blocknoteSchema.jsx';
+import { schema, injectCustomBlocks } from './blocknoteSchema.jsx';
 import {
   postProcessMediaLinks,
   postProcessWikilinks,
@@ -558,5 +558,39 @@ describe('code alongside emphasis in the editor (ADR 0015)', () => {
       { bold: true },
       {},
     ]);
+  });
+});
+
+// A wikilink inside a table cell used to survive neither direction: the cell's
+// content is a `tableContent` object rather than an inline array, so the token
+// was never turned into a chip and stayed on screen as ‹portafoglio%2F…›; and
+// the alias pipe, restored before the row was compacted, split the cell in two.
+describe('wikilinks inside a table (ADR 0015, ADR 0008)', () => {
+  const body = [
+    '| A | B |',
+    '|---|---|',
+    '| x | See [[folder/target]] |',
+    '| y | **Bold** (see [[folder/target|Alias]]) |',
+    '',
+  ].join('\n');
+
+  it('renders the cells as wikilink chips, not as raw tokens', async () => {
+    const blocks = injectCustomBlocks(await bodyToBlocks(body));
+    const table = blocks.find((b) => b.type === 'table');
+    const cells = table.content.rows.map((row) =>
+      row.cells.map((c) => (Array.isArray(c) ? c : c.content))
+    );
+    const inline = cells.flat(2);
+    expect(inline.filter((it) => it.type === 'wikilink').map((it) => it.props)).toEqual([
+      { target: 'folder/target', alias: '' },
+      { target: 'folder/target', alias: 'Alias' },
+    ]);
+    expect(JSON.stringify(inline)).not.toContain('‹');
+  });
+
+  it('round-trips both the plain and the aliased form', async () => {
+    await expect(roundTripBody(body).then(normalizeHarness)).resolves.toBe(
+      normalizeHarness(body)
+    );
   });
 });
