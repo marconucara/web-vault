@@ -104,4 +104,10 @@ rule that the gate is necessary but not sufficient for anything the user sees.
 
 333 tests (6 new). No ADR moves: `adr/0003-stack-react-vite.md` was already
 `Implemented`, and this is a build-pipeline change under it, not a new decision.
-No version bump — rides along with a later release.
+
+---
+
+Shipped at HEAD `0ee05f6`. Not tagged: `v0.9.0` remains the current release, and
+this rides a later one. A **patch** per `adr/0037-versioning-and-release-policy.md`
+when cut — `dist/` changes shape, but nothing in the adopter-facing contract
+(CLI, shell config, vault layout, deploy substrate) moves.
