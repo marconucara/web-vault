@@ -9,21 +9,36 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** —
-  `done/2026-08-11-one-tooltip-across-the-interface` is the most recent item.
+- **Active item:** none in flight.
+  `done/2026-08-11-content-chip-reports-the-build-truthfully` is the most recent
+  item.
+- **Queued:** two items, both on the status bar's version indicator, both found
+  by using the deployed app. `todo/0001` — a manual update check that *finds* an
+  update does not open the panel, because the click dispatches on `available` as
+  it was before the check ran; amends `adr/0038-*.md`, whose AC9.2 names the
+  *update available* outcome without ever describing it. `todo/0002` — the
+  indicator's own tooltip covers the panel it just opened; adds the
+  popover-suppresses-tooltip rule to `CONVENTIONS.md`. `0002` reads better after
+  `0001`, which is the path that most reliably reproduces it.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 - **Unreleased on `main`:** the tooltip migration
-  (`done/2026-08-11-one-tooltip-across-the-interface`). Deliberately not
-  released — accumulating further changes before the next version. The four
+  (`done/2026-08-11-one-tooltip-across-the-interface`) and the content chip fix
+  (`done/2026-08-11-content-chip-reports-the-build-truthfully`). Deliberately
+  not released — accumulating further changes before the next version. The four
   version locations still read `v0.11.1`, which is correct: that is the last
   *published* version, and they move together with the tag when one is cut.
 
 ## Release state
 
-- **`main` is ahead of the last tag.** The tooltip migration sits on `main`
-  unreleased, by choice. Whatever is cut next carries it, so its exit criteria
-  are part of that release's manual check, not only of its own.
+- **`main` is ahead of the last tag.** The tooltip migration and the content
+  chip fix sit on `main` unreleased, by choice. Whatever is cut next carries
+  them, so their exit criteria are part of that release's manual check, not only
+  of their own.
+  - **The content chip fix wants a deployed check.** Its dirty-flag half cannot
+    be observed locally — a local build is genuinely dirty — so the first CI
+    deploy after the next release is where `(uncommitted local changes)`
+    disappearing gets confirmed. Everything else about it was verified by hand.
 - **Current tag: `v0.11.1`** — ADR `0034` r5: commit actions hold their place.
   They are rendered whatever the deployment answers and go inert until write
   access is confirmed, tipped *Editing is off* once the answer is settled.
