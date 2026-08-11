@@ -1,7 +1,7 @@
 ---
 adr: 0047
 title: UI language — i18n layer and locale selection
-status: Proposed
+status: Accepted
 date: 2026-08-11
 owner: marco
 supersedes:
@@ -188,8 +188,10 @@ published build — it is a signal for whoever is authoring the catalogue.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-08-11 | r1 | marco | Initial draft. |
+| 2026-08-11 | r2 | marco | Accepted. No open questions: the split with `adr/0034-*.md` (this layer owns resolution and the seam, the settings modal owns both selectors and their persistence), the missing-key behaviour (render the key, never the English string) and the gate-enforced catalogue parity were all settled during authoring. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
+| Owner | marco | 2026-08-11 | Accepted |
