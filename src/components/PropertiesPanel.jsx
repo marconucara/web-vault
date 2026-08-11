@@ -9,6 +9,7 @@ import { discard } from '../lib/pending.js';
 import { discardDraft } from '../lib/drafts.js';
 import { markDeleted } from '../lib/deleted.js';
 import { longDate, useFormatLocale } from '../lib/formats.js';
+import { useCapabilities } from '../lib/capabilities.js';
 
 // Read-only Properties panel, inspired by Tolaria: Type, scalar properties,
 // relationships (grouped by key), Info (date/words/size), and History (last git
@@ -58,6 +59,7 @@ export default function PropertiesPanel({ note, onClose }) {
   // Live type metadata: it changes as soon as the app writes a type.
   const typeMetaForNote = useTypeMeta(note?.type);
   const { t } = useTranslation();
+  const { canWrite } = useCapabilities();
   const formatLocale = useFormatLocale();
   const fmtDate = (ms) => longDate(ms, formatLocale);
   const [confirming, setConfirming] = useState(false);
@@ -192,7 +194,13 @@ export default function PropertiesPanel({ note, onClose }) {
           </>
         )}
 
-        {/* Danger zone: delete the note (a commit that removes the file). */}
+        {/* Danger zone: delete the note (a commit that removes the file).
+            Withheld unless the deployment has confirmed it can write
+            (adr/0034 criteria 11-12) — except for a draft, which is discarded
+            locally and commits nothing. A draft made before the token went away
+            would otherwise be impossible to get rid of. */}
+        {(canWrite || isDraft) && (
+        <>
         <div className="props-sep" />
         <div className="props-group">
           {delErr && <div className="props-del-error"><Icon name="x" size={13} /> {delErr}</div>}
@@ -216,6 +224,8 @@ export default function PropertiesPanel({ note, onClose }) {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </aside>
   );

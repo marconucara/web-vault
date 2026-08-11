@@ -142,6 +142,16 @@
     "colorTeal": "Turchese",
     "colorSlate": "Grigio"
   },
+  "preferences": {
+    "title": "Preferenze",
+    "open": "Preferenze",
+    "auto": "Predefinita di sistema",
+    "language": "Lingua",
+    "dateFormat": "Data e ora",
+    "showInbox": "Mostra Inbox",
+    "readOnlyTitle": "Modifica disattivata",
+    "readOnlyBody": "Questo sito non ha un token GitHub, quindi le modifiche non possono essere salvate nel repository. Il token è un segreto impostato sul deployment, non qui: aggiungilo al tuo Worker come GITHUB_TOKEN e la modifica si attiva."
+  },
   "typeVisibility": {
     "title": "Mostra o nascondi i tipi",
     "empty": "Questo vault non ha ancora tipi.",

@@ -9,24 +9,45 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** — the UI language
-  layer (`done/2026-08-11-ui-language-i18n-layer`) is the most recent item.
+- **Active item:** none in flight. **The queue is empty** — the client
+  preferences modal (`done/2026-08-11-client-preferences-modal`) is the most
+  recent item.
 - **Blockers:** none.
 - **Uncommitted work:** none.
-- **Unreleased on `main`:** ADR `0047` (the i18n layer). No tag cut for it yet
-  — see Release state for what the next tag has to be.
+- **Unreleased on `main`:** nothing.
 
 ## Release state
 
-- **Unreleased on `main`: ADR `0047`, the UI language layer** (plan
-  `done/2026-08-11-ui-language-i18n-layer`). **The next tag is a minor**, and
-  not because the UI now speaks Italian — that alone is additive. It is because
-  `src/locales/<code>.json` becomes a surface adopters can see and reason about,
-  and because the seam `initI18n({ locale, formatLocale })` is what `0034` will
-  build its selectors on. Per `0037` a contract addition rides the minor in
-  `0.x`.
+- **Current tag: `v0.11.0`** — ADRs `0034` (client preferences) and `0047` (the
+  UI language layer), released together: `0047` had been sitting unreleased on
+  `main` and `0034` is what gives it a control.
+  A modal opened from the status bar holds this browser's preferences —
+  interface language, date and time format, whether the Inbox row is shown —
+  and is where a deployment that cannot commit explains itself.
+  - **The minor is for the contract, not the modal.** `src/locales/<code>.json`
+    became a surface adopters can see and reason about, and preferences add
+    `localStorage` keys plus the `/api/capabilities` answer becoming
+    load-bearing for what the UI offers. Per `0037` a contract addition rides
+    the minor in `0.x`.
+  - **"Auto" is the ABSENCE of a stored key, never a sentinel.** A stored
+    `"auto"` would satisfy every other requirement and still pin the language of
+    someone who never chose one, the moment they changed their browser. Pinned
+    by a test for that reason.
+  - **Language and formatting are separate choices and stay separate.** One
+    picks a catalogue and drops the region; the other is nothing but the region.
+    Tying them would offer an `en-GB` reader only the American date order — the
+    failure `0047` split them to prevent. The format list is curated
+    (`FORMAT_LOCALES`, four entries) and extending it is a one-line change, not
+    a decision.
+  - **Commit actions are withheld until write access is CONFIRMED**, so the
+    unanswered and the negative case collapse into one positive test and no cold
+    load shows an action about to vanish. The note body is the opposite: always
+    rendered, read-only until confirmed. Content and controls, different rules.
+  - **Discarding a draft is not a commit**, so it is deliberately outside the
+    gate — otherwise a draft made before a token was removed would be
+    untouchable.
 
-- **Current tag: `v0.10.0`** — ADR `0046`, type visibility (plan
+- **Previous tag: `v0.10.0`** — ADR `0046`, type visibility (plan
   `done/2026-08-11-type-visibility`).
   A type document carrying `visible: false` is kept out of the sidebar, and a
   manager opened from the Types heading lists every type, hidden included, with

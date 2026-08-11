@@ -9,6 +9,7 @@ import ShareSheet from './ShareSheet.jsx';
 import Icon from './Icon.jsx';
 import PropertiesPanel from './PropertiesPanel.jsx';
 import ChunkBoundary from './ChunkBoundary.jsx';
+import { useCapabilities } from '../lib/capabilities.js';
 
 const BlockEditor = lazy(() => import('./BlockEditor.jsx'));
 const MapView = lazy(() => import('./MapView.jsx'));
@@ -37,6 +38,13 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
   const [propsOpen, setPropsOpen] = useState(false);
   const pending = usePending();
   const { t } = useTranslation();
+  // The body is CONTENT, so unlike the commit actions it is never withheld while
+  // the answer is outstanding: it renders read-only and relaxes into writing on
+  // confirmation (adr/0034 criterion 10). Holding it back instead would leave
+  // the note blank, and — because the editor arrives in a lazy chunk whose load
+  // usually outlasts this fetch — would add a second placeholder-to-editor swap
+  // for the heading-anchor scroll to chase (see App.jsx).
+  const { canWrite } = useCapabilities();
 
   useEffect(() => {
     setRaw(false);
@@ -131,14 +139,14 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
               ))}
             </span>
           ))}
-          {!isDraft && <ShareSheet note={note} />}
+          {!isDraft && canWrite && <ShareSheet note={note} />}
         </div>
         {raw ? (
-          <Editor value={body} onChange={onBodyChange} />
+          <Editor value={body} onChange={onBodyChange} readOnly={!canWrite} />
         ) : (
           <ChunkBoundary>
             <Suspense fallback={<EditorSkeleton />}>
-              <BlockEditor key={note.id} noteId={note.id} value={body} onChange={onBodyChange} newNote={newNote} />
+              <BlockEditor key={note.id} noteId={note.id} value={body} onChange={onBodyChange} newNote={newNote} readOnly={!canWrite} />
             </Suspense>
           </ChunkBoundary>
         )}

@@ -13,7 +13,7 @@ import { build, notes } from '../content.js';
 // the bottom right. Green "In sync" when there is nothing to commit; otherwise
 // a clickable "N notes changed" that opens a panel with a recap of the changes,
 // the selection of which to commit, and the commit action.
-export default function StatusBar({ pending, onOpen }) {
+export default function StatusBar({ pending, onOpen, onOpenPreferences = null }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [deselected, setDeselected] = useState(() => new Set());
@@ -224,6 +224,18 @@ export default function StatusBar({ pending, onOpen }) {
         >
           <span className="dot" />
           {t('statusBar.notesChanged', { count: n })}
+        </button>
+      )}
+      {/* Last, at the very edge: preferences are the least-used control here and
+          the one whose position should never move the two that report state. */}
+      {onOpenPreferences && (
+        <button
+          className="status-item sb-prefs"
+          onClick={onOpenPreferences}
+          title={t('preferences.open')}
+          aria-label={t('preferences.open')}
+        >
+          <Icon name="settings" size={13} />
         </button>
       )}
     </div>

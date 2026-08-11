@@ -118,7 +118,10 @@ export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta
           </button>
           {onNew && (
             <button
-              className="list-btn icon-only"
+              // `list-new` carries the fade-in only: this button arrives once
+              // write access is confirmed, while the search beside it is there
+              // from the first paint and must not flicker (adr/0034).
+              className="list-btn icon-only list-new"
               onClick={onNew}
               title={t('noteList.newNote')}
               aria-label={t('noteList.newNote')}

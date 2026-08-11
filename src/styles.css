@@ -1713,6 +1713,55 @@ a:hover { text-decoration: underline; }
 .tv-toggle.on .tv-knob { transform: translateX(14px); }
 .tv-empty { font-size: 13px; color: var(--text-dim); margin: 0; }
 
+/* Preferences (adr/0034): client-side settings, plus the notice a deployment
+   that cannot commit shows here — because this is where someone whose editing
+   has vanished comes looking for the reason. Reuses the props-panel shell and
+   the switch above; only the fields are new. */
+.preferences .props-body { display: flex; flex-direction: column; gap: 14px; }
+.pf-field { display: flex; flex-direction: column; gap: 6px; }
+.pf-field-row { flex-direction: row; align-items: center; justify-content: space-between; }
+.pf-label { font-size: 13px; color: var(--text-dim); }
+.pf-select {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+.pf-select:focus { outline: none; border-color: var(--accent); }
+.pf-notice {
+  display: flex;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-active);
+  font-size: 13px;
+}
+.pf-notice .icon { flex: none; margin-top: 1px; color: var(--accent); }
+.pf-notice strong { display: block; margin-bottom: 3px; font-size: 13px; }
+.pf-notice p { margin: 0; color: var(--text-dim); line-height: 1.45; }
+
+/* Commit actions appear only once write access is confirmed, which can land a
+   moment after the first paint. The fade makes that arrival read as the
+   interface settling rather than as a control popping in. Motion is skipped for
+   readers who ask for less of it — losing the fade costs them nothing. */
+@keyframes wv-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.list-new,
+.group-action { animation: wv-fade-in 180ms ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .list-new,
+  .group-action { animation: none; }
+}
+/* Not faded: preferences is not gated on write access — it is the one control
+   that must be there precisely when everything else is missing. */
+.sb-prefs { color: var(--text-dim); cursor: pointer; }
+.sb-prefs:hover { background: var(--bg-active); color: var(--text); }
+
 /* Icon picker: the whole lucide catalogue, previewed through Icon. */
 .icon-picker { display: flex; flex-direction: column; gap: 8px; }
 .ip-search {

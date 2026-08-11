@@ -15,7 +15,10 @@ import { deriveTypes, contentOnly, sameTypeName } from './lib/types.js';
 import { TypeMetaProvider } from './lib/typeMetaContext.jsx';
 import TypePanel from './components/TypePanel.jsx';
 import TypeVisibility from './components/TypeVisibility.jsx';
+import Preferences from './components/Preferences.jsx';
 import { parseNoteHash, noteHash } from './lib/headingSlug.js';
+import { useShowInbox } from './lib/prefs.js';
+import { loadCapabilities, useCapabilities } from './lib/capabilities.js';
 
 // Vault saved views minus those whose id is owned by a built-in view (adr/0033).
 const vaultViews = views.filter((v) => !RESERVED_VIEW_IDS.includes(v.id));
@@ -45,6 +48,15 @@ export default function App() {
   const [navOpen, setNavOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 900px)');
   const { t } = useTranslation();
+  const showInbox = useShowInbox();
+  // Write access gates every commit action below (adr/0034 criteria 11-12).
+  // Actions appear only once it is CONFIRMED, so the unanswered case and the
+  // negative one collapse into one positive test and neither shows an action
+  // that would fail. VersionIndicator kicks the same fetch off; the store
+  // de-duplicates, so asking here costs nothing and does not depend on the
+  // status bar having mounted first.
+  const { canWrite } = useCapabilities();
+  useEffect(() => { loadCapabilities(); }, []);
   const pending = usePending();
   const draftMap = useDrafts();
   const deleted = useDeleted();
@@ -115,7 +127,9 @@ export default function App() {
   const counts = useMemo(() => {
     const c = { all: liveContent.length + draftNotes.length };
     // Built-in views: drafts are unorganized, so they count under Inbox (like All
-    // notes) but never under Shared.
+    // notes) but never under Shared. Counted whether or not the row is shown —
+    // hiding Inbox leaves an open Inbox list working (adr/0034 criterion 7), and
+    // that list reads its count from here.
     c.inbox = liveContent.filter(isInboxNote).length + draftNotes.length;
     c.shared = liveContent.filter(isSharedNote).length;
     for (const t of types) {
@@ -277,6 +291,9 @@ export default function App() {
     return path ? liveNotes.find((n) => n.path === path) || null : null;
   };
 
+  // Preferences (adr/0034). Client-side only, so nothing here is committed.
+  const [prefsOpen, setPrefsOpen] = useState(false);
+
   const sidebar = (
     <Sidebar
       views={vaultViews}
@@ -284,17 +301,27 @@ export default function App() {
       typeMeta={typeMeta}
       counts={counts}
       selection={selection}
+      showInbox={showInbox}
       onSelect={onSelect}
-      onNewType={() => setTypePanel({ mode: 'create' })}
-      onEditType={(name) => setTypePanel({ mode: 'edit', name })}
-      onManageVisibility={() => setVisibilityOpen(true)}
+      // Type management writes to the vault, so it is offered only once the
+      // deployment has confirmed it can write. Withholding the prop removes the
+      // control outright — these are all already rendered behind a guard — which
+      // is the point: a disabled button asks a question the notice in
+      // preferences already answers, once, in one place.
+      onNewType={canWrite ? () => setTypePanel({ mode: 'create' }) : null}
+      onEditType={canWrite ? (name) => setTypePanel({ mode: 'edit', name }) : null}
+      onManageVisibility={canWrite ? () => setVisibilityOpen(true) : null}
     />
   );
+
+  // Creating a note ends in a commit, so it follows the same rule as the type
+  // actions above: offered only once write access is confirmed.
+  const onNewIfWritable = canWrite ? onNew : null;
 
   const main = isDesktop ? (
     <div className="app">
       {sidebar}
-      <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNew} typeMeta={typeMeta} />
+      <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNewIfWritable} typeMeta={typeMeta} />
       <NoteView note={note} titleIndex={titleIndex} onBack={null} />
     </div>
   ) : (
@@ -313,7 +340,7 @@ export default function App() {
             <button className="hamburger" onClick={() => setNavOpen(true)}>☰</button>
             <span className="topbar-title">{title}</span>
           </header>
-          <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNew} typeMeta={typeMeta} />
+          <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNewIfWritable} typeMeta={typeMeta} />
         </div>
       )}
     </div>
@@ -323,7 +350,8 @@ export default function App() {
     <TypeMetaProvider value={typeMeta}>
       <div className="shell">
         {main}
-        <StatusBar pending={pending} onOpen={openNote} />
+        <StatusBar pending={pending} onOpen={openNote} onOpenPreferences={() => setPrefsOpen(true)} />
+        {prefsOpen && <Preferences onClose={() => setPrefsOpen(false)} />}
         {typePanel && (
           <TypePanel
             mode={typePanel.mode}

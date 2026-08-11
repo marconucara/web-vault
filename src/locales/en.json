@@ -142,6 +142,16 @@
     "colorTeal": "Teal",
     "colorSlate": "Slate"
   },
+  "preferences": {
+    "title": "Preferences",
+    "open": "Preferences",
+    "auto": "System default",
+    "language": "Language",
+    "dateFormat": "Date and time",
+    "showInbox": "Show Inbox",
+    "readOnlyTitle": "Editing is off",
+    "readOnlyBody": "This site has no GitHub token, so changes cannot be saved back to the repository. The token is a secret set on the deployment itself, not here — add it to your Worker as GITHUB_TOKEN and editing turns on."
+  },
   "typeVisibility": {
     "title": "Show or hide types",
     "empty": "This vault has no types yet.",

@@ -46,7 +46,7 @@ function blockNoteDictionary(language) {
   return BLOCKNOTE_DICTIONARIES[language] || blockNoteEn;
 }
 
-export default function BlockEditor({ value, onChange, noteId = null, newNote = false }) {
+export default function BlockEditor({ value, onChange, noteId = null, newNote = false, readOnly = false }) {
   const { i18n } = useTranslation();
   // Keyed by note id at the call site, so a language change reaches the editor
   // on the next note rather than remounting the one being typed in.
@@ -152,7 +152,10 @@ export default function BlockEditor({ value, onChange, noteId = null, newNote = 
 
   return (
     <div className="blockeditor" ref={rootRef}>
-      <BlockNoteView editor={editor} onChange={handleChange} theme={dark ? 'dark' : 'light'} />
+      {/* `editable` toggles typing without changing what is rendered, so the
+          block heights — and the heading ids the anchor scroll is chasing — are
+          the same in both states (adr/0034 criterion 10). */}
+      <BlockNoteView editor={editor} onChange={handleChange} theme={dark ? 'dark' : 'light'} editable={!readOnly} />
     </div>
   );
 }

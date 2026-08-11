@@ -5,7 +5,7 @@ import BrandMark from './BrandMark.jsx';
 
 // `types` here is the VISIBLE list (adr/0046): the manager gets the full one, so
 // a hidden type can be found and switched back on.
-export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, onSelect, onNewType, onEditType, onManageVisibility }) {
+export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, showInbox = true, onSelect, onNewType, onEditType, onManageVisibility }) {
   const { t } = useTranslation();
   const isSel = (kind, id) => selection.kind === kind && selection.id === id;
   const Count = ({ n }) =>
@@ -27,14 +27,21 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
         <span className="nav-label">{t('views.allNotes')}</span>
         <Count n={counts.all} />
       </button>
-      <button
-        className={'nav-item' + (selection.kind === 'inbox' ? ' active' : '')}
-        onClick={() => onSelect({ kind: 'inbox' })}
-      >
-        <Icon name="inbox" size={15} />
-        <span className="nav-label">{t('views.inbox')}</span>
-        <Count n={counts.inbox} />
-      </button>
+      {/* Opt-out for vaults that do not use `_organized` (adr/0034 criterion 7),
+          which is what made 0033's always-on rule provisional. Only the row goes:
+          an Inbox list already open keeps working, exactly as a hidden type's
+          list does (adr/0046) — navigating away is what makes it unreachable,
+          which is the point of having hidden it. */}
+      {showInbox && (
+        <button
+          className={'nav-item' + (selection.kind === 'inbox' ? ' active' : '')}
+          onClick={() => onSelect({ kind: 'inbox' })}
+        >
+          <Icon name="inbox" size={15} />
+          <span className="nav-label">{t('views.inbox')}</span>
+          <Count n={counts.inbox} />
+        </button>
+      )}
       <button
         className={'nav-item' + (selection.kind === 'shared' ? ' active' : '')}
         onClick={() => onSelect({ kind: 'shared' })}

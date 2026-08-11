@@ -18,7 +18,7 @@ function useDark() {
   return dark;
 }
 
-export default function Editor({ value, onChange }) {
+export default function Editor({ value, onChange, readOnly = false }) {
   const dark = useDark();
   const extensions = useMemo(
     () => [markdown(), EditorView.lineWrapping],
@@ -31,6 +31,10 @@ export default function Editor({ value, onChange }) {
         theme={dark ? 'dark' : 'light'}
         extensions={extensions}
         onChange={onChange}
+        // `editable`, not `readOnly`: both block typing, but `readOnly` keeps
+        // the caret and the focus ring, which invite an edit that cannot land.
+        // Selecting and copying still work either way.
+        editable={!readOnly}
         basicSetup={{
           lineNumbers: false,
           foldGutter: false,

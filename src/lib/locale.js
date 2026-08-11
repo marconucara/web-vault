@@ -21,6 +21,27 @@ export const SUPPORTED_LOCALES = /** @type {const} */ (['en', 'it']);
 export const DEFAULT_LOCALE = 'en';
 
 /**
+ * The formatting locales offered in the preferences modal
+ * (adr/0034-client-settings-modal.md), plus a "System default" entry.
+ *
+ * Deliberately NOT derived from `SUPPORTED_LOCALES`. The two lists answer
+ * different questions: a catalogue exists per language, while a format is a
+ * property of a REGION — there is no "English format", only an American and a
+ * British one — and `Intl` formats a tag we ship no catalogue for perfectly
+ * well. Tying them together would offer a reader on `en-GB` nothing but the
+ * American order, which is the exact failure the split above exists to prevent.
+ *
+ * A curated starting point, one entry per genuinely distinct format family:
+ * month-first with a 12-hour clock, day-first, month name in another language,
+ * all-numeric dotted. Extending it is a one-line change and needs no decision —
+ * the labels are built from `Intl` (region name plus a live sample), so a new
+ * tag describes itself.
+ *
+ * Anything outside this list stays reachable by choosing "System default".
+ */
+export const FORMAT_LOCALES = /** @type {const} */ (['en-US', 'en-GB', 'it-IT', 'de-DE']);
+
+/**
  * The language subtag of a BCP-47 tag, lowercased: `it-CH` → `it`.
  * Accepts the underscore form (`it_CH`) some platforms still emit.
  * @param {unknown} tag
@@ -95,6 +116,64 @@ export function resolveFormatLocale({ injected = null, browser = null, interface
   if (isWellFormedTag(injected)) return /** @type {string} */ (injected).trim();
   if (isWellFormedTag(browser)) return /** @type {string} */ (browser).trim();
   return interfaceLocale;
+}
+
+/**
+ * Uppercase the first character, leaving the rest alone.
+ * `Intl` yields language endonyms in each language's own convention, which is
+ * lowercase in most of them (`italiano`, `español`). Correct as prose, wrong in
+ * a list of choices, where a lowercase entry between capitalised ones reads as
+ * a mistake. Only the first character is touched: `français` must not become
+ * `Français Français`-style title case, and scripts without case are unaffected.
+ * @param {string} s
+ */
+function capitalise(s) {
+  return s ? s[0].toLocaleUpperCase(s) + s.slice(1) : s;
+}
+
+/**
+ * The name of a language in its OWN language, capitalised: `en` → `English`,
+ * `it` → `Italiano` (adr/0034 criterion 2).
+ *
+ * The endonym, not the name translated into the current interface language,
+ * because this list is how someone who cannot read the current language finds
+ * their way out of it — the convention every mobile OS follows. Falls back to
+ * the code when `Intl` has no name for it, or has no `DisplayNames` at all.
+ * @param {string} code
+ * @returns {string}
+ */
+export function languageLabel(code) {
+  try {
+    const name = new Intl.DisplayNames([code], { type: 'language' }).of(code);
+    // `of()` returns the input unchanged when it knows nothing about it.
+    return name && name !== code ? capitalise(name) : code;
+  } catch {
+    return code;
+  }
+}
+
+/**
+ * The region name of a BCP-47 tag, in `displayIn`'s language: `en-GB` shown in
+ * Italian is `Regno Unito`. Null when the tag names no region, or `Intl` cannot
+ * name it — callers fall back to showing the tag itself (adr/0034 criterion 3).
+ *
+ * Translated into the interface language, unlike `languageLabel` above, and the
+ * asymmetry is deliberate: here the name only has to identify the entry for
+ * someone already reading the interface, while the sample beside it carries the
+ * actual information.
+ * @param {string} tag
+ * @param {string} displayIn
+ * @returns {string | null}
+ */
+export function regionLabel(tag, displayIn = DEFAULT_LOCALE) {
+  const region = typeof tag === 'string' ? tag.trim().split(/[-_]/)[1] : null;
+  if (!region) return null;
+  try {
+    const name = new Intl.DisplayNames([displayIn], { type: 'region' }).of(region.toUpperCase());
+    return name && name !== region.toUpperCase() ? name : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
