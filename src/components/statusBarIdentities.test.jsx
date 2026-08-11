@@ -26,7 +26,7 @@ vi.mock('../content.js', () => ({
   notes: [],
 }));
 
-const { default: StatusBar } = await import('./StatusBar.jsx');
+const { default: StatusBar, buildTime } = await import('./StatusBar.jsx');
 
 const render = (build) => {
   current = build;
@@ -104,7 +104,7 @@ describe('status bar identities', () => {
       // The chip shows only the short SHA, so the accessible name — not the
       // visible text — is what carries the commit and the build time.
       const anchor = anchorOf(render(buildInfo));
-      const tip = 'Content built from commit abcdef1\n2026-08-06T00:00:00.000Z';
+      const tip = `Content built from commit abcdef1\n${buildTime('2026-08-06T00:00:00.000Z')}`;
       expect(anchor).toContain(`data-tip="${tip}"`);
       expect(anchor).toContain(`aria-label="${tip}"`);
     });
@@ -112,6 +112,28 @@ describe('status bar identities', () => {
     it('says so in the tip when the build had uncommitted changes', () => {
       const anchor = anchorOf(render({ ...buildInfo, dirty: true }));
       expect(anchor).toContain('Content built from commit abcdef1 (uncommitted local changes)');
+    });
+
+    // The build bakes an ISO string; showing it raw was the one place in the
+    // status bar that ignored the reader's format preference
+    // (adr/0034-*.md criterion 3).
+    it('shows the build time in the reader\'s format, not as an ISO string', () => {
+      const anchor = anchorOf(render(buildInfo));
+      expect(anchor).not.toContain('2026-08-06T00:00:00.000Z');
+      expect(anchor).not.toContain('Invalid Date');
+      expect(anchor).toContain(buildTime('2026-08-06T00:00:00.000Z'));
+    });
+
+    it('drops the time rather than printing Invalid Date when it is unusable', () => {
+      for (const builtAt of [undefined, '', 'not a date']) {
+        const anchor = anchorOf(render({ ...buildInfo, builtAt }));
+        expect(anchor).not.toContain('Invalid Date');
+        expect(anchor).not.toContain('NaN');
+        // The commit is still reported: a missing timestamp costs the second
+        // line, not the tooltip.
+        expect(anchor).toContain('Content built from commit abcdef1');
+        expect(anchor).toMatch(/data-tip="Content built from commit abcdef1"/);
+      }
     });
   });
 });

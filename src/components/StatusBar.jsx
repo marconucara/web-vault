@@ -7,7 +7,23 @@ import { useDrafts, discardDraft, discardDrafts } from '../lib/drafts.js';
 import { useLocalNotes, markCreated } from '../lib/localNotes.js';
 import { deriveTitle, draftPath, draftFileContent } from '../lib/noteFile.js';
 import { commitFiles } from '../lib/commit.js';
+import { clockTime, numericDate, useFormatLocale } from '../lib/formats.js';
 import { build, notes } from '../content.js';
+
+// The build timestamp, in the reader's chosen date/time format rather than the
+// ISO string the build baked (adr/0034-client-settings-modal.md criterion 3).
+// `builtAt` is an ISO string while formats.js takes epoch milliseconds, so it is
+// parsed here.
+//
+// An absent or unparseable value yields the empty string, which leaves the tip's
+// second line blank rather than printing `Invalid Date` — the caller trims it
+// off. A build with no usable timestamp still has a commit to show, which is the
+// part that matters.
+export function buildTime(builtAt, locale = undefined) {
+  const ms = builtAt ? Date.parse(builtAt) : NaN;
+  if (Number.isNaN(ms)) return '';
+  return `${numericDate(ms, locale)}, ${clockTime(ms, locale)}`;
+}
 
 // Thin full-width status bar (VS Code / Tolaria style): a single indicator in
 // the bottom right. Green "In sync" when there is nothing to commit; otherwise
@@ -22,6 +38,7 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
   const [error, setError] = useState(null);
   const ref = useRef(null);
   const { t } = useTranslation();
+  const formatLocale = useFormatLocale();
 
   const drafts = useDrafts();
   const created = useLocalNotes();
@@ -192,8 +209,8 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
       {build?.short && (() => {
         const tip = t(build.dirty ? 'statusBar.buildTipDirty' : 'statusBar.buildTip', {
           short: build.short,
-          builtAt: build.builtAt,
-        });
+          builtAt: buildTime(build.builtAt, formatLocale),
+        }).trimEnd();
         return (
           // The in-app tooltip (`.tt` + `data-tip`), not the native `title`, so
           // this matches the version indicator it sits next to; `tt-up` because

@@ -22,10 +22,14 @@ stale build. A small, unobtrusive indicator is enough.
 ## Capability statement
 
 The status bar shows a build chip (bottom-left): the short commit SHA linked to
-the commit on the repo host, with a tooltip. The build bakes
-`build { sha, short, dirty, builtAt, repo }` into the content artifact — the SHA
-from `CF_PAGES_COMMIT_SHA` in the CI build, or `git rev-parse HEAD` locally
-(marking the working tree `dirty` with a `+` when it has uncommitted changes).
+the commit on the repo host, with a tooltip naming the commit and when the build
+ran. The build bakes `build { sha, short, dirty, builtAt, repo }` into the
+content artifact — the SHA from the substrate's own variable when it sets one,
+else `git rev-parse HEAD`, which is the correct answer on any runner that clones
+at the built commit. `dirty` marks a working tree with uncommitted changes with
+a `+`, and is a property a **local** build alone can have: a hosted build is
+clean by definition, and the probe is skipped there rather than run against a
+tree the build has written its own artifacts into.
 
 ## User stories / scenarios
 
@@ -37,11 +41,21 @@ from `CF_PAGES_COMMIT_SHA` in the CI build, or `git rev-parse HEAD` locally
 
 1. The build writes a `build` object (`sha`, `short`, `dirty`, `builtAt`, `repo`)
    into the content artifact.
-2. The SHA comes from `CF_PAGES_COMMIT_SHA` in CI and `git rev-parse HEAD`
-   locally; local dirty state is marked.
-3. The status bar renders the short SHA as a link to the commit on the repo host,
+2. The SHA comes from `CF_PAGES_COMMIT_SHA` when the substrate sets it, else
+   `git rev-parse HEAD` — which covers both a local build and a Workers one
+   (`adr/0040-cloudflare-workers-deploy-substrate.md`).
+3. `dirty` is set only for a local build. A build is treated as hosted when any
+   of `WORKERS_CI_BRANCH` (the current substrate), `CF_PAGES_COMMIT_SHA` (a
+   transitional Pages build), or the generic `CI` is set, and the working-tree
+   probe is skipped in that case. A hosted build never reports uncommitted
+   changes, whatever state the build directory is left in.
+4. The status bar renders the short SHA as a link to the commit on the repo host,
    with a tooltip.
-4. `repo` is derived generically (git remote / env), not hardcoded to a specific
+5. The tooltip renders `builtAt` in the reader's selected date/time format
+   (`adr/0034-client-settings-modal.md` criterion 3), not as the raw ISO string
+   the build baked. A missing or unparseable timestamp costs the tooltip its
+   time, not its commit.
+6. `repo` is derived generically (git remote / env), not hardcoded to a specific
    vault (`adr/0004-vault-compatibility-target.md`).
 
 ## Out of scope
@@ -56,17 +70,22 @@ from `CF_PAGES_COMMIT_SHA` in the CI build, or `git rev-parse HEAD` locally
 ## References
 
 - src/components/StatusBar.jsx
-- scripts/build-content.mjs (gitBuildInfo)
+- scripts/build-content.mjs (isHostedBuild, gitBuildInfo)
+- scripts/build-dirty-flag.test.mjs
+- src/lib/formats.js
 - adr/0002-build-time-content-pipeline.md
+- adr/0034-client-settings-modal.md
+- adr/0040-cloudflare-workers-deploy-substrate.md
 
 ## Revision History
 
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-29 | r1 | marco | Recorded after the fact from existing implementation (backfill). |
+| 2026-08-11 | r2 | marco | Found in production: every Workers build reported "(uncommitted local changes)". AC2 detected CI by the absence of `CF_PAGES_COMMIT_SHA`, correct under Pages but stranded by `adr/0040-*.md`, so the dirty probe ran on hosted builds against a tree the build had just written to. Split the SHA source (AC2) from the dirty rule (AC3) and stated the rule by meaning — local only, hosted detected by any of three variables — rather than by one vendor's name. Added AC5: the tooltip honours the reader's date/time format instead of printing the baked ISO string. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Maintainer | Marco Nucara | 2026-07-29 | — |
+| Maintainer | Marco Nucara | 2026-08-11 | — |

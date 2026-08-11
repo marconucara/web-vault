@@ -989,8 +989,14 @@ a:hover { text-decoration: underline; }
    `content: attr()`, where a newline is collapsed like any other whitespace —
    unlike native `title`, which breaks on it — so the line breaks have to be
    honoured explicitly. A modifier rather than a change to `.tt`, whose other
-   users are all single-line and rely on `nowrap` to stay on one. */
-.tt-multi::after { white-space: pre-line; }
+   users are all single-line and rely on `nowrap` to stay on one.
+
+   `pre-line` honours the newline but also drops the `nowrap` the base bubble
+   leans on for its width, leaving the box to be sized by its anchor — and these
+   anchors are narrow (the build chip is a 7-character SHA), which broke the
+   lines mid-word. `max-content` restores sizing by content, and the `max-width`
+   keeps a long tip from running the width of the viewport, wrapping instead. */
+.tt-multi::after { white-space: pre-line; width: max-content; max-width: 260px; }
 
 /* CodeMirror editor */
 .editor-wrap {

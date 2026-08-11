@@ -173,18 +173,40 @@ function frameworkVersion() {
   }
 }
 
-// Build info for the toolbar: commit SHA + timestamp. On Cloudflare Pages the
-// SHA comes from CF_PAGES_COMMIT_SHA; in local dev from `git rev-parse HEAD`.
-// Locally with changes in progress the SHA stays the last commit's (marked
-// `dirty`): showing the previous commit is acceptable.
+// Is this build running on a hosted runner rather than someone's machine?
+//
+// It decides one thing: whether to probe for a dirty working tree. `dirty` means
+// "built from a tree with uncommitted changes", which only a local build can be
+// — a CI build clones at a commit. Probing there is not merely pointless, it is
+// wrong: the build writes its own artifacts (`.wv/`) into the tree it would be
+// probing, so `git status` always answers yes and every hosted build claims
+// local changes it does not have.
+//
+// This used to test `!CF_PAGES_COMMIT_SHA` alone, which was right while Pages
+// was the substrate. `adr/0040-cloudflare-workers-deploy-substrate.md` moved the
+// deploy to Workers, which does not set that variable — so the probe started
+// running in CI and every Workers build has reported itself dirty since.
+// Enumerating the substrates by hand is what broke, so the generic `CI` (set by
+// every hosted runner worth the name) backs up the two we know:
+// WORKERS_CI_BRANCH for the current substrate, CF_PAGES_COMMIT_SHA for a
+// transitional Pages build. Same precedence as scripts/generate-worker.mjs.
+const isHostedBuild = () =>
+  Boolean(
+    process.env.WORKERS_CI_BRANCH || process.env.CF_PAGES_COMMIT_SHA || process.env.CI
+  );
+
+// Build info for the toolbar: commit SHA + timestamp. The SHA comes from
+// CF_PAGES_COMMIT_SHA when Pages sets it, else `git rev-parse HEAD` — which is
+// also the correct answer on Workers, where the clone is checked out at the
+// built commit. Locally with changes in progress the SHA stays the last
+// commit's (marked `dirty`): showing the previous commit is acceptable.
 function gitBuildInfo(vault) {
   const git = (args) => execFileSync('git', args, { cwd: vault, encoding: 'utf8' }).trim();
   let sha = process.env.CF_PAGES_COMMIT_SHA || '';
   let dirty = false;
   try {
     if (!sha) sha = git(['rev-parse', 'HEAD']);
-    // dirty only locally: on the clean Pages clone it is always false.
-    if (!process.env.CF_PAGES_COMMIT_SHA) {
+    if (!isHostedBuild()) {
       dirty = git(['status', '--porcelain']).length > 0;
     }
   } catch (e) {
