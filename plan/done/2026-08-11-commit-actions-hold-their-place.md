@@ -208,4 +208,4 @@ rule and had to invert. 501 total, `yarn verify` green.
 
 ---
 
-Shipped at HEAD `74ea56b`, released as `v0.11.1`.
+Shipped at HEAD `2ddc185`, released as `v0.11.1`.
