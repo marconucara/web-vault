@@ -190,5 +190,5 @@ the absence this item removes.
 
 ---
 
-Shipped at HEAD `PENDING`. Not released — accumulating on `main` for a later
+Shipped at HEAD `40a9fac`. Not released — accumulating on `main` for a later
 version.
