@@ -182,6 +182,9 @@ would pass it.
 `src/lib/formats.test.js`, `src/locales/catalogues.test.js`). 444 total,
 `yarn verify` green.
 
-**Still open before this can ship:** exit criterion 11, the by-hand check in a
-running app with the browser set to Italian and then to an unsupported language.
-It needs a consumer `.web` project, which is outside this repo.
+Exit criterion 11 — the by-hand check in a running app, browser set to Italian
+and then to an unsupported language — was done by the owner before this shipped.
+
+---
+
+Shipped at HEAD `7cfa1e6`. Unreleased — no tag cut; it rides the next release.

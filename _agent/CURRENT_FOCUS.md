@@ -9,12 +9,22 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** — type visibility
-  (`done/2026-08-11-type-visibility`) is the most recent item.
+- **Active item:** none in flight. **The queue is empty** — the UI language
+  layer (`done/2026-08-11-ui-language-i18n-layer`) is the most recent item.
 - **Blockers:** none.
 - **Uncommitted work:** none.
+- **Unreleased on `main`:** ADR `0047` (the i18n layer). No tag cut for it yet
+  — see Release state for what the next tag has to be.
 
 ## Release state
+
+- **Unreleased on `main`: ADR `0047`, the UI language layer** (plan
+  `done/2026-08-11-ui-language-i18n-layer`). **The next tag is a minor**, and
+  not because the UI now speaks Italian — that alone is additive. It is because
+  `src/locales/<code>.json` becomes a surface adopters can see and reason about,
+  and because the seam `initI18n({ locale, formatLocale })` is what `0034` will
+  build its selectors on. Per `0037` a contract addition rides the minor in
+  `0.x`.
 
 - **Current tag: `v0.10.0`** — ADR `0046`, type visibility (plan
   `done/2026-08-11-type-visibility`).
@@ -182,7 +192,44 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
-- **ADR `0046` — type visibility (2026-08-11, uncommitted).** `Type`, the
+- **ADR `0047` — UI language, i18n layer and locale selection (2026-08-11,
+  `7cfa1e6`, unreleased).** Every string the shell rendered was an inlined
+  English literal with no seam a translation could enter. Now i18next +
+  react-i18next over JSON catalogues committed at `src/locales/` (`en`, `it`),
+  bundled statically, swept across `App.jsx` and 12 components including the
+  `title`/`aria-label`/`placeholder` attributes.
+  - **The layer persists nothing, deliberately.** It exposes
+    `initI18n({ locale, formatLocale })` at boot and `setLocale`/
+    `setFormatLocale` at runtime, and reads no storage. That keeps `0034` the
+    single owner of the preferences and their `localStorage`, so the settings
+    modal is an additive change rather than a rework of this.
+  - **The two resolutions disagree about region subtags, and that is the whole
+    point.** Picking a catalogue drops the region (one Italian catalogue,
+    reachable from `it-CH`); formatting keeps it. Driving `Intl` from a bare
+    `en` would have turned a UK reader's `11 Aug 2026` into `Aug 11, 2026` — a
+    regression shipped inside the feature meant to improve localisation. Found
+    by reading the three date call sites *before* implementing (two hardcoded
+    `en-GB`, one system default); `formats.test.js` pins the exact strings.
+  - **Missing keys render the key, never the English string.** A silent English
+    fallback makes a half-translated catalogue look finished. Safe only because
+    the gate enforces parity — key sets, plus no blank values and matching
+    `{{placeholders}}`, since a translation that drops `{{name}}` still renders
+    a sentence, just without the thing it was about.
+  - **Two silent bugs, both caught by tests rather than by review.** `initI18n`
+    applied its argument conditionally, leaving the *previous* language standing
+    when the injected one was unsupported; `parseMissingKeyHandler` had the wrong
+    arity (i18next calls it `(key, value)`), returned `undefined`, and i18next
+    rendered `{}` — making the gap invisible, which is exactly what that handler
+    exists to prevent.
+  - **The suite is pinned to `en`/`en-GB` in `src/testSetup.js`, not merely
+    initialised.** Node has its own `navigator`, so an Italian machine would
+    render Italian and fail the gate for a reason unrelated to the change under
+    test.
+  - `t` was shadowed twice, in `Sidebar` and `TypeVisibility`, both mapping over
+    types with `t` as the loop variable. Renamed to `name` with a comment: the
+    symptom is a label quietly becoming a type name.
+  - 396 → 444 tests. See `plan/done/2026-08-11-ui-language-i18n-layer.md`.
+- **ADR `0046` — type visibility (2026-08-11, `f528ce3`, `v0.10.0`).** `Type`, the
   meta-type every type document carries, had become a sidebar row that could
   never be populated: `0045` made the list the union of declared and used types,
   and `contentOnly` excludes `type: Type` notes from every list, so selecting it
@@ -203,7 +250,7 @@ If status files and git disagree, git is authoritative; correct this file.
   `visible` in its closed `SETTABLE_KEYS` allowlist; the `CommitFile` typedef had
   to admit booleans. 367 → 396 tests. See
   `plan/done/2026-08-11-type-visibility.md`.
-- **Icon chunks grouped into buckets (2026-08-10, unreleased).** lucide's
+- **Icon chunks grouped into buckets (2026-08-10, `0ee05f6`, `v0.9.1`).** lucide's
   dynamic entry point states the whole catalogue as a map of ~1,750 `import()`s,
   so Rollup emitted one chunk per icon — nothing slow at runtime, but a `dist/`
   full of noise. `0045` settled the shape by landing a picker over the full
@@ -223,7 +270,7 @@ If status files and git disagree, git is authoritative; correct this file.
   inspected; re-verify by looking at the emitted code, not by trusting a
   pattern. 327 → 333 tests. See
   `plan/done/2026-08-10-prune-the-dynamic-icon-chunk-map.md`.
-- **ADR `0015` r7 — the link passes must skip code (2026-08-06, unreleased).**
+- **ADR `0015` r7 — the link passes must skip code (2026-08-06, `c2cd6e0`, `v0.8.1`).**
   An unmatched `[[` inside a code span — what a note documenting the wikilink
   syntax naturally contains — started a match that ran to the next `]]` anywhere
   later in the note, because the matcher's character classes admitted newlines.
@@ -266,7 +313,7 @@ If status files and git disagree, git is authoritative; correct this file.
   and stylesheet in one string, so the rules are verifiable without a browser.
   121 → 130 tests. No version bump — rides along with a later release. See
   `plan/done/2026-08-06-shared-task-lists-show-bullet-and-checkbox.md`.
-- **ADR `0038` — in-app upgrade notice (2026-08-06, unreleased).** The portal
+- **ADR `0038` — in-app upgrade notice (2026-08-06, `07173a2`, `v0.8.0`).** The portal
   reads the framework repo's `/tags`, takes the highest by numeric semver, and
   reports only a strictly-newer one. Both halves matter and **neither fails
   locally**: `/tags` is lexicographic, so today's order is right only because
@@ -306,7 +353,7 @@ If status files and git disagree, git is authoritative; correct this file.
   screen and the pending state being legible on a cached check. 210 → 228 tests.
   See `plan/done/2026-08-06-upgrade-check-feedback.md`.
 - **ADR `0037` — versioning policy and framework version (2026-08-06, `7f192d8`,
-  `d8cb7c2`, unreleased).** The decision was rewritten before being built. It had
+  `d8cb7c2`, `v0.8.0`).** The decision was rewritten before being built. It had
   called for GitHub Releases and a `1.0.0`; both are gone. A parallel publication
   surface — Releases, or a moving `latest` ref — buys nothing the tags do not
   already give: they are public, machine-readable, and already what adopters pin,
@@ -408,13 +455,24 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## ADR state
 
-`0001`–`0046` exist. All **Implemented** except: `0026` **Superseded** (by
+`0001`–`0047` exist. All **Implemented** except: `0026` **Superseded** (by
 `0040`), and `0030`, `0031`, `0032`, `0034`, `0043` still **Proposed** —
 decisions drafted, not built. `INDEX.md` is authoritative.
 
 ## Next item
 
-**The queue is empty.** `0001` (type visibility) was the last item, 2026-08-11.
+**The queue is empty.** The UI language layer
+(`done/2026-08-11-ui-language-i18n-layer`, queue slot `0008`) was the last item
+to ship, 2026-08-11.
+
+**`0034` is the obvious next one, and it is now cheap.** It was already
+`Proposed` with a language selector among its preferences; `0047` deliberately
+built the seam and left the storage alone, so the modal supplies
+`{ locale, formatLocale }` at boot and calls `setLocale`/`setFormatLocale` at
+runtime. Two selectors, not three — a separate date/time format setting was
+considered and rejected in `0047`, because owning the patterns is a different
+and much larger decision than choosing two locales. `0034` also still carries
+the editor gating and the Inbox toggle, so it is not a one-line item.
 
 Numbers in `plan/todo/` are reused once an item ships — the `0003`, `0004` and
 `0005` slots have each been used more than once, so a new item takes the lowest
@@ -430,19 +488,27 @@ free number, not the next unused one.
   pre-processors do — "could this note lose data in BlockNote?" is reasonably
   answered conservatively. Worth an item only if a real note trips it.
 
-- **ADR `0042` (brand identity) is `Implemented` as of 2026-08-05 (r4),
-  shipped in `v0.6.0`.** The artwork was produced with an external design tool
-  and the ADR's advice held: the judgement was isolated — the icons went in
-  first and were reviewed in a browser by the owner, and only then did the
-  sidebar mark follow in the same item. `brand/mark.svg` is authoritative for
-  the form; `src/components/BrandMark.jsx` is that geometry inlined so it can
-  take `currentColor`. If the drawing is ever refined, both move together, and
-  `adr/assets/0042-brand-components.jsx` holds the design-tool source it was
-  settled in. What r4 did **not** settle: the wordmark's typeface, and whether
-  the brand accent eventually replaces the UI's generic blue.
-- **`0037` gates `0038`/`0039`.** Still no written release policy; tags
-  `v0.5.0`–`v0.6.0` were all cut by judgement. `v0.6.0` was called a minor
-  because adopters see the rename and the mark without asking for them.
+- **The heading-anchor copy affordance is not keyboard reachable.** It is a CSS
+  `::after` on the rendered heading, which cannot hold focus. Accepted in `0044`
+  so the editor DOM stays untouched — a focusable control has to live outside it
+  — and deferred there alongside the same affordance on the share pages. A small,
+  already-scoped item whenever it is wanted.
+- **ADR `0042` left the wordmark's typeface unsettled**, and whether the brand
+  accent eventually replaces the UI's generic blue. The rest shipped in `v0.6.0`.
+  `brand/mark.svg` is authoritative for the form; `src/components/BrandMark.jsx`
+  is that geometry inlined so it can take `currentColor` — if the drawing is
+  refined, both move together, and `adr/assets/0042-brand-components.jsx` holds
+  the design-tool source it was settled in.
+- **Build-time surfaces are still English**, by decision in `0047`: the public
+  share pages (`0025`) and the real 404 (`0027`) render outside the app shell,
+  and their locale cannot be read from the visitor's browser at build time.
+  Choosing it per build or per share is a separate decision, not an oversight.
+  The same goes for commit messages the app writes — those are git history, read
+  by other tools and other people, and stay English on purpose.
+- **BlockNote's dictionary falls back to English** for a language it ships none
+  for. Unlike our own missing-key rule this is correct: that catalogue is not
+  ours to complete, so there is no gap for anyone to act on. Only becomes a
+  question if we add a locale BlockNote lacks.
 - **ADR `0043`** — map link resolution diagnostics. `Proposed` and deliberately
   not queued; it closes the open question `0028` r3 handed off. `Proposed` is a
   valid resting state, not a defect.

@@ -1,7 +1,7 @@
 ---
 adr: 0047
 title: UI language — i18n layer and locale selection
-status: Accepted
+status: Implemented
 date: 2026-08-11
 owner: marco
 supersedes:
@@ -229,7 +229,7 @@ published build — it is a signal for whoever is authoring the catalogue.
 | 2026-08-11 | r1 | marco | Initial draft. |
 | 2026-08-11 | r2 | marco | Accepted. No open questions: the split with `adr/0034-*.md` (this layer owns resolution and the seam, the settings modal owns both selectors and their persistence), the missing-key behaviour (render the key, never the English string) and the gate-enforced catalogue parity were all settled during authoring. |
 | 2026-08-11 | r3 | marco | Split the two resolutions apart after reading the code: the interface language is matched language-only, but formatting now resolves separately and **keeps its region subtag**, defaulting to the browser's full tag. Found while planning — three call sites hardcode `en-GB`/system locale, and driving them from a bare `en` would have regressed a UK reader's dates from `11 Aug 2026` to `Aug 11, 2026`. Criteria 10–11 reworded; added the rejections of a language-detector plugin and of deriving formatting from the interface language. |
-| 2026-08-11 | r4 | marco | Added criterion 13 during implementation: the block editor's own chrome follows the interface language via the dictionary BlockNote ships. Not in the original scope, but leaving the app's largest surface in English while everything around it translates is a visible hole, and it costs one prop. Recorded that app-written commit messages stay English — they are git history, not UI copy. |
+| 2026-08-11 | r4 | marco | Implemented. Added criterion 13 during implementation: the block editor's own chrome follows the interface language via the dictionary BlockNote ships. Not in the original scope, but leaving the app's largest surface in English while everything around it translates is a visible hole, and it costs one prop. Recorded that app-written commit messages stay English — they are git history, not UI copy. |
 
 ## Approvals
 
