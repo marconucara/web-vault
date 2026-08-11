@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { notes, views, titleIndex, notesById, build } from './content.js';
 import { filterNotes, sortNotes } from './lib/views.js';
 import { RESERVED_VIEW_IDS, isInboxNote, isSharedNote } from './lib/builtins.js';
@@ -43,6 +44,7 @@ export default function App() {
   const [anchor, setAnchor] = useState(() => parseHash().anchor);
   const [navOpen, setNavOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 900px)');
+  const { t } = useTranslation();
   const pending = usePending();
   const draftMap = useDrafts();
   const deleted = useDeleted();
@@ -230,11 +232,11 @@ export default function App() {
     if (selection.kind === 'inbox') {
       return {
         list: [...draftsForList, ...sortNotes(liveContent.filter(isInboxNote), 'modified:desc')],
-        title: 'Inbox',
+        title: t('views.inbox'),
       };
     }
     if (selection.kind === 'shared') {
-      return { list: sortNotes(liveContent.filter(isSharedNote), 'modified:desc'), title: 'Shared' };
+      return { list: sortNotes(liveContent.filter(isSharedNote), 'modified:desc'), title: t('views.shared') };
     }
     if (selection.kind === 'type') {
       return {
@@ -245,8 +247,10 @@ export default function App() {
         title: selection.id,
       };
     }
-    return { list: [...draftsForList, ...sortNotes(liveContent, 'modified:desc')], title: 'All notes' };
-  }, [selection, draftNotes, liveContent]);
+    return { list: [...draftsForList, ...sortNotes(liveContent, 'modified:desc')], title: t('views.allNotes') };
+    // `t` is a dependency: the built-in titles above are translated, so a locale
+    // change has to recompute them.
+  }, [selection, draftNotes, liveContent, t]);
 
   const note = openId ? allNotesById[openId] : null;
 

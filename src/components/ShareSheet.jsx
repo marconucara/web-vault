@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import { usePending, discardMany } from '../lib/pending.js';
 import { useShares, getShare, setShare, setUnshared, markActivated, removeShare } from '../lib/shares.js';
@@ -54,6 +55,7 @@ export default function ShareSheet({ note }) {
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [confirmUnshare, setConfirmUnshare] = useState(false);
+  const { t } = useTranslation();
   const ref = useRef(null);
   const cancelRef = useRef({ cancelled: false });
 
@@ -151,7 +153,7 @@ export default function ShareSheet({ note }) {
     } catch (e) {
       if (token.cancelled) return;
       removeShare(note.path);
-      setError(e.message || 'Publishing failed');
+      setError(e.message || t('share.publishFailed'));
       setPhase('error');
     }
   };
@@ -176,7 +178,7 @@ export default function ShareSheet({ note }) {
       setOpen(false);
     } catch (e) {
       if (token.cancelled) return;
-      setError(e.message || 'Unshare failed');
+      setError(e.message || t('share.unshareFailed'));
       setPhase('error');
     }
   };
@@ -186,11 +188,11 @@ export default function ShareSheet({ note }) {
       <button
         className={`badge share-btn ${open ? 'active' : ''} ${shareId ? 'shared' : ''}`}
         onClick={() => setOpen((v) => !v)}
-        title={shareId ? 'Shared note: manage the link' : 'Share this note'}
+        title={shareId ? t('share.manageLink') : t('share.shareThisNote')}
       >
-        {shareId && <span className="share-dot" title="Already shared" />}
+        {shareId && <span className="share-dot" title={t('share.alreadyShared')} />}
         <Icon name={activating ? 'clock' : 'share'} size={13} />
-        Share
+        {t('share.share')}
       </button>
 
       {open && (
@@ -199,40 +201,40 @@ export default function ShareSheet({ note }) {
             <>
               <div className={`ss-status ${effPhase === 'active' ? 'ok' : 'wait'}`}>
                 {effPhase === 'active' ? (
-                  <><Icon name="check" size={13} /> Link active</>
+                  <><Icon name="check" size={13} /> {t('share.linkActive')}</>
                 ) : effPhase === 'slow' ? (
-                  <><Icon name="clock" size={13} /> Taking a while. It may already work.</>
+                  <><Icon name="clock" size={13} /> {t('share.slow')}</>
                 ) : (
-                  <><span className="spin" /> Making the link public…</>
+                  <><span className="spin" /> {t('share.makingPublic')}</>
                 )}
               </div>
               <input className="ss-url" readOnly value={shareUrl} onFocus={(e) => e.target.select()} />
               {effPhase !== 'active' && (
-                <p className="ss-hint">You can copy it now. It becomes public in a moment.</p>
+                <p className="ss-hint">{t('share.copyHint')}</p>
               )}
               <div className="ss-actions">
                 <button className="ss-copy" onClick={onCopy}>
                   <Icon name={copied ? 'check' : 'share'} size={13} />
-                  {copied ? 'Copied' : 'Copy link'}
+                  {copied ? t('share.copied') : t('share.copyLink')}
                 </button>
                 {effPhase === 'active' && (
                   <a className="ss-open" href={shareUrl} target="_blank" rel="noopener noreferrer">
-                    <Icon name="external" size={13} /> Open
+                    <Icon name="external" size={13} /> {t('common.open')}
                   </a>
                 )}
               </div>
               {effPhase !== 'activating' && (
                 confirmUnshare ? (
                   <div className="ss-confirm">
-                    <span>The link will stop working.</span>
+                    <span>{t('share.unshareWarning')}</span>
                     <div className="ss-confirm-actions">
-                      <button className="ss-danger" onClick={onUnshare}>Unshare</button>
-                      <button className="ss-cancel" onClick={() => setConfirmUnshare(false)}>No</button>
+                      <button className="ss-danger" onClick={onUnshare}>{t('share.unshare')}</button>
+                      <button className="ss-cancel" onClick={() => setConfirmUnshare(false)}>{t('share.no')}</button>
                     </div>
                   </div>
                 ) : (
                   <button className="ss-unshare" onClick={() => setConfirmUnshare(true)}>
-                    Unshare
+                    {t('share.unshare')}
                   </button>
                 )
               )}
@@ -240,25 +242,25 @@ export default function ShareSheet({ note }) {
           ) : effPhase === 'publishing' || effPhase === 'unsharing' ? (
             <div className="ss-status wait">
               <span className="spin" />
-              {effPhase === 'publishing' ? 'Publishing…' : 'Unsharing…'}
+              {effPhase === 'publishing' ? t('share.publishing') : t('share.unsharing')}
             </div>
           ) : effPhase === 'error' ? (
             <>
               <div className="ss-error"><Icon name="x" size={13} /> {error}</div>
               <div className="ss-actions">
-                <button className="ss-copy" onClick={onPublish}>Retry</button>
+                <button className="ss-copy" onClick={onPublish}>{t('common.retry')}</button>
               </div>
             </>
           ) : (
             <>
               <p className="ss-intro">
-                Create a public read-only link for this note.
+                {t('share.intro')}
               </p>
               {modified && (
-                <p className="ss-note">Includes this note's unsaved changes.</p>
+                <p className="ss-note">{t('share.includesUnsaved')}</p>
               )}
               <button className="ss-publish" onClick={onPublish}>
-                <Icon name="share" size={13} /> Share
+                <Icon name="share" size={13} /> {t('share.share')}
               </button>
             </>
           )}

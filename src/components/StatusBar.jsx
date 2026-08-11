@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import VersionIndicator from './VersionIndicator.jsx';
 import { discard, discardAll, discardMany } from '../lib/pending.js';
@@ -20,6 +21,7 @@ export default function StatusBar({ pending, onOpen }) {
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState(null);
   const ref = useRef(null);
+  const { t } = useTranslation();
 
   const drafts = useDrafts();
   const created = useLocalNotes();
@@ -30,7 +32,7 @@ export default function StatusBar({ pending, onOpen }) {
     key: d.id,
     kind: 'new',
     id: d.id,
-    title: deriveTitle(d.body) || 'Untitled',
+    title: deriveTitle(d.body) || t('common.untitled'),
     draft: d,
   }));
   const editItems = Object.values(pending).map((it) => ({
@@ -108,7 +110,7 @@ export default function StatusBar({ pending, onOpen }) {
           id: o.path.replace(/\.md$/, ''),
           path: o.path,
           fromDraftId: o.draftId,
-          title: deriveTitle(o.draft.body) || 'Untitled',
+          title: deriveTitle(o.draft.body) || t('common.untitled'),
           type: o.draft.type || null,
           frontmatter: o.draft.frontmatter || (o.draft.type ? { type: o.draft.type } : {}),
           body: o.draft.body,
@@ -118,10 +120,10 @@ export default function StatusBar({ pending, onOpen }) {
       }
       discardDrafts(newOnes.map((o) => o.draftId));
       setMessage('');
-      setToast(`Committed ${files.length} ${files.length === 1 ? 'note' : 'notes'}`);
+      setToast(t('statusBar.committed', { count: files.length }));
       setTimeout(() => setToast(null), 3000);
     } catch (e) {
-      setError(e.message || 'Commit failed');
+      setError(e.message || t('statusBar.commitFailed'));
     } finally {
       setCommitting(false);
     }
@@ -132,8 +134,8 @@ export default function StatusBar({ pending, onOpen }) {
       {open && !inSync && (
         <div className="statuspanel">
           <div className="sp-head">
-            <span>Uncommitted changes</span>
-            <button className="link-btn" onClick={() => discardAll()}>Discard all</button>
+            <span>{t('statusBar.uncommittedChanges')}</span>
+            <button className="link-btn" onClick={() => discardAll()}>{t('statusBar.discardAll')}</button>
           </div>
           <ul className="sp-list">
             {items.map((it) => (
@@ -142,20 +144,20 @@ export default function StatusBar({ pending, onOpen }) {
                   type="checkbox"
                   checked={!deselected.has(it.key)}
                   onChange={() => toggleSel(it.key)}
-                  title="Include in commit"
+                  title={t('statusBar.includeInCommit')}
                 />
                 <button
                   className="sp-title"
                   onClick={() => { onOpen?.(it.id); setOpen(false); }}
-                  title={it.kind === 'new' ? 'New note' : it.path}
+                  title={it.kind === 'new' ? t('statusBar.newNote') : it.path}
                 >
                   {it.title}
-                  {it.kind === 'new' && <span className="sp-tag">new</span>}
+                  {it.kind === 'new' && <span className="sp-tag">{t('statusBar.tagNew')}</span>}
                 </button>
                 <button
                   className="sp-discard"
                   onClick={() => (it.kind === 'new' ? discardDraft(it.id) : discard(it.path))}
-                  title={it.kind === 'new' ? 'Discard this new note' : "Discard this note's changes"}
+                  title={it.kind === 'new' ? t('statusBar.discardNewNote') : t('statusBar.discardChanges')}
                 >
                   <Icon name="trash" size={14} />
                 </button>
@@ -166,13 +168,13 @@ export default function StatusBar({ pending, onOpen }) {
             className="sp-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Commit message"
+            placeholder={t('statusBar.commitMessage')}
           />
           {error && <div className="sp-error"><Icon name="x" size={13} /> {error}</div>}
           <div className="sp-actions">
             <button className="sp-commit" onClick={doCommit} disabled={!k || committing}>
               <Icon name="git-commit" size={14} />
-              {committing ? 'Committing…' : `Commit${k ? ` (${k})` : ''}`}
+              {committing ? t('statusBar.committing') : k ? t('statusBar.commitCount', { count: k }) : t('statusBar.commit')}
             </button>
           </div>
         </div>
@@ -185,9 +187,10 @@ export default function StatusBar({ pending, onOpen }) {
           somewhere to link to. */}
       <VersionIndicator />
       {build?.short && (() => {
-        const tip = `Content built from commit ${build.short}${
-          build.dirty ? ' (uncommitted local changes)' : ''
-        }\n${build.builtAt}`;
+        const tip = t(build.dirty ? 'statusBar.buildTipDirty' : 'statusBar.buildTip', {
+          short: build.short,
+          builtAt: build.builtAt,
+        });
         return (
           // The in-app tooltip (`.tt` + `data-tip`), not the native `title`, so
           // this matches the version indicator it sits next to; `tt-up` because
@@ -210,17 +213,17 @@ export default function StatusBar({ pending, onOpen }) {
       <div className="statusbar-spacer" />
       {toast && <span className="sb-toast"><Icon name="check" size={13} /> {toast}</span>}
       {inSync ? (
-        <span className="status-item sync" title="All changes are committed">
-          <Icon name="check" size={13} /> In sync
+        <span className="status-item sync" title={t('statusBar.allCommitted')}>
+          <Icon name="check" size={13} /> {t('statusBar.inSync')}
         </span>
       ) : (
         <button
           className={`status-item dirty ${open ? 'active' : ''}`}
           onClick={() => setOpen((v) => !v)}
-          title="View uncommitted changes"
+          title={t('statusBar.viewChanges')}
         >
           <span className="dot" />
-          {n === 1 ? '1 note changed' : `${n} notes changed`}
+          {t('statusBar.notesChanged', { count: n })}
         </button>
       )}
     </div>

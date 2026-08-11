@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { maps } from '../content.js';
 import { parseMapCardLine, markerColor } from '../lib/mdLinks.js';
 
@@ -31,10 +32,11 @@ export function osmSrc(lat, lng) {
 }
 
 export function MapEmbed({ lat, lng, title }) {
+  const { t } = useTranslation();
   return (
     <iframe
       className="mapcard-map"
-      title={title || 'map'}
+      title={title || t('mapCard.mapFrame')}
       src={osmSrc(lat, lng)}
       loading="lazy"
       referrerPolicy="no-referrer-when-downgrade"
@@ -58,6 +60,7 @@ function Pin({ num, color }) {
 // Floating editor: URL + Description (the user's note). Title comes from Maps
 // (resolved at build time), so it is not editable here.
 function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
+  const { t } = useTranslation();
   const [u, setU] = useState(url);
   const [d, setD] = useState(desc);
   const stop = (e) => e.stopPropagation();
@@ -84,19 +87,19 @@ function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
         onKeyDown={onKeyDown}
       >
         <label className="mapcard-edit-row">
-          <span>URL</span>
+          <span>{t('mapCard.url')}</span>
           <input value={u} onChange={(e) => setU(e.target.value)} spellCheck={false} autoFocus />
         </label>
         <label className="mapcard-edit-row">
-          <span>Description</span>
-          <input value={d} onChange={(e) => setD(e.target.value)} placeholder="optional" />
+          <span>{t('mapCard.description')}</span>
+          <input value={d} onChange={(e) => setD(e.target.value)} placeholder={t('mapCard.descriptionPlaceholder')} />
         </label>
         <div className="mapcard-edit-actions">
-          <button type="button" onClick={onOpen}>Open</button>
-          <button type="button" className="danger" onClick={onRemove}>Remove</button>
+          <button type="button" onClick={onOpen}>{t('common.open')}</button>
+          <button type="button" className="danger" onClick={onRemove}>{t('mapCard.remove')}</button>
           <span className="spacer" />
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="button" className="primary" onClick={() => onSave(u, d)}>Save</button>
+          <button type="button" onClick={onClose}>{t('common.cancel')}</button>
+          <button type="button" className="primary" onClick={() => onSave(u, d)}>{t('common.save')}</button>
         </div>
       </div>
     </>
@@ -110,6 +113,7 @@ function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
 // description line below. `editor`/`block` are passed by the BlockNote block
 // spec and enable in-place editing.
 export default function MapCard({ token, group = 0, editor, block }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const { marker, num, url, label, desc } = parseToken(token);
   const info = maps[url] || {};
@@ -146,7 +150,7 @@ export default function MapCard({ token, group = 0, editor, block }) {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        title="Cmd/Ctrl+click to open · click to edit"
+        title={t('mapCard.openTip')}
         onClick={onClick}
       >
         <Pin num={marker === 'ordered' ? num : null} color={markerColor(group)} />

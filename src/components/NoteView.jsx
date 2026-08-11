@@ -1,4 +1,5 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
+import { useTranslation } from 'react-i18next';
 import { wikilinkTargets } from '../lib/wikilinks.js';
 import { idTitle } from '../content.js';
 import { usePending, setEdit, effectiveBody } from '../lib/pending.js';
@@ -35,6 +36,7 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
   const [mapView, setMapView] = useState(false);
   const [propsOpen, setPropsOpen] = useState(false);
   const pending = usePending();
+  const { t } = useTranslation();
 
   useEffect(() => {
     setRaw(false);
@@ -46,7 +48,7 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
       <div className="noteview empty">
         <div className="empty-note">
           <Icon name="inbox" size={40} />
-          <p>Select a note to get started</p>
+          <p>{t('noteView.emptyState')}</p>
         </div>
       </div>
     );
@@ -74,35 +76,35 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
     <article className={`noteview${mapView ? ' mapmode' : ''}`}>
       <div className="note-header">
         {onBack && (
-          <button className="back" onClick={onBack}>← List</button>
+          <button className="back" onClick={onBack}>← {t('noteView.back')}</button>
         )}
         {modified && (
-          <span className="mod-flag" title="Uncommitted changes">
-            ● {isDraft ? 'new' : 'changed'}
+          <span className="mod-flag" title={t('noteView.uncommittedChanges')}>
+            ● {isDraft ? t('noteView.flagNew') : t('noteView.flagChanged')}
           </span>
         )}
         <div className="note-header-actions">
           <button
             className={`note-hbtn tt ${raw ? 'active' : ''}`}
             onClick={() => setRaw((v) => !v)}
-            data-tip={raw ? 'Visual editor' : 'Edit source (Raw)'}
-            aria-label={raw ? 'Visual editor' : 'Edit source'}
+            data-tip={raw ? t('noteView.visualEditor') : t('noteView.editSourceTip')}
+            aria-label={raw ? t('noteView.visualEditor') : t('noteView.editSource')}
           >
             <Icon name={raw ? 'edit' : 'text'} size={16} />
           </button>
           <button
             className={`note-hbtn tt ${mapView ? 'active' : ''}`}
             onClick={() => setMapView((v) => !v)}
-            data-tip="Map view"
-            aria-label="Map view"
+            data-tip={t('noteView.mapView')}
+            aria-label={t('noteView.mapView')}
           >
             <Icon name="map" size={16} />
           </button>
           <button
             className={`note-hbtn tt ${propsOpen ? 'active' : ''}`}
             onClick={() => setPropsOpen((v) => !v)}
-            data-tip="Properties"
-            aria-label="Properties"
+            data-tip={t('noteView.properties')}
+            aria-label={t('noteView.properties')}
           >
             <Icon name="panel-right" size={16} />
           </button>

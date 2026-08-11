@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import BrandMark from './BrandMark.jsx';
 
 // `types` here is the VISIBLE list (adr/0046): the manager gets the full one, so
 // a hidden type can be found and switched back on.
 export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, onSelect, onNewType, onEditType, onManageVisibility }) {
+  const { t } = useTranslation();
   const isSel = (kind, id) => selection.kind === kind && selection.id === id;
   const Count = ({ n }) =>
     n != null ? <span className="count-badge">{n}</span> : null;
@@ -16,13 +18,13 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
         <span>WebVault</span>
       </div>
 
-      <div className="group-label">Views</div>
+      <div className="group-label">{t('sidebar.viewsGroup')}</div>
       <button
         className={'nav-item' + (selection.kind === 'all' ? ' active' : '')}
         onClick={() => onSelect({ kind: 'all' })}
       >
         <Icon name="filter" size={15} />
-        <span className="nav-label">All notes</span>
+        <span className="nav-label">{t('views.allNotes')}</span>
         <Count n={counts.all} />
       </button>
       <button
@@ -30,7 +32,7 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
         onClick={() => onSelect({ kind: 'inbox' })}
       >
         <Icon name="inbox" size={15} />
-        <span className="nav-label">Inbox</span>
+        <span className="nav-label">{t('views.inbox')}</span>
         <Count n={counts.inbox} />
       </button>
       <button
@@ -38,7 +40,7 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
         onClick={() => onSelect({ kind: 'shared' })}
       >
         <Icon name="share" size={15} />
-        <span className="nav-label">Shared</span>
+        <span className="nav-label">{t('views.shared')}</span>
         <Count n={counts.shared} />
       </button>
       {views.length > 0 && <div className="nav-sep" />}
@@ -55,7 +57,7 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
       ))}
 
       <div className="group-label group-label-row">
-        <span>Types</span>
+        <span>{t('sidebar.typesGroup')}</span>
         {/* Both actions in one box, so `space-between` puts the label at one end
             and the pair at the other — with three direct children it would
             spread the eye into the middle of the row instead. Visibility first,
@@ -65,26 +67,28 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
             <button
               className="group-action"
               onClick={onManageVisibility}
-              title="Show or hide types"
-              aria-label="Show or hide types"
+              title={t('sidebar.showOrHideTypes')}
+              aria-label={t('sidebar.showOrHideTypes')}
             >
               <Icon name="toggle-left" size={14} />
             </button>
           )}
           {onNewType && (
-            <button className="group-action" onClick={onNewType} title="New type" aria-label="New type">
+            <button className="group-action" onClick={onNewType} title={t('sidebar.newType')} aria-label={t('sidebar.newType')}>
               <Icon name="plus" size={14} />
             </button>
           )}
         </span>
       </div>
-      {types.map((t) => {
-        const meta = typeMeta[t] || {};
+      {/* The map variable is `name`, not `t`: `t` is the translation function in
+          this scope and shadowing it here would silently break every label. */}
+      {types.map((name) => {
+        const meta = typeMeta[name] || {};
         return (
-          <div key={t} className={'nav-item nav-item-row' + (isSel('type', t) ? ' active' : '')}>
-            <button className="nav-main" onClick={() => onSelect({ kind: 'type', id: t })}>
+          <div key={name} className={'nav-item nav-item-row' + (isSel('type', name) ? ' active' : '')}>
+            <button className="nav-main" onClick={() => onSelect({ kind: 'type', id: name })}>
               <Icon name={meta.icon} color={meta.color} size={15} />
-              <span className="nav-label">{t}</span>
+              <span className="nav-label">{name}</span>
             </button>
             {/* Edit sits before the badge so the count keeps the right edge it
                 holds on every other row; the button occupies the gap the label
@@ -92,14 +96,14 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
             {onEditType && (
               <button
                 className="nav-edit"
-                onClick={() => onEditType(t)}
-                title={`Edit ${t}`}
-                aria-label={`Edit ${t}`}
+                onClick={() => onEditType(name)}
+                title={t('sidebar.editType', { name })}
+                aria-label={t('sidebar.editType', { name })}
               >
                 <Icon name="edit" size={13} />
               </button>
             )}
-            <Count n={counts[`type:${t}`]} />
+            <Count n={counts[`type:${name}`]} />
           </div>
         );
       })}

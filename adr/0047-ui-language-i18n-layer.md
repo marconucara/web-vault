@@ -132,6 +132,10 @@ this layer: persistence belongs to the settings surface that will drive it.
 12. The quality gate (`adr/0041-automated-quality-gate-typecheck-and-tests.md`)
     fails when any shipped locale's catalogue does not have exactly the same set
     of keys as `en`. The check reads only files in this repository.
+13. The block editor's own chrome (menus, toolbars, placeholders) follows the
+    resolved interface language, using the dictionary its library ships. Where
+    the library ships none for that language, its English one is used — that
+    catalogue is not ours to complete, so criterion 9 does not apply to it.
 
 ## Implementation notes
 
@@ -194,6 +198,10 @@ published build — it is a signal for whoever is authoring the catalogue.
 - **Translating error strings produced server-side** by the deploy functions.
 - **Right-to-left layout**, locale-specific typography, and pluralisation rules
   beyond what the chosen library provides out of the box.
+- **Commit messages written by the app** ("Publish <title>", "Hide type: <name>").
+  They are git history, read in the vault's log by other tools and other people
+  long after the browser that produced them is gone; they must not depend on the
+  language that browser preferred. They stay English.
 - **Machine translation or any translation tooling/pipeline.** Catalogues are
   authored and reviewed by hand.
 
@@ -221,9 +229,10 @@ published build — it is a signal for whoever is authoring the catalogue.
 | 2026-08-11 | r1 | marco | Initial draft. |
 | 2026-08-11 | r2 | marco | Accepted. No open questions: the split with `adr/0034-*.md` (this layer owns resolution and the seam, the settings modal owns both selectors and their persistence), the missing-key behaviour (render the key, never the English string) and the gate-enforced catalogue parity were all settled during authoring. |
 | 2026-08-11 | r3 | marco | Split the two resolutions apart after reading the code: the interface language is matched language-only, but formatting now resolves separately and **keeps its region subtag**, defaulting to the browser's full tag. Found while planning — three call sites hardcode `en-GB`/system locale, and driving them from a bare `en` would have regressed a UK reader's dates from `11 Aug 2026` to `Aug 11, 2026`. Criteria 10–11 reworded; added the rejections of a language-detector plugin and of deriving formatting from the interface language. |
+| 2026-08-11 | r4 | marco | Added criterion 13 during implementation: the block editor's own chrome follows the interface language via the dictionary BlockNote ships. Not in the original scope, but leaving the app's largest surface in English while everything around it translates is a visible hole, and it costs one prop. Recorded that app-written commit messages stay English — they are git history, not UI copy. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Owner | marco | 2026-08-11 | Accepted (r3) |
+| Owner | marco | 2026-08-11 | Accepted (r4) |

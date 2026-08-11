@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Icon from './Icon.jsx';
@@ -64,14 +65,16 @@ export function collectPoints(body) {
 }
 
 // Distinct headings that contain points, in order of first appearance, each with
-// the distinct marker colors used under it (usually one).
+// the distinct marker colors used under it (usually one). `label` stays null for
+// points under no heading: the stand-in text is UI copy and belongs at render,
+// not baked into the data here.
 function headingsOf(points) {
   const byKey = new Map();
   const order = [];
   for (const p of points) {
     const key = p.heading || '';
     if (!byKey.has(key)) {
-      byKey.set(key, { key, label: p.heading || 'No heading', colors: [] });
+      byKey.set(key, { key, label: p.heading || null, colors: [] });
       order.push(key);
     }
     const h = byKey.get(key);
@@ -131,6 +134,7 @@ function fit(map, latlngs, panelOpen) {
 // is exclusive — clicking one shows only that section's markers and recenters
 // the map, and "All markers" restores the full set.
 export default function MapView({ body }) {
+  const { t } = useTranslation();
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
@@ -196,8 +200,8 @@ export default function MapView({ body }) {
         <button
           className="mapview-panel-toggle"
           onClick={() => setPanelOpen(true)}
-          aria-label="Headings"
-          title="Headings"
+          aria-label={t('mapView.sections')}
+          title={t('mapView.sections')}
         >
           <Icon name="list" size={16} />
         </button>
@@ -206,14 +210,14 @@ export default function MapView({ body }) {
       {panelOpen && (
         <div className="mapview-panel">
           <div className="mapview-panel-head">
-            <button onClick={() => setPanelOpen(false)} aria-label="Close">
+            <button onClick={() => setPanelOpen(false)} aria-label={t('common.close')}>
               <Icon name="x" size={15} />
             </button>
           </div>
           <ul className="mapview-panel-list">
             <li>
               <button className={selected == null ? 'active' : ''} onClick={() => pick(null)}>
-                All markers
+                {t('mapView.allMarkers')}
               </button>
             </li>
             {headings.map((h) => (
@@ -224,7 +228,7 @@ export default function MapView({ body }) {
                       <span key={i} className="mapview-panel-dot" style={{ background: c }} />
                     ))}
                   </span>
-                  {h.label}
+                  {h.label ?? t('mapView.noHeading')}
                 </button>
               </li>
             ))}
@@ -232,10 +236,10 @@ export default function MapView({ body }) {
         </div>
       )}
 
-      {points.length === 0 && <div className="mapview-empty">No map points in this note.</div>}
+      {points.length === 0 && <div className="mapview-empty">{t('mapView.empty')}</div>}
       {missing.length > 0 && (
         <div className="mapview-missing">
-          {missing.length} link{missing.length > 1 ? 's' : ''} without coordinates (not yet resolved)
+          {t('mapView.missing', { count: missing.length })}
         </div>
       )}
     </div>

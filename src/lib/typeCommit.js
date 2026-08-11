@@ -150,6 +150,11 @@ export function filesForDelete(doc) {
 // The commit message for each action, in the same voice as the rest of the app
 // ("Delete note: <title>", "Publish <title>"). A rename names both sides and the
 // notes it carried along, since that is the one action that touches other files.
+//
+// Deliberately NOT translated (adr/0047-*.md): this is git history, not UI copy.
+// It is read in the vault's log by other tools and other people, long after the
+// browser that produced it is gone, so it must not depend on the language that
+// browser happened to prefer.
 export function messageFor(action, name, { to = null, carriers = 0 } = {}) {
   if (action === 'create') return `Create type: ${name}`;
   if (action === 'delete') return `Delete type: ${name}`;

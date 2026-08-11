@@ -27,6 +27,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.{js,jsx}', 'scripts/**/*.test.mjs', 'functions/**/*.test.js'],
+    // Initialises the translation layer and pins the locales, so the suite does
+    // not render in whatever language the machine running it prefers.
+    setupFiles: ['./src/testSetup.js'],
     pool: 'forks',
     fileParallelism: true,
     isolate: true,

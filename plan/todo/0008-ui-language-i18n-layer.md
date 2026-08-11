@@ -131,3 +131,57 @@ All three were open when this item was queued; settled 2026-08-11.
 None blocking. `plan/todo/` is otherwise empty. Ordering note: this should land
 **before** `adr/0034-*.md`'s settings modal, so the selectors find the seam
 already in place.
+
+---
+
+## Outcome
+
+Implemented as scoped. Six things are worth recording; four were found in the
+code or by a failing test rather than by reasoning ahead.
+
+**Two real bugs, both caught by the tests before they could ship.**
+`initI18n` applied its argument *conditionally* — `setLocale(locale)`, which
+ignores an unsupported value. That left the **previous** language standing
+instead of falling through to the browser: neither the injected locale nor the
+browser's answer, and a direct violation of criterion 6. Booting is a full
+answer to "what language is this", so it now re-resolves from scratch every
+time. Separately, `parseMissingKeyHandler` had the wrong arity: i18next calls it
+as `(key, value)`, not `(locales, ns, key)`, so it returned `undefined` and
+i18next rendered `{}` — the gap became *invisible*, which is precisely the
+failure the handler exists to prevent.
+
+**The suite needed pinning, not just initialising.** Component tests rendered
+raw keys because nothing imported the layer. The fix is `src/testSetup.js`, but
+the important half is that it pins `en` / `en-GB` rather than letting resolution
+run: node has its own `navigator`, so on an Italian machine the suite would
+render Italian and the gate would fail for a reason unrelated to the change
+under test.
+
+**`t` shadowing, twice.** `Sidebar` and `TypeVisibility` both mapped over types
+with `t` as the loop variable, which silently shadows the translation function.
+Both renamed to `name`, with a comment, because the failure mode is a label that
+quietly becomes a type name.
+
+**The block editor came into scope** (`adr/0047` r4, criterion 13). BlockNote
+ships its own dictionaries and the editor is the largest surface in the app;
+leaving its menus English while the frame around them translated would read as a
+half-done job. Imported by name rather than `import * as` — a namespace import
+puts all 23 dictionaries into the editor's lazily-loaded chunk.
+
+**Commit messages stay English**, recorded in the ADR's Out of scope and in a
+comment on `messageFor`. They are git history read by other tools and other
+people, not UI copy, and must not depend on the language of the browser that
+happened to produce them.
+
+**Catalogue parity got two checks beyond the key sets**: no blank values, and
+matching interpolation placeholders. A translation that drops `{{name}}` still
+renders a sentence — just without the thing it was about — so key parity alone
+would pass it.
+
+47 new tests (`src/lib/locale.test.js`, `src/lib/i18n.test.js`,
+`src/lib/formats.test.js`, `src/locales/catalogues.test.js`). 444 total,
+`yarn verify` green.
+
+**Still open before this can ship:** exit criterion 11, the by-hand check in a
+running app with the browser set to Italian and then to an unsupported language.
+It needs a consumer `.web` project, which is outside this repo.

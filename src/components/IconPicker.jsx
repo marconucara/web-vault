@@ -1,4 +1,5 @@
 import React, { useDeferredValue, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { iconNames } from 'lucide-react/dynamic';
 import Icon from './Icon.jsx';
 
@@ -16,6 +17,7 @@ const ALL = [...iconNames].sort();
 const PAGE = 120; // enough to fill the grid; searching narrows it fast
 
 export default function IconPicker({ value, color, onChange }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState(false);
   const deferred = useDeferredValue(query);
@@ -48,21 +50,21 @@ export default function IconPicker({ value, color, onChange }) {
             setQuery(e.target.value);
             setExpanded(false);
           }}
-          placeholder={`Search ${ALL.length} icons`}
-          aria-label="Search icons"
+          placeholder={t('iconPicker.searchPlaceholder', { count: ALL.length })}
+          aria-label={t('iconPicker.searchLabel')}
         />
         {value && (
-          <button type="button" className="ip-clear" onClick={() => onChange('')} title="No icon">
+          <button type="button" className="ip-clear" onClick={() => onChange('')} title={t('iconPicker.noIcon')}>
             <Icon name="x" size={13} />
           </button>
         )}
       </div>
 
       {matches.length === 0 ? (
-        <p className="ip-empty">No icon matches “{deferred.trim()}”.</p>
+        <p className="ip-empty">{t('iconPicker.noMatch', { query: deferred.trim() })}</p>
       ) : (
         <>
-          <div className="ip-grid" role="listbox" aria-label="Icons">
+          <div className="ip-grid" role="listbox" aria-label={t('iconPicker.icons')}>
             {shown.map((n) => (
               <button
                 key={n}
@@ -80,7 +82,7 @@ export default function IconPicker({ value, color, onChange }) {
           </div>
           {!expanded && matches.length > shown.length && (
             <button type="button" className="ip-more" onClick={() => setExpanded(true)}>
-              Show all {matches.length}
+              {t('iconPicker.showAll', { count: matches.length })}
             </button>
           )}
         </>

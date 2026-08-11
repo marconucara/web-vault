@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import IconPicker from './IconPicker.jsx';
 import { commitFiles } from '../lib/commit.js';
@@ -20,14 +21,14 @@ import {
 // it a document rather than colliding with it (criteria 5, 8).
 
 const COLORS = [
-  { name: 'Blue', value: '#3b82f6' },
-  { name: 'Green', value: '#22c55e' },
-  { name: 'Amber', value: '#f59e0b' },
-  { name: 'Red', value: '#ef4444' },
-  { name: 'Purple', value: '#a855f7' },
-  { name: 'Pink', value: '#ec4899' },
-  { name: 'Teal', value: '#14b8a6' },
-  { name: 'Slate', value: '#64748b' },
+  { key: 'typePanel.colorBlue', value: '#3b82f6' },
+  { key: 'typePanel.colorGreen', value: '#22c55e' },
+  { key: 'typePanel.colorAmber', value: '#f59e0b' },
+  { key: 'typePanel.colorRed', value: '#ef4444' },
+  { key: 'typePanel.colorPurple', value: '#a855f7' },
+  { key: 'typePanel.colorPink', value: '#ec4899' },
+  { key: 'typePanel.colorTeal', value: '#14b8a6' },
+  { key: 'typePanel.colorSlate', value: '#64748b' },
 ];
 
 export default function TypePanel({
@@ -41,6 +42,7 @@ export default function TypePanel({
   onRenamed, // (newName) => void, so the sidebar selection follows the rename
   onDeleted,
 }) {
+  const { t } = useTranslation();
   const editing = mode === 'edit';
   const [name, setName] = useState(typeName || '');
   const [description, setDescription] = useState(() => docDescription(doc));
@@ -66,7 +68,11 @@ export default function TypePanel({
   // Uniqueness is against DECLARED types only, excluding the one being edited:
   // adopting a type the notes already use is the point, not a collision.
   const taken = typeNameTaken(trimmed, declared, editing ? typeName : null);
-  const nameError = !trimmed ? 'A type needs a name.' : taken ? `A type named “${trimmed}” already exists.` : null;
+  const nameError = !trimmed
+    ? t('typePanel.nameRequired')
+    : taken
+      ? t('typePanel.nameTaken', { name: trimmed })
+      : null;
   const canSave = !nameError && !busy;
 
   const save = async () => {
@@ -110,7 +116,7 @@ export default function TypePanel({
       }
       onClose?.();
     } catch (e) {
-      setError(e.message || 'Saving failed');
+      setError(e.message || t('typePanel.saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -127,7 +133,7 @@ export default function TypePanel({
       onDeleted?.();
       onClose?.();
     } catch (e) {
-      setError(e.message || 'Delete failed');
+      setError(e.message || t('properties.deleteFailed'));
     } finally {
       setBusy(false);
     }
@@ -136,50 +142,54 @@ export default function TypePanel({
   return (
     <>
       <div className="props-backdrop" onClick={onClose} />
-      <aside className="props-panel type-panel" role="dialog" aria-label={editing ? 'Edit type' : 'New type'}>
+      <aside
+        className="props-panel type-panel"
+        role="dialog"
+        aria-label={editing ? t('typePanel.editTitle') : t('typePanel.newTitle')}
+      >
         <header className="props-head">
           <span className="props-title">
             <Icon name={icon || 'tag'} color={color || undefined} size={15} />
-            {editing ? 'Edit type' : 'New type'}
+            {editing ? t('typePanel.editTitle') : t('typePanel.newTitle')}
           </span>
-          <button className="props-close" onClick={onClose} title="Close">
+          <button className="props-close" onClick={onClose} title={t('common.close')}>
             <Icon name="x" size={16} />
           </button>
         </header>
 
         <div className="props-body">
           <label className="tp-field">
-            <span className="tp-label">Name</span>
+            <span className="tp-label">{t('typePanel.name')}</span>
             <input
               ref={nameRef}
               className="tp-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Person"
+              placeholder={t('typePanel.namePlaceholder')}
               aria-invalid={!!nameError}
             />
             {name.trim() && nameError && <span className="tp-error">{nameError}</span>}
           </label>
 
           <label className="tp-field">
-            <span className="tp-label">Description</span>
+            <span className="tp-label">{t('typePanel.description')}</span>
             <textarea
               className="tp-input tp-textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="What belongs under this type."
+              placeholder={t('typePanel.descriptionPlaceholder')}
             />
-            <span className="tp-hint">Shown here and read by agents working on the vault.</span>
+            <span className="tp-hint">{t('typePanel.descriptionHint')}</span>
           </label>
 
           <div className="tp-field">
-            <span className="tp-label">Icon</span>
+            <span className="tp-label">{t('typePanel.icon')}</span>
             <IconPicker value={icon} color={color} onChange={setIcon} />
           </div>
 
           <div className="tp-field">
-            <span className="tp-label">Colour</span>
+            <span className="tp-label">{t('typePanel.colour')}</span>
             <div className="tp-swatches">
               {COLORS.map((c) => (
                 <button
@@ -187,8 +197,8 @@ export default function TypePanel({
                   type="button"
                   className={'tp-swatch' + (color === c.value ? ' sel' : '')}
                   style={{ background: c.value }}
-                  title={c.name}
-                  aria-label={c.name}
+                  title={t(c.key)}
+                  aria-label={t(c.key)}
                   aria-pressed={color === c.value}
                   onClick={() => setColor(color === c.value ? '' : c.value)}
                 />
@@ -197,15 +207,15 @@ export default function TypePanel({
           </div>
 
           <label className="tp-field">
-            <span className="tp-label">Order</span>
+            <span className="tp-label">{t('typePanel.order')}</span>
             <input
               className="tp-input tp-order"
               value={order}
               onChange={(e) => setOrder(e.target.value.replace(/[^0-9]/g, ''))}
               inputMode="numeric"
-              placeholder="—"
+              placeholder={t('typePanel.orderPlaceholder')}
             />
-            <span className="tp-hint">Types with an order come first, in that order.</span>
+            <span className="tp-hint">{t('typePanel.orderHint')}</span>
           </label>
 
           {error && <div className="tp-error tp-error-block">{error}</div>}
@@ -216,30 +226,30 @@ export default function TypePanel({
             <div className="tp-delete">
               {carriers.length > 0 ? (
                 // Criterion 9: blocked while notes carry it, and it says how many.
-                <span className="tp-blocked" title="Rename the type, or change those notes, to remove it">
+                <span className="tp-blocked" title={t('typePanel.blockedTip')}>
                   <Icon name="trash" size={14} />
-                  {carriers.length} {carriers.length === 1 ? 'note uses' : 'notes use'} this type
+                  {t('typePanel.inUse', { count: carriers.length })}
                 </span>
               ) : confirmingDelete ? (
                 <>
                   <button className="tp-btn danger" onClick={remove} disabled={busy}>
-                    Delete type
+                    {t('typePanel.deleteType')}
                   </button>
                   <button className="tp-btn ghost" onClick={() => setConfirmingDelete(false)} disabled={busy}>
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </>
               ) : (
                 <button className="tp-btn ghost danger-text" onClick={() => setConfirmingDelete(true)} disabled={busy || !doc}>
-                  <Icon name="trash" size={14} /> Delete
+                  <Icon name="trash" size={14} /> {t('common.delete')}
                 </button>
               )}
             </div>
           )}
           <div className="tp-actions">
-            <button className="tp-btn ghost" onClick={onClose} disabled={busy}>Cancel</button>
+            <button className="tp-btn ghost" onClick={onClose} disabled={busy}>{t('common.cancel')}</button>
             <button className="tp-btn primary" onClick={save} disabled={!canSave}>
-              {busy ? 'Saving…' : editing ? 'Save' : 'Create type'}
+              {busy ? t('typePanel.saving') : editing ? t('common.save') : t('typePanel.createType')}
             </button>
           </div>
         </footer>

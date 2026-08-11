@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import { wikilinkTargets } from '../lib/wikilinks.js';
 import { titleIndex, idTitle, build } from '../content.js';
@@ -7,27 +8,25 @@ import { commitFiles } from '../lib/commit.js';
 import { discard } from '../lib/pending.js';
 import { discardDraft } from '../lib/drafts.js';
 import { markDeleted } from '../lib/deleted.js';
+import { longDate, useFormatLocale } from '../lib/formats.js';
 
 // Read-only Properties panel, inspired by Tolaria: Type, scalar properties,
 // relationships (grouped by key), Info (date/words/size), and History (last git
 // commit). No editing in this phase: it shows the frontmatter state and the
 // metadata computed at build time. The `_` properties (Tolaria state) are hidden.
 
-const REL_LABELS = {
-  belongs_to: 'Belongs to',
-  related_to: 'Related to',
-  has: 'Has',
+// The relationship keys the app knows by name are translated; any other
+// frontmatter key is the user's own and is only tidied up, never translated.
+const REL_KEYS = {
+  belongs_to: 'properties.relBelongsTo',
+  related_to: 'properties.relRelatedTo',
+  has: 'properties.relHas',
 };
 
-function humanize(key) {
-  if (REL_LABELS[key]) return REL_LABELS[key];
+function humanize(key, t) {
+  if (REL_KEYS[key]) return t(REL_KEYS[key]);
   const s = key.replace(/_/g, ' ');
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function fmtDate(ms) {
-  if (!ms) return '—';
-  return new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function fmtBytes(n) {
@@ -58,6 +57,9 @@ function Chips({ targets }) {
 export default function PropertiesPanel({ note, onClose }) {
   // Live type metadata: it changes as soon as the app writes a type.
   const typeMetaForNote = useTypeMeta(note?.type);
+  const { t } = useTranslation();
+  const formatLocale = useFormatLocale();
+  const fmtDate = (ms) => longDate(ms, formatLocale);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [delErr, setDelErr] = useState(null);
@@ -84,7 +86,7 @@ export default function PropertiesPanel({ note, onClose }) {
       window.location.hash = '#/';
       onClose?.();
     } catch (e) {
-      setDelErr(e.message || 'Delete failed');
+      setDelErr(e.message || t('properties.deleteFailed'));
     } finally {
       setBusy(false);
     }
@@ -109,8 +111,8 @@ export default function PropertiesPanel({ note, onClose }) {
   return (
     <aside className="props-panel">
       <header className="props-head">
-        <span className="props-title"><Icon name="file-text" size={15} /> Properties</span>
-        <button className="props-close" onClick={onClose} title="Close">
+        <span className="props-title"><Icon name="file-text" size={15} /> {t('properties.title')}</span>
+        <button className="props-close" onClick={onClose} title={t('common.close')}>
           <Icon name="x" size={16} />
         </button>
       </header>
@@ -120,7 +122,7 @@ export default function PropertiesPanel({ note, onClose }) {
         <div className="props-group">
           {note.type && (
             <div className="props-row">
-              <span className="props-key">Type</span>
+              <span className="props-key">{t('properties.type')}</span>
               <span className="props-val">
                 <span className="type-badge" style={tm?.color ? { color: tm.color } : undefined}>
                   <Icon name={tm?.icon || 'file-text'} color={tm?.color} size={14} />
@@ -131,7 +133,7 @@ export default function PropertiesPanel({ note, onClose }) {
           )}
           {scalars.map(([key, val]) => (
             <div className="props-row" key={key}>
-              <span className="props-key">{humanize(key)}</span>
+              <span className="props-key">{humanize(key, t)}</span>
               <span className="props-val">
                 {isUrl(val) ? (
                   <a href={String(val)} target="_blank" rel="noopener noreferrer" className="props-link">
@@ -152,7 +154,7 @@ export default function PropertiesPanel({ note, onClose }) {
             <div className="props-group">
               {rels.map(([key, targets]) => (
                 <div className="props-rel" key={key}>
-                  <span className="props-rel-key">{humanize(key)}</span>
+                  <span className="props-rel-key">{humanize(key, t)}</span>
                   <div className="props-rel-chips"><Chips targets={targets} /></div>
                 </div>
               ))}
@@ -163,12 +165,12 @@ export default function PropertiesPanel({ note, onClose }) {
         {/* Info */}
         <div className="props-sep" />
         <div className="props-group">
-          <div className="props-section-title"><Icon name="clock" size={13} /> Info</div>
+          <div className="props-section-title"><Icon name="clock" size={13} /> {t('properties.info')}</div>
           <div className="props-info">
-            <span>Modified</span><span>{fmtDate(note.mtime)}</span>
-            <span>Created</span><span>{fmtDate(note.ctime)}</span>
-            {note.words != null && (<><span>Words</span><span>{note.words}</span></>)}
-            {note.bytes != null && (<><span>Size</span><span>{fmtBytes(note.bytes)}</span></>)}
+            <span>{t('properties.modified')}</span><span>{fmtDate(note.mtime)}</span>
+            <span>{t('properties.created')}</span><span>{fmtDate(note.ctime)}</span>
+            {note.words != null && (<><span>{t('properties.words')}</span><span>{note.words}</span></>)}
+            {note.bytes != null && (<><span>{t('properties.size')}</span><span>{fmtBytes(note.bytes)}</span></>)}
           </div>
         </div>
 
@@ -177,7 +179,7 @@ export default function PropertiesPanel({ note, onClose }) {
           <>
             <div className="props-sep" />
             <div className="props-group">
-              <div className="props-section-title"><Icon name="git-commit" size={13} /> Last commit</div>
+              <div className="props-section-title"><Icon name="git-commit" size={13} /> {t('properties.lastCommit')}</div>
               <div className="props-commit">
                 {commitUrl ? (
                   <a href={commitUrl} target="_blank" rel="noopener noreferrer" className="props-commit-sha">{lc.sha}</a>
@@ -196,19 +198,19 @@ export default function PropertiesPanel({ note, onClose }) {
           {delErr && <div className="props-del-error"><Icon name="x" size={13} /> {delErr}</div>}
           {!confirming ? (
             <button className="props-delete" onClick={() => setConfirming(true)}>
-              <Icon name="trash" size={14} /> Delete this note
+              <Icon name="trash" size={14} /> {t('properties.deleteNote')}
             </button>
           ) : (
             <div className="props-delete-confirm">
               <span className="pdc-text">
-                {isDraft ? 'Discard this new note?' : 'Delete this note? This removes the file.'}
+                {isDraft ? t('properties.confirmDiscardDraft') : t('properties.confirmDelete')}
               </span>
               <div className="pdc-actions">
                 <button className="pdc-cancel" onClick={() => setConfirming(false)} disabled={busy}>
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button className="pdc-confirm" onClick={doDelete} disabled={busy}>
-                  <Icon name="trash" size={13} /> {busy ? 'Deleting…' : 'Delete'}
+                  <Icon name="trash" size={13} /> {busy ? t('properties.deleting') : t('common.delete')}
                 </button>
               </div>
             </div>

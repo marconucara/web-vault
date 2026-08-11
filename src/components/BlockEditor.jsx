@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
+import { en as blockNoteEn, it as blockNoteIt } from '@blocknote/core/locales';
+import { useTranslation } from 'react-i18next';
 import { loadBodyIntoEditor, serializeEditorBody } from '../lib/richMarkdown.js';
 import { schema } from '../lib/blocknoteSchema.jsx';
 import { anchorOf, noteHash } from '../lib/headingSlug.js';
@@ -26,8 +28,29 @@ function useDark() {
 // `newNote`: a brand-new note with no title yet — an empty markdown heading
 // (`# `) does not round-trip through the parser as an editable heading block, so
 // we seed a real empty H1 and focus it, ready for the title.
+// The editor's own chrome — slash menu, formatting toolbar, placeholders — is
+// BlockNote's, not ours, and it is the largest surface in the app. Leaving it in
+// English while everything around it translates would read as a half-done job,
+// so the resolved interface language selects BlockNote's shipped dictionary.
+// Falling back to English for a language BlockNote does not ship is correct
+// here, and different from our own missing-key rule: this catalogue is not ours
+// to complete, so there is no gap for anyone to act on.
+//
+// Named imports rather than `import * as`: BlockNote ships 23 dictionaries and a
+// namespace import puts all of them in this chunk, which is the editor's own
+// lazily-loaded one. Only the languages we have a catalogue for can ever be
+// selected, so the rest are dead weight on the slowest load in the app.
+const BLOCKNOTE_DICTIONARIES = { en: blockNoteEn, it: blockNoteIt };
+
+function blockNoteDictionary(language) {
+  return BLOCKNOTE_DICTIONARIES[language] || blockNoteEn;
+}
+
 export default function BlockEditor({ value, onChange, noteId = null, newNote = false }) {
-  const editor = useCreateBlockNote({ schema });
+  const { i18n } = useTranslation();
+  // Keyed by note id at the call site, so a language change reaches the editor
+  // on the next note rather than remounting the one being typed in.
+  const editor = useCreateBlockNote({ schema, dictionary: blockNoteDictionary(i18n.language) });
   const dark = useDark();
   const readyRef = useRef(false);
   const timerRef = useRef(null);

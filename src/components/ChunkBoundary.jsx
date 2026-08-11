@@ -1,4 +1,21 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+
+// The fallback is a function component so it can use the translation hook: the
+// boundary itself must stay a class (only classes catch render errors), and a
+// class cannot subscribe to a locale change.
+function ChunkError() {
+  const { t } = useTranslation();
+  return (
+    <div className="chunk-error" role="alert">
+      <p>{t('chunkError.title')}</p>
+      <p className="chunk-error-hint">{t('chunkError.hint')}</p>
+      <button type="button" onClick={() => window.location.reload()}>
+        {t('chunkError.reload')}
+      </button>
+    </div>
+  );
+}
 
 // Error boundary for the lazily-loaded chunks (map view, block editor).
 //
@@ -38,14 +55,6 @@ export default class ChunkBoundary extends React.Component {
 
   render() {
     if (!this.state.failed) return this.props.children;
-    return (
-      <div className="chunk-error" role="alert">
-        <p>New content is available for this vault.</p>
-        <p className="chunk-error-hint">Reload the page to continue.</p>
-        <button type="button" onClick={() => window.location.reload()}>
-          Reload
-        </button>
-      </div>
-    );
+    return <ChunkError />;
   }
 }

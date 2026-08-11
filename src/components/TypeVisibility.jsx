@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import { commitFiles } from '../lib/commit.js';
 import { markCreated, applyLocalEdit } from '../lib/localNotes.js';
@@ -25,6 +26,7 @@ export default function TypeVisibility({
   // Names with a toggle in flight, so a slow commit cannot be double-fired.
   const [busy, setBusy] = useState(/** @type {Record<string, boolean>} */ ({}));
   const [error, setError] = useState(/** @type {string | null} */ (null));
+  const { t } = useTranslation();
 
   const toggle = async (name) => {
     if (busy[name]) return;
@@ -49,7 +51,7 @@ export default function TypeVisibility({
         applyLocalEdit(doc, { frontmatter: visiblePatch(doc.frontmatter, !nowVisible) });
       }
     } catch (e) {
-      setError(e.message || 'Saving failed');
+      setError(e.message || t('typePanel.saveFailed'));
     } finally {
       setBusy((b) => ({ ...b, [name]: false }));
     }
@@ -58,35 +60,38 @@ export default function TypeVisibility({
   return (
     <>
       <div className="props-backdrop" onClick={onClose} />
-      <aside className="props-panel type-visibility" role="dialog" aria-label="Show or hide types">
+      <aside className="props-panel type-visibility" role="dialog" aria-label={t('typeVisibility.title')}>
         <header className="props-head">
           <span className="props-title">
             <Icon name="eye" size={15} />
-            Show or hide types
+            {t('typeVisibility.title')}
           </span>
-          <button className="props-close" onClick={onClose} title="Close">
+          <button className="props-close" onClick={onClose} title={t('common.close')}>
             <Icon name="x" size={16} />
           </button>
         </header>
 
         <div className="props-body">
-          {types.length === 0 && <p className="tv-empty">This vault has no types yet.</p>}
-          {types.map((t) => {
-            const meta = typeMeta[t] || {};
+          {types.length === 0 && <p className="tv-empty">{t('typeVisibility.empty')}</p>}
+          {/* The map variable is `name`, not `t`: `t` is the translation function
+              in this scope and shadowing it would silently break every label. */}
+          {types.map((name) => {
+            const meta = typeMeta[name] || {};
             const shown = meta.visible !== false;
+            const toggleLabel = t(shown ? 'typeVisibility.hide' : 'typeVisibility.show', { name });
             return (
-              <div key={t} className={'tv-row' + (shown ? '' : ' hidden')}>
+              <div key={name} className={'tv-row' + (shown ? '' : ' hidden')}>
                 <Icon name={meta.icon} color={meta.color} size={15} />
-                <span className="tv-name">{t}</span>
+                <span className="tv-name">{name}</span>
                 <button
                   type="button"
                   className={'tv-toggle' + (shown ? ' on' : '')}
                   role="switch"
                   aria-checked={shown}
-                  aria-label={`${shown ? 'Hide' : 'Show'} ${t}`}
-                  title={shown ? `Hide ${t}` : `Show ${t}`}
-                  disabled={!!busy[t]}
-                  onClick={() => toggle(t)}
+                  aria-label={toggleLabel}
+                  title={toggleLabel}
+                  disabled={!!busy[name]}
+                  onClick={() => toggle(name)}
                 >
                   <span className="tv-knob" />
                 </button>
@@ -98,7 +103,7 @@ export default function TypeVisibility({
 
         <footer className="tp-foot">
           <div className="tp-actions">
-            <button className="tp-btn primary" onClick={onClose}>Done</button>
+            <button className="tp-btn primary" onClick={onClose}>{t('common.done')}</button>
           </div>
         </footer>
       </aside>

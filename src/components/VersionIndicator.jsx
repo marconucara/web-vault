@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18next from '../lib/i18n.js';
+import { clockTime, numericDate, useFormatLocale } from '../lib/formats.js';
 import { build } from '../content.js';
 import { OUTCOME, checkForUpdate, releaseUrl, useUpgrade } from '../lib/upgrade.js';
 import { loadCapabilities, useCapabilities } from '../lib/capabilities.js';
@@ -29,23 +32,29 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // hour "12 minutes ago" is the useful form and a clock time makes the reader do
 // arithmetic; beyond it the arithmetic stops being worth it and a time (or a
 // date) is what people actually want to know.
-export function lastCheckedLabel(at, now = Date.now()) {
-  if (!at) return 'not checked yet';
+//
+// `t` and `locale` are parameters with defaults rather than hook reads, because
+// this is exported and exercised directly as a pure function.
+export function lastCheckedLabel(at, now = Date.now(), { t = i18next.t, locale = undefined } = {}) {
+  if (!at) return t('version.notCheckedYet');
   const ms = Math.max(0, now - at);
-  if (ms < 60 * 1000) return 'checked just now';
+  if (ms < 60 * 1000) return t('version.checkedJustNow');
   if (ms < 60 * 60 * 1000) {
-    const m = Math.round(ms / 60000);
-    return `checked ${m} minute${m === 1 ? '' : 's'} ago`;
+    return t('version.checkedMinutesAgo', { count: Math.round(ms / 60000) });
   }
-  const d = new Date(at);
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  const sameDay = new Date(now).toDateString() === d.toDateString();
-  return sameDay ? `checked at ${time}` : `checked ${d.toLocaleDateString()} at ${time}`;
+  const time = clockTime(at, locale);
+  const sameDay = new Date(now).toDateString() === new Date(at).toDateString();
+  return sameDay
+    ? t('version.checkedAtTime', { time })
+    : t('version.checkedOnDate', { date: numericDate(at, locale), time });
 }
 
 export default function VersionIndicator() {
   const { running, latest, available, checkedAt } = useUpgrade();
   const { canWrite } = useCapabilities();
+  const { t } = useTranslation();
+  const formatLocale = useFormatLocale();
+  const checkedLabel = (at) => lastCheckedLabel(at, Date.now(), { t, locale: formatLocale });
   const [open, setOpen] = useState(false);
   // 'idle' | 'working' | 'building' | 'live' | 'done' | 'noop' | 'error'
   const [phase, setPhase] = useState('idle');
@@ -104,7 +113,7 @@ export default function VersionIndicator() {
       const res = await requestUpgrade(latest);
       if (res?.noop) {
         setPhase('noop');
-        setNote(res.reason || 'nothing to update');
+        setNote(res.reason || t('version.nothingToUpdate'));
         return;
       }
       // Locally there is no rebuild to wait for: the pin is on disk and the
@@ -112,7 +121,7 @@ export default function VersionIndicator() {
       // this dev server will never report.
       if (res?.local) {
         setPhase('done');
-        setNote('The pin is updated. Reinstall to pick it up.');
+        setNote(t('version.pinUpdated'));
         return;
       }
       setPhase('building');
@@ -122,10 +131,10 @@ export default function VersionIndicator() {
       // just taking longer than we are willing to watch, and saying so beats
       // implying it failed.
       setPhase(live ? 'live' : 'done');
-      if (!live) setNote('Still building. It will be live shortly.');
+      if (!live) setNote(t('version.stillBuilding'));
     } catch (e) {
       setPhase('error');
-      setNote(e?.message || 'The upgrade could not be started.');
+      setNote(e?.message || t('version.upgradeFailed'));
     }
   };
 
@@ -175,19 +184,19 @@ export default function VersionIndicator() {
   // fresh.
   const tip =
     check === 'pending'
-      ? 'Checking for updates…'
+      ? t('version.checking')
       : check === 'failed'
-        ? 'Couldn’t check for updates'
+        ? t('version.checkFailed')
         : available
-          ? `${latest} is available · ${lastCheckedLabel(checkedAt)}`
-          : `Up to date · ${lastCheckedLabel(checkedAt)}`;
+          ? t('version.availableTip', { version: latest, checked: checkedLabel(checkedAt) })
+          : t('version.upToDateTip', { checked: checkedLabel(checkedAt) });
 
   return (
     <span className="sb-version-wrap" ref={ref}>
       {open && available && (
         <div className="versionpanel">
-          <div className="vp-head">WebVault {latest} is available</div>
-          <div className="vp-body">You are running {running}.</div>
+          <div className="vp-head">{t('version.panelHead', { version: latest })}</div>
+          <div className="vp-body">{t('version.panelBody', { version: running })}</div>
           {/* Dismissing means closing this panel — click-outside or Escape —
               not hiding the dot. Suppressing the marker would have to persist
               to be worth anything, and a persisted suppression outlives the
@@ -209,21 +218,21 @@ export default function VersionIndicator() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                View on GitHub
+                {t('version.viewOnGitHub')}
               </a>
             ) : phase === 'live' ? (
               // The new version is served, but THIS page is still the old
               // bundle: only a reload picks it up.
               <button type="button" className="vp-action" onClick={() => window.location.reload()}>
-                Reload to finish
+                {t('version.reloadToFinish')}
               </button>
             ) : phase === 'building' || phase === 'working' ? (
               <span className="vp-status">
-                {phase === 'working' ? 'Starting the update…' : 'Updating — this takes a few minutes.'}
+                {phase === 'working' ? t('version.starting') : t('version.updating')}
               </span>
             ) : phase === 'done' || phase === 'noop' ? null : (
               <button type="button" className="vp-action" onClick={onUpgrade}>
-                {phase === 'error' ? 'Try again' : `Update to ${latest}`}
+                {phase === 'error' ? t('version.tryAgain') : t('version.updateTo', { version: latest })}
               </button>
             )}
           </div>
@@ -242,7 +251,7 @@ export default function VersionIndicator() {
         data-tip={tip}
         // The label replaces the visible text for a screen reader rather than
         // sitting beside it, so it keeps the version the tooltip can leave out.
-        aria-label={`WebVault ${running} — ${tip}`}
+        aria-label={t('version.indicatorLabel', { version: running, tip })}
       >
         {available && <span className="sb-version-dot" aria-hidden="true" />}
         v{running}
@@ -254,7 +263,7 @@ export default function VersionIndicator() {
         ) : check === 'confirmed' ? (
           <Icon name="check" size={12} />
         ) : check === 'failed' ? (
-          <span className="sb-version-failed">couldn’t check</span>
+          <span className="sb-version-failed">{t('version.checkFailedShort')}</span>
         ) : null}
       </button>
     </span>
