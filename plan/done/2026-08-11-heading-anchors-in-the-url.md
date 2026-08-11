@@ -195,3 +195,7 @@ only body renderer, and the source of the ADR's original wrong premise.
 
 Verified by hand in the running app: cold load, in-app anchor click, landing
 offset, and the copy affordance.
+
+---
+
+Shipped at HEAD `ec54fb8`. Unreleased — rides the next tag.
