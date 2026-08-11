@@ -16,14 +16,21 @@ silently. Change this line to change the recommendation.
 ## Language
 
 All repository content is **English**: source code, code comments, error
-messages, UI copy, documentation, and these convention files. The only text
-allowed to be non-English is content that comes from a user's own vault notes.
+messages, UI copy, documentation, and these convention files. Two kinds of text
+are exempt:
+
+- content that comes from a user's own vault notes; and
+- **translated UI message catalogues** (`src/locales/<code>.json`) — a
+  non-English catalogue is non-English *by definition*, which is the point of
+  the file. The exemption covers the translated values only: keys, the reference
+  catalogue `en.json`, and every string at its point of use in the source stay
+  English.
 
 Chat with a contributor or agent may happen in any language; that language is
-for the conversation only and never reaches the files, documents, or UI. A
-future user-facing UI internationalisation (via i18n message files) does not
-change this rule: the source strings and all repository docs stay English, and
-i18n is a separate translation layer on top.
+for the conversation only and never reaches the files, documents, or UI. The
+user-facing UI internationalisation (`adr/0047-ui-language-i18n-layer.md`) does
+not change this rule: the source strings and all repository docs stay English,
+and i18n is a separate translation layer on top.
 
 ## ADR Files
 

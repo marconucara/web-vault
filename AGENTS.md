@@ -52,12 +52,14 @@ These come from `CONVENTIONS.md` and override default behaviour:
 ## Language (hard rule)
 
 - All repository content — source code, comments, error messages, UI copy,
-  documentation, these files — is **English**. The only non-English text
-  allowed is content coming from a user's own vault notes.
+  documentation, these files — is **English**. Two exemptions: content coming
+  from a user's own vault notes, and the translated values in UI message
+  catalogues (`src/locales/<code>.json`) — keys, `en.json`, and every string at
+  its point of use in the source stay English.
 - Chat with a contributor or agent may be in any language; that is for the
   conversation only and never reaches files, documents, or UI.
-- A future user-facing i18n layer (i18n message files) does not change this:
-  source strings and repo docs stay English; i18n is a separate layer.
+- The user-facing i18n layer (`adr/0047-*.md`) does not change this: source
+  strings and repo docs stay English; i18n is a separate layer.
 
 ## Implementation work
 

@@ -25,9 +25,10 @@ Three places already format dates, each with its own hardcoded answer:
 `NoteList.jsx:6` (`Intl.DateTimeFormat('en-GB', …)`), `PropertiesPanel.jsx:30`
 (`toLocaleDateString('en-GB', …)`), and `VersionIndicator.jsx:41-43`
 (`toLocaleTimeString(undefined, …)`, i.e. the system locale). Criteria 10–11 make
-these follow one resolved formatting locale. **See the open decision below: with
-language-only codes, `en` formats US-style and the two `en-GB` call sites would
-visibly regress (`11 Aug 2026` → `Aug 11, 2026`).**
+these follow one resolved formatting locale — which is **not** the interface
+locale, for the reason recorded in `adr/0047` r3: a bare `en` formats US-style,
+so driving them from the language-only code would have regressed a UK reader from
+`11 Aug 2026` to `Aug 11, 2026`.
 
 ## Scope
 
@@ -61,8 +62,12 @@ The built-in view names in `Sidebar.jsx:25,33,41` (All notes, Inbox, Shared) are
 shell strings and **are** translated; `Sidebar.jsx:52,87` render vault-derived
 view and type names and are **not**.
 
-**Formatting** (criteria 10–11): the three call sites above read the resolved
-formatting locale instead of their own hardcoded one.
+**Formatting** (criteria 10–11): a second resolution, region intact — override if
+supplied, else `navigator.language` **with its region**, else the interface
+locale. The three call sites above read it instead of their own hardcoded tag. It
+is not restricted to the two shipped languages, and a tag the platform rejects
+falls back rather than throwing (`Intl` throws `RangeError` on a malformed tag,
+so the resolution validates before handing it over).
 
 **The gate check** (criterion 12): a Vitest test comparing the flattened key set
 of each locale against `en`, failing with the missing/extra keys named.
@@ -93,33 +98,33 @@ Mapped to `adr/0047-*.md` acceptance criteria.
 6. A test asserts the layer reads and writes no `localStorage` key. *(AC 8)*
 7. A key absent from `it.json` renders as the key, not the English string; the
    warning fires only in dev. *(AC 9)*
-8. The three date/time call sites follow the resolved formatting locale, and
-   `setFormatLocale()` changes them independently of the interface language.
-   *(AC 10, 11)*
+8. The three date/time call sites follow the resolved formatting locale;
+   `setFormatLocale()` changes them independently of the interface language; and
+   a test pins that an `en-GB` browser still formats `11 Aug 2026` — the
+   regression this decision exists to prevent. A malformed tag falls back
+   instead of throwing. *(AC 10, 11)*
 9. A locale missing a key that `en` has fails `yarn verify` with that key named.
    *(AC 12)*
 10. `yarn verify` green.
 11. Verified by hand in the running app with the browser set to Italian, then to
     an unsupported language, before the change is committed.
 
-## Open decisions — resolve before implementing
+## Decisions taken before implementing
 
-1. **What drives `Intl`.** Language-only matching (AC 4) is right for choosing a
-   catalogue but lossy for formatting: `en` formats US-style, so the two `en-GB`
-   call sites regress. Candidate: the *interface* locale is matched
-   language-only, while the *default formatting* locale is the browser's full
-   tag (`navigator.language`, region intact), with the explicit
-   `setFormatLocale()` override on top. This keeps today's output for a UK
-   browser and needs AC 10 reworded.
-2. **Key naming.** A convention is needed before the sweep, since renaming keys
-   afterwards touches every call site. Candidate: flat dotted keys namespaced by
-   component/feature (`sidebar.allNotes`, `noteList.searchPlaceholder`,
-   `statusBar.commitMessage`).
-3. **Non-English content in the repo.** `src/locales/it.json` is a new class of
-   file: `CONVENTIONS.md`'s language mandate carves out only vault notes, though
-   it does name i18n message files as a separate layer that the mandate does not
-   govern. Worth an explicit carve-out sentence so the audit does not read
-   `it.json` as a violation.
+All three were open when this item was queued; settled 2026-08-11.
+
+1. **What drives `Intl`: a separate resolution that keeps the region.** The
+   interface locale is matched language-only; the formatting locale defaults to
+   the browser's full tag (`navigator.language`), with `setFormatLocale()` on
+   top. Chosen over deriving formatting from the interface language, which is
+   the lossy direction and would have shipped a regression inside a
+   localisation feature. Recorded in `adr/0047` criteria 10–11 (r3).
+2. **Key naming: flat dotted keys namespaced by component/feature** —
+   `sidebar.allNotes`, `noteList.searchPlaceholder`, `statusBar.commitMessage`.
+   Settled before the sweep because renaming afterwards touches every call site.
+3. **Non-English catalogues are an explicit carve-out** in the language mandate
+   (`CONVENTIONS.md`, mirrored in `AGENTS.md`), so `src/locales/it.json` does not
+   read as a violation. Landed with this item.
 
 ## Dependencies
 
