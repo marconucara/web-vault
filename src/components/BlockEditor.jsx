@@ -4,6 +4,8 @@ import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { loadBodyIntoEditor, serializeEditorBody } from '../lib/richMarkdown.js';
 import { schema } from '../lib/blocknoteSchema.jsx';
+import { anchorOf, noteHash } from '../lib/headingSlug.js';
+import { refreshHeadingAnchors, isCopyIconHit, lastLineRect, copyHeadingLink } from '../lib/headingAnchors.js';
 
 function useDark() {
   const [dark, setDark] = useState(
@@ -24,11 +26,13 @@ function useDark() {
 // `newNote`: a brand-new note with no title yet — an empty markdown heading
 // (`# `) does not round-trip through the parser as an editable heading block, so
 // we seed a real empty H1 and focus it, ready for the title.
-export default function BlockEditor({ value, onChange, newNote = false }) {
+export default function BlockEditor({ value, onChange, noteId = null, newNote = false }) {
   const editor = useCreateBlockNote({ schema });
   const dark = useDark();
   const readyRef = useRef(false);
   const timerRef = useRef(null);
+  const rootRef = useRef(null);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +53,8 @@ export default function BlockEditor({ value, onChange, newNote = false }) {
       } else {
         await loadBodyIntoEditor(editor, value);
       }
-      if (!cancelled) readyRef.current = true;
+      if (cancelled) return;
+      readyRef.current = true;
     })();
     return () => {
       cancelled = true;
@@ -60,8 +65,61 @@ export default function BlockEditor({ value, onChange, newNote = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
+  // A bare `#some-heading` link, as an author writes it, cannot be followed as
+  // it stands: assigning it to `window.location.hash` replaces the whole hash,
+  // so the note id is lost and the note closes. It is rewritten against the
+  // open note into `#/n/<id>#<slug>` — which is also what makes the address
+  // survive a reload and mean the same thing to someone it is sent to.
+  //
+  // Caught in the capture phase on the editor root, ahead of BlockNote's own
+  // link handler: that one calls `window.open(href, '_blank')`, which for a
+  // bare anchor would open an empty tab. Chips are untouched — they carry their
+  // own handlers (src/lib/chipClick.js) and never have a bare-anchor href.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const onClick = (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+      // The copy-link icon on a heading. It is a `::after`, so it is never the
+      // event target — the click arrives as the heading and is placed by
+      // geometry. Handled before the anchor case below because a heading is not
+      // an `<a>`, and in the capture phase so it lands ahead of ProseMirror
+      // putting the caret where the user clicked.
+      //
+      // H1 is excluded, matching the stylesheet: it is the note title, which
+      // `#/n/<id>` already addresses, and the icon is bulky at that size. The
+      // title still carries an `id`, so an anchor to it resolves — only the
+      // affordance is absent.
+      const heading = e.target?.closest?.('[data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id]');
+      if (heading && root.contains(heading)) {
+        const size = parseFloat(getComputedStyle(heading).fontSize) || 16;
+        if (isCopyIconHit(e.clientX, e.clientY, lastLineRect(heading), size)) {
+          e.preventDefault();
+          e.stopPropagation();
+          copyHeadingLink(heading, noteId);
+          return;
+        }
+      }
+
+      const a = e.target?.closest?.('a[href]');
+      if (!a || !root.contains(a)) return;
+      const anchor = anchorOf(a.getAttribute('href'));
+      if (!anchor || !noteId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.hash = noteHash(noteId, anchor);
+    };
+    root.addEventListener('click', onClick, true);
+    return () => root.removeEventListener('click', onClick, true);
+  }, [noteId]);
+
   const handleChange = () => {
     if (!readyRef.current) return;
+    // Typing into a heading does not re-run its `render`, so the anchor is
+    // refreshed here — undebounced, unlike the serialization below, since it is
+    // only a string compare per heading.
+    refreshHeadingAnchors(rootRef.current, editor.document);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       const md = await serializeEditorBody(editor);
@@ -70,7 +128,7 @@ export default function BlockEditor({ value, onChange, newNote = false }) {
   };
 
   return (
-    <div className="blockeditor">
+    <div className="blockeditor" ref={rootRef}>
       <BlockNoteView editor={editor} onChange={handleChange} theme={dark ? 'dark' : 'light'} />
     </div>
   );

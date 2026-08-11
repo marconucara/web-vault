@@ -1016,6 +1016,71 @@ a:hover { text-decoration: underline; }
 .blockeditor [data-content-type="heading"] { --level: 32px; line-height: 1.25; }
 .blockeditor [data-content-type="heading"][data-level="2"] { --level: 23px; }
 .blockeditor [data-content-type="heading"][data-level="3"] { --level: 19px; }
+/* Breathing room when a heading is jumped to by its anchor (#/n/<id>#<slug>),
+   so the section title does not land flush against the top of the viewport with
+   its content cropped right under it. Only affects scrolling, never layout. */
+.blockeditor [data-content-type="heading"] h1,
+.blockeditor [data-content-type="heading"] h2,
+.blockeditor [data-content-type="heading"] h3,
+.blockeditor [data-content-type="heading"] h4,
+.blockeditor [data-content-type="heading"] h5,
+.blockeditor [data-content-type="heading"] h6 { scroll-margin-top: 84px; }
+/* Copy-link affordance on a heading, drawn as a pseudo-element.
+   ::after is not a DOM node, so ProseMirror never sees it: it cannot become
+   editable content, cannot be serialized back into the markdown, and survives
+   every repaint without any JS. It sits inline just after the text, so it
+   follows the last word wherever the heading wraps. Only headings that carry an
+   anchor ([id]) get one — a heading with no slug has nothing to link to. */
+/* Anchors the copy confirmation, which is positioned against the heading. */
+[data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id] { position: relative; }
+[data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id]::after {
+  content: '';
+  display: inline-block;
+  vertical-align: middle;
+  width: 1em;
+  height: 1em;
+  margin-left: 0.4em;
+  /* The link glyph, inlined as a data: URI so it needs no network and no icon
+     component inside a ProseMirror-managed element. currentColor cannot cross
+     into an SVG loaded this way, so the stroke is set explicitly per theme. */
+  background: no-repeat center / contain
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>');
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+[data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id]:hover::after { opacity: 0.75; }
+/* The click target is a circle inscribing the icon, matched in JS by
+   isCopyIconHit (a ::after cannot be an event target, so the hit test is
+   geometric). Drawn on hover so what is clickable is what is visible. */
+[data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id]:hover::after {
+  border-radius: 50%;
+  outline: 0.35em solid transparent;
+}
+/* Confirmation after a copy: a second pseudo-element, so still no DOM node
+   inside the editor. */
+[data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id].anchor-copied::after { opacity: 1; }
+[data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id].anchor-copied::before {
+  content: 'Link copied';
+  position: absolute;
+  right: -0.4em;
+  bottom: calc(100% + 2px);
+  transform: translateX(100%);
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  [data-content-type="heading"] > :is(h2,h3,h4,h5,h6)[id]::after {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%239aa1ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>');
+  }
+}
 /* Section space above the headings (never above the title, which is the 1st block). */
 .blockeditor .bn-block-outer:not(:first-child):has(> .bn-block > [data-content-type="heading"]) {
   margin-top: 1.2em;

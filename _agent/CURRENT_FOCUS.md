@@ -9,14 +9,32 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** — the wikilink-in-a-
-  table fix (`done/2026-08-10-wikilinks-inside-a-table`) shipped 2026-08-10.
+- **Active item:** none in flight. **The queue is empty** — heading anchors in
+  the URL (`done/2026-08-11-heading-anchors-in-the-url`) shipped 2026-08-11.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 
 ## Release state
 
-- **Unreleased on `main`:** nothing.
+- **Unreleased on `main`:** ADR `0044`, heading anchors in the URL (plan
+  `done/2026-08-11-heading-anchors-in-the-url`). The hash now addresses a note
+  and, optionally, a heading within it (`#/n/<id>#<slug>`), on the same slug
+  rule in the editor and on the share pages, with a hover affordance that copies
+  the link. A **minor** when cut, per `0037`: `#/n/<id>` is unchanged and every
+  existing link still resolves, but the anchor half of the grammar and the slug
+  rule become a compatibility surface the moment a vault author writes one, so
+  it is a contract addition rather than a fix.
+  - Two divergences are deliberate and pinned by tests, not defects to chase:
+    duplicate headings share an id in the editor (its `render` sees one block
+    and has no document-wide counter) while the share pages number them
+    `-1`, `-2`; and a heading opening with `🗺️` slugs to a leading invisible
+    character, because `github-slugger` keeps the U+FE0F variation selector.
+    That is GitHub's own output and is matched deliberately — a reason to avoid
+    emoji in headings meant to be linked, not to diverge from the ecosystem.
+  - The copy affordance is **not keyboard reachable**: it is a CSS `::after`,
+    which cannot hold focus. Accepted so the editor DOM stays untouched; a
+    focusable control would have to live outside it, and is deferred in `0044`
+    along with the same affordance on the share pages.
 - **Current tag: `v0.9.1`** — a wikilink inside a table cell is a link again
   (plan `done/2026-08-10-wikilinks-inside-a-table`). A table's content is a
   `tableContent` object, not an inline array, so the guard that maps a block's

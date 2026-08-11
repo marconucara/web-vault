@@ -5,7 +5,6 @@ import { usePending, setEdit, effectiveBody } from '../lib/pending.js';
 import { setDraftBody } from '../lib/drafts.js';
 import Editor from './Editor.jsx';
 import ShareSheet from './ShareSheet.jsx';
-import Markdown from './Markdown.jsx';
 import Icon from './Icon.jsx';
 import PropertiesPanel from './PropertiesPanel.jsx';
 import ChunkBoundary from './ChunkBoundary.jsx';
@@ -137,7 +136,7 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
         ) : (
           <ChunkBoundary>
             <Suspense fallback={<EditorSkeleton />}>
-              <BlockEditor key={note.id} value={body} onChange={onBodyChange} newNote={newNote} />
+              <BlockEditor key={note.id} noteId={note.id} value={body} onChange={onBodyChange} newNote={newNote} />
             </Suspense>
           </ChunkBoundary>
         )}

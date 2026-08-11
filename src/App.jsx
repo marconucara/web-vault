@@ -13,13 +13,16 @@ import { useLocalNotes, reconcileLocal } from './lib/localNotes.js';
 import { deriveTypes, contentOnly, sameTypeName } from './lib/types.js';
 import { TypeMetaProvider } from './lib/typeMetaContext.jsx';
 import TypePanel from './components/TypePanel.jsx';
+import { parseNoteHash, noteHash } from './lib/headingSlug.js';
 
 // Vault saved views minus those whose id is owned by a built-in view (adr/0033).
 const vaultViews = views.filter((v) => !RESERVED_VIEW_IDS.includes(v.id));
 
+// The hash addresses a note and, optionally, a heading within it
+// (adr/0044-what-the-url-addresses.md). The grammar lives in lib/headingSlug.js
+// because the anchor half of it is shared with the editor.
 function parseHash() {
-  const m = window.location.hash.match(/^#\/n\/(.+)$/);
-  return m ? decodeURIComponent(m[1]) : null;
+  return parseNoteHash(window.location.hash);
 }
 
 function useMediaQuery(q) {
@@ -35,7 +38,8 @@ function useMediaQuery(q) {
 
 export default function App() {
   const [selection, setSelection] = useState(/** @type {{ kind: string, id?: string }} */ ({ kind: 'all' }));
-  const [openId, setOpenId] = useState(parseHash);
+  const [openId, setOpenId] = useState(() => parseHash().id);
+  const [anchor, setAnchor] = useState(() => parseHash().anchor);
   const [navOpen, setNavOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 900px)');
   const pending = usePending();
@@ -119,12 +123,79 @@ export default function App() {
   }, [liveContent, draftNotes]);
 
   useEffect(() => {
-    const on = () => setOpenId(parseHash());
+    const on = () => {
+      const { id, anchor: a } = parseHash();
+      // Set separately, so following an anchor inside the open note changes
+      // only `anchor`: `openId` keeps its identity and the editor is not
+      // remounted (it is mounted with key={note.id}).
+      setOpenId(id);
+      setAnchor(a);
+    };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
 
-  const openNote = (id) => { window.location.hash = `#/n/${encodeURIComponent(id)}`; };
+  // Scrolling to an anchor is deliberately an effect on the URL, not part of
+  // the click that produced it: that is what makes a link received from someone
+  // else, or a reload, land in the same place as following one in-app.
+  //
+  // A cold load is the hard case, and the reason this is not a one-shot scroll.
+  // The target does not exist yet — the note body is a lazily-loaded chunk and
+  // the ids arrive only once BlockNote has parsed the markdown and rendered —
+  // and, worse, it keeps moving after it appears: the editor replaces a
+  // skeleton placeholder of a different height, so a scroll performed at the
+  // moment the id shows up is undone by the reflow that follows.
+  //
+  // So it re-scrolls while the page is still settling, and stops once the
+  // heading has held its position across a couple of frames. Any real user
+  // scroll cancels it, so this can never fight someone who has taken over.
+  useEffect(() => {
+    if (!anchor || !openId) return;
+    let stop = false;
+    let settled = 0;
+    let last = null;
+    let raf = 0;
+
+    const cancel = () => { stop = true; };
+    // Only a deliberate gesture cancels. `scroll` itself would not do: the
+    // scrolling done here fires it too.
+    window.addEventListener('wheel', cancel, { passive: true, once: true });
+    window.addEventListener('touchstart', cancel, { passive: true, once: true });
+    window.addEventListener('keydown', cancel, { once: true });
+
+    const tick = () => {
+      if (stop) return;
+      const el = document.getElementById(anchor);
+      if (el) {
+        const top = el.getBoundingClientRect().top;
+        // `scroll-margin-top` on the heading provides the offset, so the anchor
+        // does not land flush against the top of the viewport.
+        if (Math.abs(top - (last ?? Infinity)) > 1) {
+          settled = 0;
+          el.scrollIntoView({ block: 'start' });
+          last = el.getBoundingClientRect().top;
+        } else if (++settled > 2) {
+          return;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    // A bounded window: the page is expected to settle well within this, and an
+    // anchor matching no heading must go quiet rather than spin (AC 8).
+    const timer = setTimeout(cancel, 4000);
+    return () => {
+      cancel();
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+      window.removeEventListener('wheel', cancel);
+      window.removeEventListener('touchstart', cancel);
+      window.removeEventListener('keydown', cancel);
+    };
+  }, [anchor, openId]);
+
+  const openNote = (id) => { window.location.hash = noteHash(id); };
   const clearNote = () => { window.location.hash = '#/'; };
 
   // After a draft is committed it becomes a real "created" note under a new id.

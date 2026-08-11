@@ -6,6 +6,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import GithubSlugger from 'github-slugger';
 import { parseMapCardLine, createMapGrouper, createColorAssigner, markerColor } from '../src/lib/mdLinks.js';
 
 const WIKILINK = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
@@ -75,21 +76,55 @@ function renderMapCard(parsed, info, color) {
   );
 }
 
+// Puts an `id` on every heading, using a slugger supplied by the caller so the
+// numbering of duplicate headings spans the whole note rather than restarting
+// per rendered segment. This is `rehype-slug`'s job, but that plugin owns its
+// slugger and there is no way to hand it one, so the eight lines are written
+// here against the same rule the app uses (src/lib/headingSlug.js).
+function headingIds(slugger) {
+  const HEADING = /^h[1-6]$/;
+  const text = (node) =>
+    node.type === 'text'
+      ? node.value
+      : (node.children || []).map(text).join('');
+  return () => (tree) => {
+    const walk = (node) => {
+      for (const child of node.children || []) {
+        if (child.type === 'element' && HEADING.test(child.tagName)) {
+          child.properties = child.properties || {};
+          if (!child.properties.id) child.properties.id = slugger.slug(text(child));
+        }
+        walk(child);
+      }
+    };
+    walk(tree);
+  };
+}
+
 // Render a note body to HTML: map card lines (a Google Maps link starting its own
 // line) become static cards; everything else is rendered by react-markdown. The
 // grouping/colors match the app (shared mdLinks helpers). `maps` is looked up
 // only for links present in this note.
-function renderBody(md, maps) {
+export function renderBody(md, maps) {
   const grouper = createMapGrouper();
   const colorOf = createColorAssigner();
   const out = [];
   let buffer = [];
   let inFence = false;
+  // Heading anchors (adr/0044-what-the-url-addresses.md). One slugger for the
+  // whole note, NOT one per render call: the body is rendered in segments split
+  // by map cards, and `rehype-slug`'s own slugger is per-render, so two
+  // same-named headings on opposite sides of a map card would each come out
+  // `#setup` instead of `#setup` / `#setup-1`.
+  const slugger = new GithubSlugger();
   const flushMarkdown = () => {
     if (!buffer.length) return;
     const seg = buffer.join('\n');
     if (seg.trim()) {
-      out.push(renderToStaticMarkup(React.createElement(ReactMarkdown, { remarkPlugins: [remarkGfm] }, seg)));
+      out.push(renderToStaticMarkup(React.createElement(ReactMarkdown, {
+        remarkPlugins: [remarkGfm],
+        rehypePlugins: [headingIds(slugger)],
+      }, seg)));
     }
     buffer = [];
   };
@@ -134,6 +169,8 @@ a:hover { text-decoration:underline; }
 .chip { background:var(--bg-alt); border:1px solid var(--border); border-radius:100px; padding:2px 10px; font-size:13px; }
 .markdown { font-size:16px; line-height:1.7; }
 .markdown > *:first-child { margin-top:0; }
+/* Matches the app: room above a heading jumped to by its anchor. */
+.markdown :is(h1,h2,h3,h4,h5,h6) { scroll-margin-top:24px; }
 .markdown h1 { font-size:32px; line-height:1.25; margin:0 0 20px; }
 .markdown h2 { font-size:23px; line-height:1.25; margin:36px 0 12px; }
 .markdown h3 { font-size:19px; line-height:1.25; margin:26px 0 10px; }

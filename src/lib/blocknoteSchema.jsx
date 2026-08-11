@@ -5,6 +5,7 @@ import Icon from '../components/Icon.jsx';
 import MapCard from '../components/MapCard.jsx';
 import { MEDIA_EXT } from './mdLinks.js';
 import { chipClickIntent, isChipAuxClick } from './chipClick.js';
+import { headingSpecWithAnchors } from './headingAnchors.js';
 import { titleIndex, idTitle } from '../content.js';
 
 // Resolves a wikilink target (path form `folder/filename`, title, or filename)
@@ -149,6 +150,10 @@ export const schema = BlockNoteSchema.create({
   styleSpecs,
   blockSpecs: {
     ...defaultBlockSpecs,
+    // The stock heading, with an `id` on the rendered element so a heading can
+    // be linked to (adr/0044-what-the-url-addresses.md). Only `render` is
+    // overridden; the shortcuts, input rules and menu entries are untouched.
+    heading: headingSpecWithAnchors(),
     // createReactBlockSpec returns a factory (options) => BlockSpec: call it.
     mapcard: Mapcard(),
   },
