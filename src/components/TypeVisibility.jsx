@@ -66,7 +66,7 @@ export default function TypeVisibility({
             <Icon name="eye" size={15} />
             {t('typeVisibility.title')}
           </span>
-          <button className="props-close" onClick={onClose} title={t('common.close')}>
+          <button className="props-close tt" onClick={onClose} data-tip={t('common.close')} aria-label={t('common.close')}>
             <Icon name="x" size={16} />
           </button>
         </header>
@@ -85,11 +85,15 @@ export default function TypeVisibility({
                 <span className="tv-name">{name}</span>
                 <button
                   type="button"
-                  className={'tv-toggle' + (shown ? ' on' : '')}
+                  className={'tv-toggle tt' + (shown ? ' on' : '')}
                   role="switch"
                   aria-checked={shown}
                   aria-label={toggleLabel}
-                  title={toggleLabel}
+                  data-tip={toggleLabel}
+                  // Genuinely `disabled` while its commit is in flight, which
+                  // suppresses the tooltip for that moment — accepted here,
+                  // unlike the write gating (adr/0034), because the point is to
+                  // refuse a second click rather than to explain a state.
                   disabled={!!busy[name]}
                   onClick={() => toggle(name)}
                 >

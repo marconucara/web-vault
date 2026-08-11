@@ -140,9 +140,19 @@ describe('the note body', () => {
     expect(await view(true)).toContain('editor');
   });
 
-  it('offers sharing only when the deployment can write', async () => {
-    expect(await view(true)).toContain('share');
-    expect(await view(false)).not.toContain('share');
+  it('shows sharing in both cases, live only when the deployment can write', async () => {
+    // Share holds its place like the other commit actions (criteria 11-12).
+    // It sits at the end of an inline row, so its absence cost no layout — but
+    // an action that vanishes with the answer is the thing those criteria rule
+    // out, whether or not this particular one reflows.
+    const live = await view(true);
+    expect(live).toContain('share-btn');
+    expect(live).not.toContain('aria-disabled');
+
+    const inert = await view(false);
+    expect(inert).toContain('share-btn');
+    expect(inert).toContain('aria-disabled="true"');
+    expect(inert).toContain('Editing is off');
   });
 });
 

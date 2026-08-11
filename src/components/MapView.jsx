@@ -198,10 +198,10 @@ export default function MapView({ body }) {
 
       {headings.length > 0 && !panelOpen && (
         <button
-          className="mapview-panel-toggle"
+          className="mapview-panel-toggle tt"
           onClick={() => setPanelOpen(true)}
           aria-label={t('mapView.sections')}
-          title={t('mapView.sections')}
+          data-tip={t('mapView.sections')}
         >
           <Icon name="list" size={16} />
         </button>

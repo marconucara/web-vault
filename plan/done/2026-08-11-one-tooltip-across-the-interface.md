@@ -130,3 +130,65 @@ running app.
 
 Item `0001`. It converts four of these sites and establishes `.tt` on an
 `aria-disabled` control, which criterion 6 here relies on.
+
+---
+
+## Outcome
+
+Went in as scoped. The split the plan drew — 18 controls to convert, 8 sites to
+leave — held, with two moves across the line, both because a bubble had nowhere
+to go: the sort menu's direction arrows (rows 4px apart, so the tip covers the
+option being compared against) and the colour swatches (22px circles wrapping at
+a 7px gap, so a colour name is wider than its swatch). Both were named in the
+plan as per-site judgements rather than mechanical replacements, which is what
+made them decisions rather than surprises.
+
+**The `overflow` case was real, not cautious.** The plan excluded the commit
+popover's items on the grounds that placement inside a popover needs its own
+thought. `.sp-list` carries `overflow-y: auto`, so a bubble is clipped by the
+scroll container outright — the exclusion was right for a firmer reason than the
+one written down.
+
+**Two placement gaps in `.tt` surfaced only at the sites that needed them:**
+
+`tt-end` is new. `tt-up` is left-aligned, correct for the status bar's left
+edge, but `statusbar-spacer` pushes the changes indicator and preferences to the
+other end, where a left-aligned bubble runs off the screen. Alignment was the
+only difference, so it is a modifier on the modifier.
+
+The map's panel toggle sits at `z-index: 1000` over the tiles while `.tt::after`
+is at 60, so its own tooltip rendered behind the map — the same layering
+`styles.css:728` already records for the note header. Raised locally to 1001.
+
+**Share and delete close criteria 11-12.** Share reads the capability itself
+rather than taking it threaded through `NoteView`; the button is the only part
+that needs it. Delete keeps its draft exemption, which now has to be expressed
+per-state rather than as one guard: a draft commits nothing, so it stays live
+and untipped even when the deployment cannot write. The fade `0001` gave share
+was removed with the same commit — it existed because share still arrived, and
+it no longer does.
+
+**`writeActionProps` gained class normalisation.** Call sites compose class
+strings from templates with conditional segments, so an unselected modifier left
+`class="badge share-btn   tt"` in the DOM. Cosmetic, caught in a test's rendered
+output rather than by an assertion, and fixed at the helper since that is where
+the join happens.
+
+`TypeVisibility`'s toggle is genuinely `disabled` while its commit is in flight,
+which suppresses its tooltip for that moment. Accepted and commented: there the
+attribute is refusing a second click, not explaining a state — the opposite of
+the write gating, where `disabled` was the wrong tool for exactly that reason.
+
+The rule now lives in `CONVENTIONS.md`, which is what the plan identified as the
+reason the migration had stalled halfway. Every retained native `title` carries
+a comment naming which clause it falls under.
+
+One test inverted: `offers sharing only when the deployment can write` asserted
+the absence this item removes.
+
+502 tests, `yarn verify` green.
+
+---
+
+Shipped at HEAD `PENDING`. Not released — accumulating on `main` for a later
+version.

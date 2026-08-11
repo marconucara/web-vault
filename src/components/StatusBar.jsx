@@ -137,6 +137,9 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
             <span>{t('statusBar.uncommittedChanges')}</span>
             <button className="link-btn" onClick={() => discardAll()}>{t('statusBar.discardAll')}</button>
           </div>
+          {/* The controls in this list keep their native `title`: `.sp-list`
+              scrolls (`overflow-y: auto`), which clips a `.tt` bubble at the
+              container's edge. See CONVENTIONS.md, Tooltips. */}
           <ul className="sp-list">
             {items.map((it) => (
               <li key={it.key}>
@@ -213,14 +216,17 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
       <div className="statusbar-spacer" />
       {toast && <span className="sb-toast"><Icon name="check" size={13} /> {toast}</span>}
       {inSync ? (
+        // Native `title`: a non-focusable span, unlike the dirty state beside
+        // it, which is a button and carries the in-app bubble.
         <span className="status-item sync" title={t('statusBar.allCommitted')}>
           <Icon name="check" size={13} /> {t('statusBar.inSync')}
         </span>
       ) : (
         <button
-          className={`status-item dirty ${open ? 'active' : ''}`}
+          className={`status-item dirty tt tt-up tt-end ${open ? 'active' : ''}`}
           onClick={() => setOpen((v) => !v)}
-          title={t('statusBar.viewChanges')}
+          data-tip={t('statusBar.viewChanges')}
+          aria-label={t('statusBar.viewChanges')}
         >
           <span className="dot" />
           {t('statusBar.notesChanged', { count: n })}
@@ -230,9 +236,9 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
           the one whose position should never move the two that report state. */}
       {onOpenPreferences && (
         <button
-          className="status-item sb-prefs"
+          className="status-item sb-prefs tt tt-up tt-end"
           onClick={onOpenPreferences}
-          title={t('preferences.open')}
+          data-tip={t('preferences.open')}
           aria-label={t('preferences.open')}
         >
           <Icon name="settings" size={13} />

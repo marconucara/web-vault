@@ -4,6 +4,8 @@ import Icon from './Icon.jsx';
 import { usePending, discardMany } from '../lib/pending.js';
 import { useShares, getShare, setShare, setUnshared, markActivated, removeShare } from '../lib/shares.js';
 import { commitFiles } from '../lib/commit.js';
+import { useCapabilities } from '../lib/capabilities.js';
+import { writeActionProps } from '../lib/writeAction.js';
 
 function newShareId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -48,6 +50,12 @@ async function waitForShared(url, token, { timeoutMs = 240000, intervalMs = 4000
 
 // idle | publishing | activating | active | slow | error
 export default function ShareSheet({ note }) {
+  // Read here rather than threaded through NoteView: the button is the only
+  // thing that needs it, and sharing is a commit like any other (adr/0034
+  // criteria 11-12). It is now inert rather than absent, which is what closes
+  // those criteria across the app.
+  const { canWrite: shareCanWrite, known: shareKnown } = useCapabilities();
+  const writeState = shareCanWrite ? 'on' : shareKnown ? 'off' : 'pending';
   const pending = usePending();
   const shares = useShares();
   const [open, setOpen] = useState(false);
@@ -186,10 +194,16 @@ export default function ShareSheet({ note }) {
   return (
     <span className="share" ref={ref}>
       <button
-        className={`badge share-btn ${open ? 'active' : ''} ${shareId ? 'shared' : ''}`}
-        onClick={() => setOpen((v) => !v)}
-        title={shareId ? t('share.manageLink') : t('share.shareThisNote')}
+        {...writeActionProps(
+          writeState,
+          () => setOpen((v) => !v),
+          shareId ? t('share.manageLink') : t('share.shareThisNote'),
+          t('preferences.readOnlyTitle'),
+          `badge share-btn ${open ? 'active' : ''} ${shareId ? 'shared' : ''}`
+        )}
       >
+        {/* Native `title`: a non-focusable span, and it sits INSIDE the share
+            button, whose own bubble would be the one that shows on hover. */}
         {shareId && <span className="share-dot" title={t('share.alreadyShared')} />}
         <Icon name={activating ? 'clock' : 'share'} size={13} />
         {t('share.share')}

@@ -31,7 +31,9 @@ export function writeActionProps(writeState, onClick, label, offTip, className =
   // hover. The helper owns the class for that reason — leaving it to each call
   // site is what produced exactly that bug in the `pending` state.
   const tip = writeState === 'on' ? label : writeState === 'off' ? offTip : null;
-  const cls = className + (tip ? ' tt' : '');
+  // Normalised: call sites build these from template strings with conditional
+  // segments, so the raw join carries doubled and trailing spaces into the DOM.
+  const cls = [className, tip ? 'tt' : ''].join(' ').trim().replace(/\s+/g, ' ');
 
   if (writeState === 'on') {
     return { onClick, 'data-tip': tip, 'aria-label': label, className: cls };

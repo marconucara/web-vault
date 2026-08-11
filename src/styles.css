@@ -378,17 +378,6 @@ a:hover { text-decoration: underline; }
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  /* Share is the one commit action still withheld rather than made inert
-     (adr/0034 criterion 11): it sits at the end of an inline row, so its
-     absence costs no layout, and a note that cannot be shared reads better
-     without it. That leaves it the only control that still ARRIVES with the
-     answer, so it fades rather than snapping in — the softening the removed
-     `wv-fade-in` used to give the controls that no longer arrive at all. */
-  animation: share-fade-in 220ms ease both;
-}
-@keyframes share-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .badge.share-btn { animation: none; }
 }
 .badge.share-btn:hover,
 .badge.share-btn.active { border-color: var(--accent); color: var(--accent); }
@@ -782,6 +771,10 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .mapview-panel-toggle:hover { background: var(--bg-active); }
+/* The control sits above the map at z-index 1000, well over `.tt::after`'s 60,
+   so its own tooltip would render behind the map tiles — the same layering the
+   note header's buttons already had to correct. */
+.mapview-panel-toggle.tt::after { z-index: 1001; }
 .mapview-panel {
   position: absolute;
   z-index: 1000;
@@ -984,6 +977,13 @@ a:hover { text-decoration: underline; }
   transform: translateY(3px);
 }
 .tt-up:hover::after, .tt-up:focus-visible::after { transform: none; }
+
+/* `tt-up` for the RIGHT end of the status bar. `tt-up` is left-aligned, which
+   is right for the items at the left edge but runs a bubble off the screen for
+   the ones the spacer pushes to the other end — the changes indicator and
+   preferences. Alignment is the only difference, so it is a modifier on the
+   modifier rather than a third tooltip. */
+.tt-up.tt-end::after { left: auto; right: 0; }
 
 /* For a tip written across more than one line. `data-tip` renders through
    `content: attr()`, where a newline is collapsed like any other whitespace —

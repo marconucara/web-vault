@@ -54,7 +54,7 @@ export default function IconPicker({ value, color, onChange }) {
           aria-label={t('iconPicker.searchLabel')}
         />
         {value && (
-          <button type="button" className="ip-clear" onClick={() => onChange('')} title={t('iconPicker.noIcon')}>
+          <button type="button" className="ip-clear tt" onClick={() => onChange('')} data-tip={t('iconPicker.noIcon')} aria-label={t('iconPicker.noIcon')}>
             <Icon name="x" size={13} />
           </button>
         )}
@@ -72,6 +72,9 @@ export default function IconPicker({ value, color, onChange }) {
                 role="option"
                 aria-selected={value === n}
                 className={'ip-cell' + (value === n ? ' sel' : '')}
+                // Native `title`: this grid renders the whole lucide catalogue,
+                // so a `::after` per cell is hundreds of pseudo-elements on the
+                // heaviest surface in the app (see CONVENTIONS.md, Tooltips).
                 title={n}
                 onClick={() => onChange(n)}
               >

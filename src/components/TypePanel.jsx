@@ -152,7 +152,7 @@ export default function TypePanel({
             <Icon name={icon || 'tag'} color={color || undefined} size={15} />
             {editing ? t('typePanel.editTitle') : t('typePanel.newTitle')}
           </span>
-          <button className="props-close" onClick={onClose} title={t('common.close')}>
+          <button className="props-close tt" onClick={onClose} data-tip={t('common.close')} aria-label={t('common.close')}>
             <Icon name="x" size={16} />
           </button>
         </header>
@@ -197,6 +197,10 @@ export default function TypePanel({
                   type="button"
                   className={'tp-swatch' + (color === c.value ? ' sel' : '')}
                   style={{ background: c.value }}
+                  // Native `title`: 22px circles wrapping at a 7px gap, so a
+                  // bubble carrying a colour name is wider than its swatch and
+                  // covers the row below — the swatches the reader is choosing
+                  // between.
                   title={t(c.key)}
                   aria-label={t(c.key)}
                   aria-pressed={color === c.value}
@@ -226,6 +230,7 @@ export default function TypePanel({
             <div className="tp-delete">
               {carriers.length > 0 ? (
                 // Criterion 9: blocked while notes carry it, and it says how many.
+                // Native `title`: a non-focusable span (CONVENTIONS.md, Tooltips).
                 <span className="tp-blocked" title={t('typePanel.blockedTip')}>
                   <Icon name="trash" size={14} />
                   {t('typePanel.inUse', { count: carriers.length })}

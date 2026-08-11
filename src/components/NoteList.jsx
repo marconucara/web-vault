@@ -76,9 +76,10 @@ export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta
         <div className="list-actions">
           <div className="sort-wrap" ref={sortRef}>
             <button
-              className={'list-btn' + (sort ? ' active' : '')}
+              className={'list-btn tt' + (sort ? ' active' : '')}
               onClick={() => setSortOpen((v) => !v)}
-              title={t('noteList.sort')}
+              data-tip={t('noteList.sort')}
+              aria-label={t('noteList.sort')}
             >
               {sort && <span className="sort-dir">{sort.dir === 'asc' ? '↑' : '↓'}</span>}
               <Icon name="sort" size={15} />
@@ -96,6 +97,10 @@ export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta
                     <span className="sort-dirs">
                       {['asc', 'desc'].map((dir) => (
                         <button
+                          // Native `title`: these sit inside the open sort menu,
+                          // where a `.tt` bubble would hang over the row beneath
+                          // and cover the option the reader is comparing against.
+                          // Rows are 4px apart, so there is nowhere for it to go.
                           key={dir}
                           className={'sort-arrow' + (sort && sort.key === o.key && sort.dir === dir ? ' active' : '')}
                           onClick={(e) => { e.stopPropagation(); setSort({ key: o.key, dir }); setSortOpen(false); }}
@@ -111,9 +116,10 @@ export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta
             )}
           </div>
           <button
-            className={'list-btn icon-only' + (searchOpen ? ' active' : '')}
+            className={'list-btn icon-only tt' + (searchOpen ? ' active' : '')}
             onClick={() => setSearchOpen((v) => !v)}
-            title={t('noteList.search')}
+            data-tip={t('noteList.search')}
+            aria-label={t('noteList.search')}
           >
             <Icon name="search" size={16} />
           </button>

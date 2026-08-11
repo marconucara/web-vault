@@ -9,18 +9,21 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. `done/2026-08-11-commit-actions-hold-their-place`
-  is the most recent item.
-- **Queued:** `todo/0002-one-tooltip-across-the-interface` — migrate the
-  remaining native `title` attributes onto the in-app `.tt` bubble, write the
-  rule down in `CONVENTIONS.md`, and close criteria 11-12 on share and delete,
-  which `0001` deliberately left absent.
+- **Active item:** none in flight. **The queue is empty** —
+  `done/2026-08-11-one-tooltip-across-the-interface` is the most recent item.
 - **Blockers:** none.
 - **Uncommitted work:** none.
-- **Unreleased on `main`:** nothing.
+- **Unreleased on `main`:** the tooltip migration
+  (`done/2026-08-11-one-tooltip-across-the-interface`). Deliberately not
+  released — accumulating further changes before the next version. The four
+  version locations still read `v0.11.1`, which is correct: that is the last
+  *published* version, and they move together with the tag when one is cut.
 
 ## Release state
 
+- **`main` is ahead of the last tag.** The tooltip migration sits on `main`
+  unreleased, by choice. Whatever is cut next carries it, so its exit criteria
+  are part of that release's manual check, not only of its own.
 - **Current tag: `v0.11.1`** — ADR `0034` r5: commit actions hold their place.
   They are rendered whatever the deployment answers and go inert until write
   access is confirmed, tipped *Editing is off* once the answer is settled.

@@ -86,6 +86,37 @@ Allowed references:
 Rule of thumb: if a non-builder could ever read the string, the ADR reference
 comes out. Refer to the behaviour by its product-level name instead.
 
+## Tooltips
+
+Two tooltips exist and the choice between them is not a preference.
+
+**Use the in-app bubble** — `.tt` plus `data-tip` — for an **interactive
+control**: anything a user clicks or focuses. It is styled with the app, appears
+on keyboard focus as well as hover, and is the only one that works on a control
+held inert with `aria-disabled`.
+
+**Keep the native `title`** in four cases, and say why in a comment:
+
+- **Truncation reveals.** Text clipped by CSS whose full value the `title`
+  restores. A `nowrap` bubble would reproduce the truncation it exists to undo.
+- **`<iframe>` titles.** An accessibility attribute naming the frame, not a
+  tooltip. Converting one is a bug.
+- **High-cardinality lists.** A grid of hundreds of cells, where a `::after` per
+  cell is weight for no gain.
+- **No room for the bubble.** Dense grids and open menus, where a bubble covers
+  the neighbouring option the reader is comparing against. Judge this per site,
+  in the running app.
+
+`aria-label` is the accessible name in both cases. It is never replaced by
+`data-tip` or by `title` — a tip that overwrites the name leaves the control
+unnamed to a screen reader.
+
+Placement is per-site: `.tt` hangs below and right-aligned, `.tt-up` opens
+upward for the status bar, `.tt-end` right-aligns it there, `.tt-multi` allows
+more than one line. A control stacked above the page (a map overlay, a floating
+panel) needs its bubble's `z-index` raised to match, or it renders behind what
+the control sits on.
+
 ## Multi-Agent Rules
 
 A single agent owns this repo. The `_agent/` directory tracks live state and

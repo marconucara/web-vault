@@ -56,7 +56,7 @@ export default function Preferences({ onClose }) {
             <Icon name="settings" size={15} />
             {t('preferences.title')}
           </span>
-          <button className="props-close" onClick={onClose} title={t('common.close')}>
+          <button className="props-close tt" onClick={onClose} data-tip={t('common.close')} aria-label={t('common.close')}>
             <Icon name="x" size={16} />
           </button>
         </header>

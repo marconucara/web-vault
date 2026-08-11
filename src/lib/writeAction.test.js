@@ -43,6 +43,14 @@ describe('writeActionProps', () => {
     expect(writeActionProps('on', () => {}, label, offTip).className).toMatch(/\btt\b/);
   });
 
+  it('normalises the class list', () => {
+    // Call sites compose these from template strings with conditional segments,
+    // so an unselected modifier leaves a gap that would otherwise reach the DOM.
+    expect(writeActionProps('on', () => {}, label, offTip, 'badge share-btn  ').className)
+      .toBe('badge share-btn tt');
+    expect(writeActionProps('pending', () => {}, label, offTip, '').className).toBe('');
+  });
+
   it('keeps the control its own classes in every state', () => {
     for (const state of /** @type {const} */ (['on', 'off', 'pending'])) {
       expect(writeActionProps(state, () => {}, label, offTip, 'group-action').className)

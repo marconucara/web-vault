@@ -10,6 +10,7 @@ import { discardDraft } from '../lib/drafts.js';
 import { markDeleted } from '../lib/deleted.js';
 import { longDate, useFormatLocale } from '../lib/formats.js';
 import { useCapabilities } from '../lib/capabilities.js';
+import { writeActionProps } from '../lib/writeAction.js';
 
 // Read-only Properties panel, inspired by Tolaria: Type, scalar properties,
 // relationships (grouped by key), Info (date/words/size), and History (last git
@@ -59,7 +60,8 @@ export default function PropertiesPanel({ note, onClose }) {
   // Live type metadata: it changes as soon as the app writes a type.
   const typeMetaForNote = useTypeMeta(note?.type);
   const { t } = useTranslation();
-  const { canWrite } = useCapabilities();
+  const { canWrite, known } = useCapabilities();
+  const deleteWriteState = canWrite ? 'on' : known ? 'off' : 'pending';
   const formatLocale = useFormatLocale();
   const fmtDate = (ms) => longDate(ms, formatLocale);
   const [confirming, setConfirming] = useState(false);
@@ -114,7 +116,7 @@ export default function PropertiesPanel({ note, onClose }) {
     <aside className="props-panel">
       <header className="props-head">
         <span className="props-title"><Icon name="file-text" size={15} /> {t('properties.title')}</span>
-        <button className="props-close" onClick={onClose} title={t('common.close')}>
+        <button className="props-close tt" onClick={onClose} data-tip={t('common.close')} aria-label={t('common.close')}>
           <Icon name="x" size={16} />
         </button>
       </header>
@@ -188,6 +190,9 @@ export default function PropertiesPanel({ note, onClose }) {
                 ) : (
                   <span className="props-commit-sha">{lc.sha}</span>
                 )}
+                {/* Native `title`: the subject is clipped by CSS and this
+                    restores the full text. A `nowrap` bubble would reproduce
+                    the truncation it exists to undo. */}
                 <span className="props-commit-subject" title={lc.subject}>{lc.subject}</span>
               </div>
             </div>
@@ -195,17 +200,27 @@ export default function PropertiesPanel({ note, onClose }) {
         )}
 
         {/* Danger zone: delete the note (a commit that removes the file).
-            Withheld unless the deployment has confirmed it can write
-            (adr/0034 criteria 11-12) — except for a draft, which is discarded
-            locally and commits nothing. A draft made before the token went away
-            would otherwise be impossible to get rid of. */}
-        {(canWrite || isDraft) && (
+            Present whatever the deployment answers and inert until write access
+            is confirmed (adr/0034 criteria 11-12) — except for a draft, which
+            is discarded locally and commits nothing, so it stays live and
+            untipped. A draft made before the token went away would otherwise be
+            impossible to get rid of. */}
         <>
         <div className="props-sep" />
         <div className="props-group">
           {delErr && <div className="props-del-error"><Icon name="x" size={13} /> {delErr}</div>}
           {!confirming ? (
-            <button className="props-delete" onClick={() => setConfirming(true)}>
+            <button
+              {...(isDraft
+                ? { className: 'props-delete', onClick: () => setConfirming(true), 'aria-label': t('properties.deleteNote') }
+                : writeActionProps(
+                    deleteWriteState,
+                    () => setConfirming(true),
+                    t('properties.deleteNote'),
+                    t('preferences.readOnlyTitle'),
+                    'props-delete'
+                  ))}
+            >
               <Icon name="trash" size={14} /> {t('properties.deleteNote')}
             </button>
           ) : (
@@ -225,7 +240,6 @@ export default function PropertiesPanel({ note, onClose }) {
           )}
         </div>
         </>
-        )}
       </div>
     </aside>
   );

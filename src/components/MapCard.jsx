@@ -36,6 +36,8 @@ export function MapEmbed({ lat, lng, title }) {
   return (
     <iframe
       className="mapcard-map"
+      // NOT a tooltip: an `<iframe>`'s `title` is what names the frame to a
+      // screen reader. Converting it to `.tt` would be a bug, not a migration.
       title={title || t('mapCard.mapFrame')}
       src={osmSrc(lat, lng)}
       loading="lazy"
@@ -150,6 +152,10 @@ export default function MapCard({ token, group = 0, editor, block }) {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
+        // Native `title`: the card is full-width and stacked against the next
+        // one, so a bubble anchored under it lands on that neighbour. The card
+        // already shows its own title and address — the tip only names the
+        // action, and is not worth covering the list for.
         title={t('mapCard.openTip')}
         onClick={onClick}
       >

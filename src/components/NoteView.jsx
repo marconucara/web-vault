@@ -87,6 +87,8 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
           <button className="back" onClick={onBack}>← {t('noteView.back')}</button>
         )}
         {modified && (
+          // Native `title`: a non-focusable span, so `.tt`'s `:focus-visible`
+          // half would never fire and the tip would be mouse-only.
           <span className="mod-flag" title={t('noteView.uncommittedChanges')}>
             ● {isDraft ? t('noteView.flagNew') : t('noteView.flagChanged')}
           </span>
@@ -139,7 +141,11 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
               ))}
             </span>
           ))}
-          {!isDraft && canWrite && <ShareSheet note={note} />}
+          {/* Shown whatever the deployment answers, inert until write access is
+              confirmed (adr/0034 criteria 11-12) — ShareSheet reads the
+              capability itself. Still hidden for a draft, which has no note to
+              share until it is committed. */}
+          {!isDraft && <ShareSheet note={note} />}
         </div>
         {raw ? (
           <Editor value={body} onChange={onBodyChange} readOnly={!canWrite} />
