@@ -198,4 +198,4 @@ offset, and the copy affordance.
 
 ---
 
-Shipped at HEAD `ec54fb8`. Unreleased — rides the next tag.
+Shipped at HEAD `ec54fb8`, released as `v0.10.0`.

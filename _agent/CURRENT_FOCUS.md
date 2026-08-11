@@ -12,21 +12,23 @@ If status files and git disagree, git is authoritative; correct this file.
 - **Active item:** none in flight. **The queue is empty** — type visibility
   (`done/2026-08-11-type-visibility`) is the most recent item.
 - **Blockers:** none.
-- **Uncommitted work:** **yes — ADR `0046` and its implementation are in the
-  working tree, unsigned and uncommitted, awaiting the owner's manual test**
-  (exit criterion 13). `yarn verify` is green. Nothing is staged.
+- **Uncommitted work:** none.
 
 ## Release state
 
-- **Unreleased on `main`:** ADR `0046`, type visibility (plan
-  `done/2026-08-11-type-visibility`) — *pending commit, see Uncommitted work*.
+- **Current tag: `v0.10.0`** — ADR `0046`, type visibility (plan
+  `done/2026-08-11-type-visibility`).
   A type document carrying `visible: false` is kept out of the sidebar, and a
   manager opened from the Types heading lists every type, hidden included, with
-  a switch each. A **patch** when cut, per `0037`: no adopter-facing contract
-  moves. `visible` was already Tolaria's key and already present in real vaults,
-  so this makes web-vault honour a format it was ignoring rather than inventing
-  one; a vault that never carried the key renders exactly as before and is not
-  written to until a toggle is used.
+  a switch each. `visible` was already Tolaria's key and already present in real
+  vaults, so this makes web-vault honour a format it was ignoring rather than
+  inventing one; a vault that never carried the key renders exactly as before
+  and is not written to until a toggle is used.
+  - **The tag is a minor because of `0044`, not because of this.** Type
+    visibility on its own is a patch — nothing in the adopter-facing contract
+    moves. It does not travel alone: the heading anchors had been sitting
+    unreleased on `main` since 2026-08-11, and `0037` puts a contract addition
+    on the minor, so the first tag cut after them carries that weight.
   - **The key is bare `visible`, and `_visible` is deliberately NOT an alias**,
     unlike `icon`/`color`/`order`. Tolaria writes and reads only the bare
     spelling — confirmed by toggling from its own UI and reading the file — so
@@ -41,14 +43,14 @@ If status files and git disagree, git is authoritative; correct this file.
   - **Showing removes the key rather than writing `visible: true`**, so
     hide-then-show returns the file byte-identical (pinned by a test) and files
     are never littered with a key stating the default.
-- **Unreleased on `main`:** ADR `0044`, heading anchors in the URL (plan
+- **Also in `v0.10.0`:** ADR `0044`, heading anchors in the URL (plan
   `done/2026-08-11-heading-anchors-in-the-url`). The hash now addresses a note
   and, optionally, a heading within it (`#/n/<id>#<slug>`), on the same slug
   rule in the editor and on the share pages, with a hover affordance that copies
-  the link. A **minor** when cut, per `0037`: `#/n/<id>` is unchanged and every
-  existing link still resolves, but the anchor half of the grammar and the slug
-  rule become a compatibility surface the moment a vault author writes one, so
-  it is a contract addition rather than a fix.
+  the link. **This is what makes the tag a minor** per `0037`: `#/n/<id>` is
+  unchanged and every existing link still resolves, but the anchor half of the
+  grammar and the slug rule become a compatibility surface the moment a vault
+  author writes one, so it is a contract addition rather than a fix.
   - Two divergences are deliberate and pinned by tests, not defects to chase:
     duplicate headings share an id in the editor (its `render` sees one block
     and has no document-wide counter) while the share pages number them
@@ -60,7 +62,7 @@ If status files and git disagree, git is authoritative; correct this file.
     which cannot hold focus. Accepted so the editor DOM stays untouched; a
     focusable control would have to live outside it, and is deferred in `0044`
     along with the same affordance on the share pages.
-- **Current tag: `v0.9.1`** — a wikilink inside a table cell is a link again
+- **`v0.9.1`** — a wikilink inside a table cell is a link again
   (plan `done/2026-08-10-wikilinks-inside-a-table`). A table's content is a
   `tableContent` object, not an inline array, so the guard that maps a block's
   inline content skipped every cell: the ‹…› token showed on screen verbatim

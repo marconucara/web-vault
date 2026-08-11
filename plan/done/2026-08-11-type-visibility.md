@@ -136,3 +136,7 @@ are now criteria 11 and 12.
 29 new tests across `src/lib/types.test.js`, `src/lib/typeCommit.test.js`,
 `functions/commit.test.js` and the new `src/components/typeVisibility.test.jsx`.
 396 total, `yarn verify` green.
+
+---
+
+Shipped at HEAD `f528ce3`, released as `v0.10.0`.
