@@ -2,11 +2,16 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import BrandMark from './BrandMark.jsx';
+import { writeActionProps } from '../lib/writeAction.js';
 
 // `types` here is the VISIBLE list (adr/0046): the manager gets the full one, so
 // a hidden type can be found and switched back on.
-export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, showInbox = true, onSelect, onNewType, onEditType, onManageVisibility }) {
+export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, showInbox = true, onSelect, onNewType, onEditType, onManageVisibility, writeState = /** @type {'on' | 'off' | 'pending'} */ ('pending') }) {
   const { t } = useTranslation();
+  // Named for the state, not for the fix: what a commit action says when the
+  // deployment has confirmed it cannot write. The reason lives in preferences,
+  // where the full notice already is (adr/0034 criterion 12).
+  const offTip = t('preferences.readOnlyTitle');
   const isSel = (kind, id) => selection.kind === kind && selection.id === id;
   const Count = ({ n }) =>
     n != null ? <span className="count-badge">{n}</span> : null;
@@ -69,22 +74,21 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
             and the pair at the other — with three direct children it would
             spread the eye into the middle of the row instead. Visibility first,
             then create: the order Tolaria uses. */}
+        {/* Both actions are always rendered, inert until write access is
+            confirmed (adr/0034 criteria 11-12). They used to be withheld, which
+            made this heading grow when the answer landed and pushed every type
+            row below it down. */}
         <span className="group-actions">
-          {onManageVisibility && (
-            <button
-              className="group-action"
-              onClick={onManageVisibility}
-              title={t('sidebar.showOrHideTypes')}
-              aria-label={t('sidebar.showOrHideTypes')}
-            >
-              <Icon name="toggle-left" size={14} />
-            </button>
-          )}
-          {onNewType && (
-            <button className="group-action" onClick={onNewType} title={t('sidebar.newType')} aria-label={t('sidebar.newType')}>
-              <Icon name="plus" size={14} />
-            </button>
-          )}
+          <button
+            {...writeActionProps(writeState, onManageVisibility, t('sidebar.showOrHideTypes'), offTip, 'group-action')}
+          >
+            <Icon name="toggle-left" size={14} />
+          </button>
+          <button
+            {...writeActionProps(writeState, onNewType, t('sidebar.newType'), offTip, 'group-action')}
+          >
+            <Icon name="plus" size={14} />
+          </button>
         </span>
       </div>
       {/* The map variable is `name`, not `t`: `t` is the translation function in
@@ -100,16 +104,11 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
             {/* Edit sits before the badge so the count keeps the right edge it
                 holds on every other row; the button occupies the gap the label
                 leaves, and is only visible on hover. */}
-            {onEditType && (
-              <button
-                className="nav-edit"
-                onClick={() => onEditType(name)}
-                title={t('sidebar.editType', { name })}
-                aria-label={t('sidebar.editType', { name })}
-              >
-                <Icon name="edit" size={13} />
-              </button>
-            )}
+            <button
+              {...writeActionProps(writeState, () => onEditType(name), t('sidebar.editType', { name }), offTip, 'nav-edit')}
+            >
+              <Icon name="edit" size={13} />
+            </button>
             <Count n={counts[`type:${name}`]} />
           </div>
         );

@@ -50,13 +50,19 @@ export default function App() {
   const { t } = useTranslation();
   const showInbox = useShowInbox();
   // Write access gates every commit action below (adr/0034 criteria 11-12).
-  // Actions appear only once it is CONFIRMED, so the unanswered case and the
-  // negative one collapse into one positive test and neither shows an action
-  // that would fail. VersionIndicator kicks the same fetch off; the store
-  // de-duplicates, so asking here costs nothing and does not depend on the
-  // status bar having mounted first.
-  const { canWrite } = useCapabilities();
+  // It gates their STATE, not their presence: an action that would fail is
+  // shown inert rather than withheld, so neither the unanswered case nor the
+  // negative one moves the interface. VersionIndicator kicks the same fetch
+  // off; the store de-duplicates, so asking here costs nothing and does not
+  // depend on the status bar having mounted first.
+  const { canWrite, known } = useCapabilities();
   useEffect(() => { loadCapabilities(); }, []);
+  // What the commit actions render as (adr/0034 criteria 11-12). All three
+  // states are present in the DOM, so the answer landing never reflows the rows
+  // around them; only the state differs. `pending` and `off` both render inert,
+  // and are distinct only in that `off` is a settled answer the tooltip can
+  // state — while the probe is in flight there is nothing true to say yet.
+  const writeState = canWrite ? 'on' : known ? 'off' : 'pending';
   const pending = usePending();
   const draftMap = useDrafts();
   const deleted = useDeleted();
@@ -303,25 +309,24 @@ export default function App() {
       selection={selection}
       showInbox={showInbox}
       onSelect={onSelect}
-      // Type management writes to the vault, so it is offered only once the
-      // deployment has confirmed it can write. Withholding the prop removes the
-      // control outright — these are all already rendered behind a guard — which
-      // is the point: a disabled button asks a question the notice in
-      // preferences already answers, once, in one place.
-      onNewType={canWrite ? () => setTypePanel({ mode: 'create' }) : null}
-      onEditType={canWrite ? (name) => setTypePanel({ mode: 'edit', name }) : null}
-      onManageVisibility={canWrite ? () => setVisibilityOpen(true) : null}
+      // Type management writes to the vault, so it is inert until the
+      // deployment confirms it can write — but it is always RENDERED
+      // (adr/0034 criteria 11-12). Withholding the prop used to remove the
+      // control, which meant the answer arriving changed the height of the
+      // Types heading and pushed every type row below it down. The controls
+      // hold their place and change state in it; `writeState` carries which
+      // state, and the tooltip explains it.
+      onNewType={() => setTypePanel({ mode: 'create' })}
+      onEditType={(name) => setTypePanel({ mode: 'edit', name })}
+      onManageVisibility={() => setVisibilityOpen(true)}
+      writeState={writeState}
     />
   );
-
-  // Creating a note ends in a commit, so it follows the same rule as the type
-  // actions above: offered only once write access is confirmed.
-  const onNewIfWritable = canWrite ? onNew : null;
 
   const main = isDesktop ? (
     <div className="app">
       {sidebar}
-      <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNewIfWritable} typeMeta={typeMeta} />
+      <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNew} writeState={writeState} typeMeta={typeMeta} />
       <NoteView note={note} titleIndex={titleIndex} onBack={null} />
     </div>
   ) : (
@@ -340,7 +345,7 @@ export default function App() {
             <button className="hamburger" onClick={() => setNavOpen(true)}>☰</button>
             <span className="topbar-title">{title}</span>
           </header>
-          <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNewIfWritable} typeMeta={typeMeta} />
+          <NoteList title={title} notes={list} openId={openId} onOpen={openNote} onNew={onNew} writeState={writeState} typeMeta={typeMeta} />
         </div>
       )}
     </div>

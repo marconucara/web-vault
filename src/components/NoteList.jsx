@@ -4,6 +4,7 @@ import Icon from './Icon.jsx';
 import { lookupTypeMeta } from '../lib/typeMetaContext.jsx';
 import { sortNotes } from '../lib/views.js';
 import { shortDate, useFormatLocale } from '../lib/formats.js';
+import { writeActionProps } from '../lib/writeAction.js';
 
 // Sortable fields in the dropdown (mapped to the `kind` values of sortNotes in
 // lib/views.js). The label is a KEY, resolved at render: a module-level constant
@@ -15,7 +16,7 @@ const SORT_OPTS = [
   { key: 'status', labelKey: 'noteList.sortStatus' },
 ];
 
-export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta }) {
+export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta, writeState = /** @type {'on' | 'off' | 'pending'} */ ('pending') }) {
   const { t } = useTranslation();
   const formatLocale = useFormatLocale();
   const fmtDate = (ms) => shortDate(ms, formatLocale);
@@ -116,19 +117,14 @@ export default function NoteList({ title, notes, openId, onOpen, onNew, typeMeta
           >
             <Icon name="search" size={16} />
           </button>
-          {onNew && (
-            <button
-              // `list-new` carries the fade-in only: this button arrives once
-              // write access is confirmed, while the search beside it is there
-              // from the first paint and must not flicker (adr/0034).
-              className="list-btn icon-only list-new"
-              onClick={onNew}
-              title={t('noteList.newNote')}
-              aria-label={t('noteList.newNote')}
-            >
-              <Icon name="plus" size={16} />
-            </button>
-          )}
+          {/* Always rendered, inert until write access is confirmed (adr/0034
+              criteria 11-12). It used to arrive with the answer, which changed
+              the height of this header. */}
+          <button
+            {...writeActionProps(writeState, onNew, t('noteList.newNote'), t('preferences.readOnlyTitle'), 'list-btn icon-only')}
+          >
+            <Icon name="plus" size={16} />
+          </button>
         </div>
         <span className="count-badge">{shown.length}</span>
       </div>

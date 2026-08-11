@@ -9,16 +9,41 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** — the client
-  preferences modal (`done/2026-08-11-client-preferences-modal`) is the most
-  recent item.
+- **Active item:** none in flight. `done/2026-08-11-commit-actions-hold-their-place`
+  is the most recent item.
+- **Queued:** `todo/0002-one-tooltip-across-the-interface` — migrate the
+  remaining native `title` attributes onto the in-app `.tt` bubble, write the
+  rule down in `CONVENTIONS.md`, and close criteria 11-12 on share and delete,
+  which `0001` deliberately left absent.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 - **Unreleased on `main`:** nothing.
 
 ## Release state
 
-- **Current tag: `v0.11.0`** — ADRs `0034` (client preferences) and `0047` (the
+- **Current tag: `v0.11.1`** — ADR `0034` r5: commit actions hold their place.
+  They are rendered whatever the deployment answers and go inert until write
+  access is confirmed, tipped *Editing is off* once the answer is settled.
+  - **A patch, not a minor.** Nothing in the adopter-facing contract moved —
+    same CLI, same config, same vault layout, same endpoint. What changed is how
+    one state is drawn.
+  - **This reverses r4, which was three days old and deliberate.** The absence
+    rule was sound on its own terms and wrong in the app: withholding a control
+    until the probe answers makes it *arrive*, and arriving reflows every row
+    below it. Criterion 10 already forbade exactly that for the note body; the
+    controls had simply been left out of the reasoning. Found by using the
+    shipped feature, not by reading it.
+  - **`aria-disabled`, never `disabled`.** The attribute suppresses hover and
+    focus, so a natively disabled control is mute exactly when it is asked to
+    explain itself — which makes "disabled plus tooltip" impossible the obvious
+    way. It is also advisory, so the handler must be swallowed explicitly.
+  - **Three collisions with rules that already existed**, all invisible to the
+    tests and all found by hand: `opacity` on a button dims its own `::after`
+    tooltip; a class-based `:hover` outranks a bare attribute selector, so one
+    `+` lit up and its twin did not; `.tt` without `data-tip` paints an empty
+    bubble. Any CSS state added to an existing control wants a pass over what
+    that control's classes already assert.
+- **Previous tag: `v0.11.0`** — ADRs `0034` (client preferences) and `0047` (the
   UI language layer), released together: `0047` had been sitting unreleased on
   `main` and `0034` is what gives it a control.
   A modal opened from the status bar holds this browser's preferences —

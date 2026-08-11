@@ -143,6 +143,12 @@ a:hover { text-decoration: underline; }
 .nav-item-row:hover .nav-edit,
 .nav-edit:focus-visible { opacity: 1; }
 .nav-edit:hover { background: var(--bg); color: var(--text); }
+/* This row's edit is hidden at rest, so it reveals on hover like the live one —
+   the space is already reserved either way — and is dimmed only once revealed.
+   The dimming is on the icon, not the button: the button's own `opacity` would
+   take the tooltip with it (see the inert rules further down). */
+.nav-item-row:hover .nav-edit[aria-disabled='true'] > .icon,
+.nav-edit[aria-disabled='true']:focus-visible > .icon { opacity: 0.45; }
 .group-label-row {
   display: flex;
   align-items: center;
@@ -372,6 +378,17 @@ a:hover { text-decoration: underline; }
   align-items: center;
   gap: 5px;
   cursor: pointer;
+  /* Share is the one commit action still withheld rather than made inert
+     (adr/0034 criterion 11): it sits at the end of an inline row, so its
+     absence costs no layout, and a note that cannot be shared reads better
+     without it. That leaves it the only control that still ARRIVES with the
+     answer, so it fades rather than snapping in — the softening the removed
+     `wv-fade-in` used to give the controls that no longer arrive at all. */
+  animation: share-fade-in 220ms ease both;
+}
+@keyframes share-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .badge.share-btn { animation: none; }
 }
 .badge.share-btn:hover,
 .badge.share-btn.active { border-color: var(--accent); color: var(--accent); }
@@ -1746,19 +1763,47 @@ a:hover { text-decoration: underline; }
 .pf-notice strong { display: block; margin-bottom: 3px; font-size: 13px; }
 .pf-notice p { margin: 0; color: var(--text-dim); line-height: 1.45; }
 
-/* Commit actions appear only once write access is confirmed, which can land a
-   moment after the first paint. The fade makes that arrival read as the
-   interface settling rather than as a control popping in. Motion is skipped for
-   readers who ask for less of it — losing the fade costs them nothing. */
-@keyframes wv-fade-in { from { opacity: 0; } to { opacity: 1; } }
-.list-new,
-.group-action { animation: wv-fade-in 180ms ease both; }
-@media (prefers-reduced-motion: reduce) {
-  .list-new,
-  .group-action { animation: none; }
+/* A commit action is rendered whatever the deployment answers, and goes inert
+   when the answer is no or has not arrived (adr/0034 criteria 11-12). It is
+   dimmed rather than removed, so confirmation changes how the control looks and
+   never where anything sits. `[aria-disabled]` and not `:disabled` — the
+   attribute would suppress the hover the tooltip needs.
+
+   The dimming lands on the ICON, not on the button. `opacity` on the button
+   applies to the whole subtree, and the tooltip bubble is a child of it
+   (`.tt::after`), so dimming the button dims the very explanation the inert
+   state exists to offer. */
+[aria-disabled='true'] {
+  cursor: default;
+  transition: color 180ms ease;
 }
-/* Not faded: preferences is not gated on write access — it is the one control
-   that must be there precisely when everything else is missing. */
+[aria-disabled='true'] > .icon {
+  opacity: 0.45;
+  transition: opacity 180ms ease;
+  /* A lazily-loaded icon arrives with `icon-fade-in`, which animates to
+     `opacity: 1` and outranks the static value above while it runs — the icon
+     would flash at full strength for its duration. It has nothing to fade in
+     from here: the control was on screen all along. */
+  animation: none;
+}
+/* Hover and focus still reach it — that is the point, it has a tooltip — but
+   the control must not light up as though it were live. These override the
+   per-component hover rules (`.list-btn:hover`, `.group-action:hover`), each of
+   which is a class and so outranks a bare attribute selector; the class is
+   repeated here to win on specificity rather than with `!important`. */
+[aria-disabled='true']:hover,
+.list-btn[aria-disabled='true']:hover,
+.group-action[aria-disabled='true']:hover,
+.nav-edit[aria-disabled='true']:hover {
+  background: none;
+  color: var(--text-dim);
+}
+@media (prefers-reduced-motion: reduce) {
+  [aria-disabled='true'],
+  [aria-disabled='true'] > .icon { transition: none; }
+}
+/* Never inert: preferences is not gated on write access — it is the one control
+   that must work precisely when everything else does not. */
 .sb-prefs { color: var(--text-dim); cursor: pointer; }
 .sb-prefs:hover { background: var(--bg-active); color: var(--text); }
 

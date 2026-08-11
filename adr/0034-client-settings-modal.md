@@ -55,10 +55,12 @@ The modal is also where a deployment that **cannot commit** explains itself:
 when the capability endpoint reports no write access, a notice states that the
 deployment is missing its GitHub secret and that the secret is added at the
 deployment, not in the app. There is never a field to enter it. In that state
-every action that would commit is absent throughout the app, so a user is not
-invited to make changes that can never be saved. The note body itself is never
-withheld while the answer is outstanding: it renders read-only and relaxes into
-writing once write access is confirmed.
+every action that would commit is disabled throughout the app and says so in a
+tooltip, so a user is not invited to make changes that can never be saved. Those
+actions keep their place whatever the answer, so the answer arriving never
+shifts the interface under the reader. The note body itself is never withheld
+while the answer is outstanding: it renders read-only and relaxes into writing
+once write access is confirmed.
 
 ## User stories / scenarios
 
@@ -68,10 +70,12 @@ writing once write access is confirmed.
   `11 Aug 2026` rather than being given the American order — and I can change
   the format without changing the language.
 - As a user, I can hide the Inbox view when my vault does not use `_organized`.
-- As a user on an instance whose deployment has no token, I am shown no action
-  that would fail — no edit, no new note, no share — and when I go looking for
-  the reason I find it in preferences: the deployment is missing a secret, and I
-  am told where it goes.
+- As a user on an instance whose deployment has no token, no action that would
+  fail is offered to me — edit, new note and share are all visibly unavailable
+  rather than missing — and hovering one tells me editing is off, so I know the
+  instance is read-only rather than wondering where its controls went. When I go
+  looking for the reason I find it in preferences: the deployment is missing a
+  secret, and I am told where it goes.
 - As a maintainer, adding a translated catalogue makes its language appear in
   the selector without touching the modal.
 
@@ -121,13 +125,22 @@ writing once write access is confirmed.
     must not change the rendered height of the body, so that following a link to
     a heading is unaffected (`adr/0044-what-the-url-addresses.md`).
 11. Every action that would commit — new note, new type, edit type, share,
-    delete — is present **only** when the deployment has confirmed write access:
-    absent while the answer is outstanding, absent when the answer is no. They
-    appear on confirmation with a short fade, so arriving late reads as the
-    interface settling rather than as something popping in.
-12. Actions withheld under criterion 11 are **absent, not disabled**. A disabled
-    control raises a question the app then has to answer next to each one, where
-    the answer already lives in one place. There is no preference that overrides
+    delete — is **present at all times and inert until** the deployment has
+    confirmed write access: inert while the answer is outstanding, inert when
+    the answer is no. Presence is unconditional so that the answer arriving
+    never changes the layout: a control that appears late reflows everything
+    below it, which is what criterion 10 already forbids for the body and which
+    applies no less to the controls around it. They become live on confirmation
+    through a short transition on the control itself, so relaxing into writing
+    reads as the interface settling rather than as something popping in.
+12. Actions held inert under criterion 11 are **disabled, not absent**, and each
+    carries a tooltip naming the state in one line. A disabled control does
+    raise a question, and the tooltip is where the app answers it; the full
+    explanation is not repeated beside each one, but stays in this modal, which
+    is the one place that holds it. Inert means `aria-disabled` with the action
+    not firing — not the `disabled` attribute, which suppresses the hover and
+    focus events the tooltip needs, leaving the control mute at exactly the
+    moment it is asked to explain itself. There is no preference that overrides
     criteria 10-12.
 
 ## Out of scope
@@ -135,7 +148,10 @@ writing once write access is confirmed.
 - Setting, entering, or rotating the GitHub token from the client — it is a
   deploy secret and is never accepted in the browser.
 - Any override of the read-only state: criteria 10-12 are unconditional.
-- Disabled-but-visible commit actions. The choice is presence or absence.
+- Commit actions that appear and disappear with the answer. They hold their
+  place and change state in it (criteria 11-12).
+- Repeating the full token explanation in each tooltip. The tooltip names the
+  state; the reason lives in this modal.
 - A free-text BCP-47 field for the format: the selector offers the curated list
   plus `Auto`.
 - Deriving the format list from the shipped catalogues, or from the regions of
@@ -180,6 +196,7 @@ writing once write access is confirmed.
 | 2026-08-06 | r2 | marco | Resolved the open question: commit availability is read at runtime from a capability endpoint, not baked into the build. Settled and implemented under `adr/0039-*.md`, which consumes the same signal. No change to this ADR's scope or criteria. |
 | 2026-08-11 | r3 | marco | Retitled and rescoped ahead of implementation, now that `adr/0047-*.md` has shipped the layer this modal controls. The token becomes a conditional notice rather than a status line, and the editor gating loses its "by default" — there is no override. The language selector is specified as dynamic over the shipped catalogues, and a second selector is added for the formatting locale, which 0047 established as a separate decision. Criteria restated from 5 to 10. |
 | 2026-08-11 | r4 | marco | Settled four points raised while planning. The body and the commit actions are split, because one is content and the other is controls: the body always renders, read-only until write access is confirmed, so an unanswered endpoint can only relax into writing and the heading-anchor scroll gains no extra reflow; the actions are withheld until write access is *confirmed* — absent while the answer is outstanding, not only when it is no — and fade in on confirmation. They are **removed** rather than disabled, and the gating is stated over all of them, not the editor alone. Hiding the selected Inbox now leaves that list open, aligning with `adr/0046-*.md` instead of diverging from it. Criteria 10 to 12. |
+| 2026-08-11 | r5 | marco | Reversed r4's absence rule after using the shipped feature: withholding the commit actions until the answer arrives makes them appear late, which reflows the rows below and visibly shifts the sidebar's type list and the note list header. Criterion 10 already forbade exactly this for the body; the controls had been left out of that reasoning. They are now present at all times and disabled until write access is confirmed, each with a one-line tooltip — which is also the answer to r4's objection that a disabled control raises a question. Inert is `aria-disabled`, not the `disabled` attribute, which would suppress the tooltip's own hover. The fade on arrival goes with the arrival it described, replaced by a transition between states. Criteria 11 and 12 rewritten. |
 
 ## Approvals
 

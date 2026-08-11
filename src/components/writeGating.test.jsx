@@ -3,13 +3,18 @@ import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-// Commit actions appear only once write access is CONFIRMED (adr/0034,
-// criteria 11-12).
+// Commit actions are always PRESENT and go inert until write access is
+// confirmed (adr/0034, criteria 11-12 as revised at r5).
 //
 // The three-state property is the point, and it is the one a `!canWrite` test
-// would miss: "not asked yet" and "asked, cannot write" both withhold, so a
-// cold load never shows an action that is about to vanish, and a deployment
-// without a token never shows one that would fail.
+// would miss: "not asked yet" and "asked, cannot write" both render inert, so a
+// cold load never offers an action that would fail. What separates them is the
+// tooltip — only a settled `off` has something true to say.
+//
+// The property these tests exist to hold is that NOTHING unmounts with the
+// answer: a control that arrives late reflows every row below it, which is the
+// bug r5 reverses. Assert presence in all three states, not just behaviour in
+// one.
 
 vi.mock('../content.js', () => ({ build: null, notes: [], titleIndex: {}, idTitle: {}, maps: {} }));
 
@@ -35,39 +40,69 @@ const noteList = (props) =>
   );
 
 describe('commit actions under each capability state', () => {
-  it('offers type management once write access is confirmed', () => {
-    const html = sidebar({
-      onNewType: () => {},
-      onEditType: () => {},
-      onManageVisibility: () => {},
-    });
+  const acts = { onNewType: () => {}, onEditType: () => {}, onManageVisibility: () => {} };
+
+  // The regression this file exists to prevent. Presence must not depend on the
+  // answer, in either direction: a control that appears when write access lands
+  // pushes every row below it down, which is what criterion 11 forbids.
+  it.each(/** @type {const} */ (['on', 'off', 'pending']))('renders every type action when write is %s', (writeState) => {
+    const html = sidebar({ ...acts, writeState });
     expect(html).toContain('New type');
     expect(html).toContain('Show or hide types');
+    // Interpolated per row — the label names the type it edits.
+    expect(html).toContain('Edit Person');
   });
 
-  it('withholds type management when the props are not passed', () => {
-    // Which is what App does in both the unanswered and the read-only case.
-    const html = sidebar({ onNewType: null, onEditType: null, onManageVisibility: null });
-    expect(html).not.toContain('New type');
-    expect(html).not.toContain('Show or hide types');
-  });
-
-  it('removes the action rather than disabling it', () => {
-    // A disabled control raises a question the app then has to answer next to
-    // each one, where the notice in preferences already answers it once.
-    const html = sidebar({ onNewType: null, onEditType: null, onManageVisibility: null });
-    expect(html).not.toContain('disabled');
-  });
-
-  it('offers new note once write access is confirmed', () => {
-    expect(noteList({ onNew: () => {} })).toContain('New note');
-  });
-
-  it('withholds new note otherwise, keeping search in place', () => {
-    const html = noteList({ onNew: null });
-    expect(html).not.toContain('New note');
-    // Search is not a write action and must not flicker with the answer.
+  it.each(/** @type {const} */ (['on', 'off', 'pending']))('renders new note when write is %s', (writeState) => {
+    const html = noteList({ onNew: () => {}, writeState });
+    expect(html).toContain('New note');
+    // Search is not a write action and must not move with the answer either.
     expect(html).toContain('Search');
+  });
+
+  it('leaves the actions live when write access is confirmed', () => {
+    expect(sidebar({ ...acts, writeState: 'on' })).not.toContain('aria-disabled');
+    expect(noteList({ onNew: () => {}, writeState: 'on' })).not.toContain('aria-disabled');
+  });
+
+  it.each(/** @type {const} */ (['off', 'pending']))('holds the actions inert when write is %s', (writeState) => {
+    expect(sidebar({ ...acts, writeState })).toContain('aria-disabled="true"');
+    expect(noteList({ onNew: () => {}, writeState })).toContain('aria-disabled="true"');
+  });
+
+  it('never uses the disabled attribute, which would suppress the tooltip', () => {
+    // `disabled` emits no hover or focus events, so the control would be mute
+    // exactly when it is asked to explain itself (criterion 12).
+    for (const writeState of /** @type {const} */ (['on', 'off', 'pending'])) {
+      expect(sidebar({ ...acts, writeState })).not.toContain('disabled=""');
+      expect(noteList({ onNew: () => {}, writeState })).not.toContain('disabled=""');
+    }
+  });
+});
+
+describe('what an inert action says', () => {
+  const acts = { onNewType: () => {}, onEditType: () => {}, onManageVisibility: () => {} };
+
+  it('states that editing is off once the answer is known', () => {
+    const html = sidebar({ ...acts, writeState: 'off' });
+    expect(html).toContain('Editing is off');
+    // The reason stays in preferences; the tooltip names the state only.
+    expect(html).not.toContain('GITHUB_TOKEN');
+  });
+
+  it('says nothing while the probe is still in flight', () => {
+    // There is no settled answer yet, so claiming editing is off would be a
+    // statement the app cannot make.
+    expect(sidebar({ ...acts, writeState: 'pending' })).not.toContain('Editing is off');
+    expect(noteList({ onNew: () => {}, writeState: 'pending' })).not.toContain('Editing is off');
+  });
+
+  it('keeps the control its own accessible name in every state', () => {
+    // The tip explains the state; overwriting the name with it would leave the
+    // control unnamed to a screen reader.
+    for (const writeState of /** @type {const} */ (['on', 'off', 'pending'])) {
+      expect(sidebar({ ...acts, writeState })).toContain('aria-label="New type"');
+    }
   });
 });
 
