@@ -13,6 +13,7 @@ import { useLocalNotes, reconcileLocal } from './lib/localNotes.js';
 import { deriveTypes, contentOnly, sameTypeName } from './lib/types.js';
 import { TypeMetaProvider } from './lib/typeMetaContext.jsx';
 import TypePanel from './components/TypePanel.jsx';
+import TypeVisibility from './components/TypeVisibility.jsx';
 import { parseNoteHash, noteHash } from './lib/headingSlug.js';
 
 // Vault saved views minus those whose id is owned by a built-in view (adr/0033).
@@ -85,10 +86,14 @@ export default function App() {
 
   // Types derived from the live set, so a type created, renamed or deleted from
   // the app is visible before the next build (adr/0045, criteria 13-14).
-  const { names: types, meta: typeMeta, declared: declaredTypeNames } = useMemo(
-    () => deriveTypes(liveNotes),
-    [liveNotes]
-  );
+  // `types` is every type, for the visibility manager; `visibleTypes` is what the
+  // sidebar renders (adr/0046, criteria 1, 4).
+  const {
+    names: types,
+    visibleNames: visibleTypes,
+    meta: typeMeta,
+    declared: declaredTypeNames,
+  } = useMemo(() => deriveTypes(liveNotes), [liveNotes]);
 
   // What the lists show: everything except the Type documents (criterion 12).
   const liveContent = useMemo(() => contentOnly(liveNotes), [liveNotes]);
@@ -257,6 +262,9 @@ export default function App() {
 
   // Type management (adr/0045): `{ mode, name }`, or null when the panel is shut.
   const [typePanel, setTypePanel] = useState(/** @type {{ mode: string, name?: string } | null} */ (null));
+  // The visibility manager (adr/0046), a surface of its own so that hiding a
+  // type never removes the only way back to it.
+  const [visibilityOpen, setVisibilityOpen] = useState(false);
 
   // The Type document behind a name, when one declares it. A type only the notes
   // carry has none: the panel opens prefilled with its name and creates it.
@@ -268,13 +276,14 @@ export default function App() {
   const sidebar = (
     <Sidebar
       views={vaultViews}
-      types={types}
+      types={visibleTypes}
       typeMeta={typeMeta}
       counts={counts}
       selection={selection}
       onSelect={onSelect}
       onNewType={() => setTypePanel({ mode: 'create' })}
       onEditType={(name) => setTypePanel({ mode: 'edit', name })}
+      onManageVisibility={() => setVisibilityOpen(true)}
     />
   );
 
@@ -327,6 +336,17 @@ export default function App() {
             onDeleted={() => {
               setSelection((s) => (s.kind === 'type' && s.id === typePanel.name ? { kind: 'all' } : s));
             }}
+          />
+        )}
+        {/* Hiding the selected type deliberately leaves the open list alone
+            (adr/0046, criterion 12): the reader's position is not a consequence
+            of tidying the sidebar. */}
+        {visibilityOpen && (
+          <TypeVisibility
+            types={types}
+            typeMeta={typeMeta}
+            notes={liveNotes}
+            onClose={() => setVisibilityOpen(false)}
           />
         )}
       </div>

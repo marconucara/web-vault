@@ -27,6 +27,11 @@ export function isTypeDoc(note) {
 // accepted under a leading underscore: that is Tolaria's convention for keys the
 // app owns, and real vaults carry both spellings. The panel always writes the
 // un-prefixed form.
+//
+// `visible` is the exception: NO underscore alias (adr/0046, criterion 2).
+// Tolaria writes and reads only the bare spelling — verified by toggling it from
+// its own UI — so honouring `_visible` would hide a type here that stays visible
+// there, off a key Tolaria never wrote.
 export function typeDocMeta(note) {
   const fm = note?.frontmatter || {};
   const order = fm.order ?? fm._order;
@@ -36,8 +41,18 @@ export function typeDocMeta(note) {
     color: fm.color || fm._color || null,
     // Only a finite number orders anything; anything else sorts as "no order".
     order: typeof n === 'number' && Number.isFinite(n) ? n : null,
+    visible: isVisibleFrontmatter(fm),
     path: note?.path ?? null,
   };
+}
+
+// Only `false` hides. The key absent, `true`, or anything else means visible
+// (adr/0046, criterion 3): absence is the default, so a vault that never carried
+// the key reads exactly as it did before. The string `'false'` counts too — YAML
+// quoted by hand, or a value that survived a round-trip as text.
+export function isVisibleFrontmatter(fm) {
+  const v = fm?.visible;
+  return !(v === false || v === 'false');
 }
 
 // Metadata per declared type name. A Type document with no H1 declares nothing
@@ -128,9 +143,17 @@ export function orderTypes(names, meta) {
 
 // The whole derivation in one pass over the live notes.
 //
-//   names    — ordered union of declared and used, for the sidebar
-//   meta     — presentation metadata by name (declared types only)
-//   declared — Set of names an actual Type document backs
+//   names        — ordered union of declared and used: EVERY type, hidden ones
+//                  included, which is what the visibility manager lists
+//   visibleNames — the same order, minus the types hidden by `visible: false`;
+//                  what the sidebar renders (adr/0046, criterion 1)
+//   meta         — presentation metadata by name (declared types only)
+//   declared     — Set of names an actual Type document backs
+//
+// The hidden ones are filtered OUT OF A SECOND LIST rather than dropped here,
+// because a hidden type is not gone: the manager shows it with its icon and
+// colour, and toggling it back on has to find it. `meta` therefore carries every
+// type either way.
 //
 // A name in `names` but not in `declared` is a type the notes use with no
 // document behind it: it renders with default presentation, and creating it
@@ -143,15 +166,24 @@ export function deriveTypes(notes) {
   const meta = {};
   const declared = new Set();
   for (const [key, decl] of declaredMap) {
-    meta[decl.name] = { icon: decl.icon, color: decl.color, order: decl.order, path: decl.path };
+    meta[decl.name] = {
+      icon: decl.icon,
+      color: decl.color,
+      order: decl.order,
+      visible: decl.visible,
+      path: decl.path,
+    };
     declared.add(decl.name);
   }
   for (const [key, spellings] of usedMap) {
     if (declaredMap.has(key)) continue; // the document already named it
     const name = canonicalName(spellings);
-    if (!meta[name]) meta[name] = { icon: null, color: null, order: null, path: null };
+    // No document, so nothing declares it hidden: a type the notes carry is
+    // always visible until a toggle gives it a document to say otherwise.
+    if (!meta[name]) meta[name] = { icon: null, color: null, order: null, visible: true, path: null };
   }
-  return { names: orderTypes(new Set(Object.keys(meta)), meta), meta, declared };
+  const names = orderTypes(new Set(Object.keys(meta)), meta);
+  return { names, visibleNames: names.filter((n) => meta[n]?.visible !== false), meta, declared };
 }
 
 // Notes that are not Type documents: what every list and view shows.

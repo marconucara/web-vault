@@ -186,3 +186,71 @@ describe('type name uniqueness (ADR 0045, criterion 8)', () => {
     expect(sameTypeName('Person', 'People')).toBe(false);
   });
 });
+
+describe('Type visibility (ADR 0046)', () => {
+  it('reads visible: false, and defaults to visible when the key is absent', () => {
+    expect(typeDocMeta(typeDoc('Type', { type: 'Type', visible: false })).visible).toBe(false);
+    expect(typeDocMeta(typeDoc('Person', { type: 'Type' })).visible).toBe(true);
+    expect(typeDocMeta(typeDoc('Person', { type: 'Type', visible: true })).visible).toBe(true);
+  });
+
+  it('treats the quoted string "false" as hidden too', () => {
+    // YAML quoted by hand, or a value that survived a round-trip as text.
+    expect(typeDocMeta(typeDoc('Type', { type: 'Type', visible: 'false' })).visible).toBe(false);
+  });
+
+  it('IGNORES _visible (criterion 2)', () => {
+    // Deliberately not an alias, unlike icon/color/order: Tolaria writes and
+    // reads only the bare key, so honouring the underscore form would hide a
+    // type here that stays visible there. This test exists so the asymmetry
+    // reads as a decision rather than an oversight.
+    expect(typeDocMeta(typeDoc('Type', { type: 'Type', _visible: false })).visible).toBe(true);
+  });
+
+  it('any other value means visible (criterion 3)', () => {
+    expect(typeDocMeta(typeDoc('X', { type: 'Type', visible: 'yes' })).visible).toBe(true);
+    expect(typeDocMeta(typeDoc('X', { type: 'Type', visible: 0 })).visible).toBe(true);
+  });
+
+  it('keeps a hidden type out of visibleNames but in names, with its metadata', () => {
+    const notes = [
+      typeDoc('Type', { type: 'Type', visible: false, order: 0 }, 'type.md'),
+      typeDoc('Person', { type: 'Type', icon: 'user', order: 1 }, 'person.md'),
+      note('Ada', 'Person'),
+    ];
+    const { names, visibleNames, meta } = deriveTypes(notes);
+    expect(names).toEqual(['Type', 'Person']);
+    expect(visibleNames).toEqual(['Person']);
+    // The manager still renders the hidden row, so its metadata must survive.
+    expect(meta.Type.visible).toBe(false);
+    expect(meta.Person.icon).toBe('user');
+  });
+
+  it('treats a type only the notes carry as visible: nothing declares otherwise', () => {
+    const { names, visibleNames, meta } = deriveTypes([note('Spark', 'Idea')]);
+    expect(names).toEqual(['Idea']);
+    expect(visibleNames).toEqual(['Idea']);
+    expect(meta.Idea.visible).toBe(true);
+  });
+
+  it('leaves a vault with no visible key rendering exactly as before (criterion 10)', () => {
+    const notes = [
+      typeDoc('Person', { type: 'Type' }, 'person.md'),
+      typeDoc('Topic', { type: 'Type' }, 'topic.md'),
+      note('Ada', 'Person'),
+    ];
+    const { names, visibleNames } = deriveTypes(notes);
+    expect(visibleNames).toEqual(names);
+  });
+
+  it('does not hide the notes of a hidden type (criterion 1)', () => {
+    const notes = [
+      typeDoc('Person', { type: 'Type', visible: false }, 'person.md'),
+      note('Ada', 'Person'),
+      note('Grace', 'Person'),
+    ];
+    // Hiding is one sidebar row. The notes stay in every list and count.
+    expect(contentOnly(notes)).toHaveLength(2);
+    expect(countNotesOfType(notes, 'Person')).toBe(2);
+  });
+});

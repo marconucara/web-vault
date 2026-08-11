@@ -3,6 +3,7 @@ import {
   filesForCreate,
   filesForDelete,
   filesForEdit,
+  filesForVisibility,
   messageFor,
   newTypePath,
   renamedTypePath,
@@ -167,5 +168,43 @@ describe('commit messages', () => {
     expect(messageFor('rename', 'Person', { to: 'Human', carriers: 1 })).toBe(
       'Rename type Person to Human (1 note)'
     );
+  });
+});
+
+describe('Type visibility payloads (ADR 0046, criteria 6-7)', () => {
+  it('hides by writing visible: false', () => {
+    const { files } = filesForVisibility({ path: 'type.md', visible: false });
+    expect(files).toEqual([{ path: 'type.md', frontmatter: { visible: false } }]);
+  });
+
+  it('shows by REMOVING the key, not by writing visible: true', () => {
+    // null is the commit endpoint's removal signal (adr/0022). Writing
+    // `visible: true` would litter every file a reader ever toggled.
+    const { files } = filesForVisibility({ path: 'type.md', visible: true });
+    expect(files).toEqual([{ path: 'type.md', frontmatter: { visible: null } }]);
+  });
+
+  it('does not touch the H1 or the body', () => {
+    // The distinction from filesForEdit, which owns both. A toggle owns one key,
+    // so a hand-written description must come back untouched.
+    for (const visible of [true, false]) {
+      const [file] = filesForVisibility({ path: 'type.md', visible }).files;
+      expect(file).not.toHaveProperty('h1');
+      expect(file).not.toHaveProperty('body');
+      expect(file).not.toHaveProperty('content');
+      expect(Object.keys(file.frontmatter)).toEqual(['visible']);
+    }
+  });
+
+  it('writes visible: false into a document created for a hidden type', () => {
+    // Adoption: toggling a type only the notes carry creates its document.
+    const out = typeDocContent({ name: 'Idea', visible: false });
+    expect(out).toContain('visible: false');
+  });
+
+  it('omits the key entirely for a visible type', () => {
+    // A document created the ordinary way stays byte-identical to pre-0046.
+    expect(typeDocContent({ name: 'Idea' })).not.toContain('visible');
+    expect(typeDocContent({ name: 'Idea', visible: true })).not.toContain('visible');
   });
 });

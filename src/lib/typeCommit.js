@@ -17,7 +17,7 @@ import { sameTypeName, contentOnly } from './types.js';
  *   delete?: boolean,
  *   body?: string,
  *   h1?: string,
- *   frontmatter?: Record<string, string | number | null>,
+ *   frontmatter?: Record<string, string | number | boolean | null>,
  *   retype?: { from: string, to: string },
  * }} CommitFile
  */
@@ -25,11 +25,14 @@ import { sameTypeName, contentOnly } from './types.js';
 // A Type document as the app writes it. `_organized: true` is Tolaria's marker
 // for a document the tooling owns; the H1 carries the name, the body carries the
 // description, and the presentation keys carry the rest (criterion 4).
-export function typeDocContent({ name, description = '', icon = null, color = null, order = null }) {
+export function typeDocContent({ name, description = '', icon = null, color = null, order = null, visible = true }) {
   const fm = ['type: Type'];
   if (icon) fm.push(`icon: ${icon}`);
   if (color) fm.push(`color: ${color}`);
   if (order != null && order !== '') fm.push(`order: ${order}`);
+  // Only hiding is written. A visible type says nothing, so a document created
+  // the ordinary way is byte-identical to one created before adr/0046.
+  if (visible === false) fm.push('visible: false');
   fm.push('_organized: true');
   const body = description.trim();
   return `---\n${fm.join('\n')}\n---\n\n# ${name}\n${body ? `\n${body}\n` : ''}`;
@@ -116,6 +119,23 @@ export function filesForEdit({ form, doc, notes, takenPaths }) {
 function typeDocBody(doc, form) {
   const body = (form.description || '').trim();
   return `\n# ${form.name}\n${body ? `\n${body}\n` : ''}`;
+}
+
+// Files for toggling a type's visibility (adr/0046, criteria 6-7).
+//
+// Deliberately NOT `filesForEdit`: that one also rewrites the H1 and the body,
+// which it may do because the panel owns both. A toggle owns one key, and a
+// document whose description was written by hand must come back byte-identical
+// apart from that key.
+//
+// Hiding writes `visible: false`; showing passes `null`, which the commit
+// endpoint's line-level frontmatter op REMOVES (adr/0022). Showing therefore
+// leaves a file that never carried the key exactly as it was, instead of
+// littering it with `visible: true` (criterion 7).
+export function filesForVisibility({ path, visible }) {
+  /** @type {CommitFile[]} */
+  const files = [{ path, frontmatter: { visible: visible ? null : false } }];
+  return { files };
 }
 
 // Files for deleting a type. The caller must have checked that no note carries

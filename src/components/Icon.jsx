@@ -101,6 +101,23 @@ const PATHS = {
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     </>
   ),
+  // Local rather than resolved through lucide: app chrome should paint with the
+  // first frame, not arrive in a lazy chunk the way a Type document's icon may.
+  // The visibility manager uses the switch its own rows carry — the affordance
+  // names what you will find behind it. An eye was tried first and reads as a
+  // mark rather than a control at this size: at 14px it is nearly all fill.
+  'toggle-left': (
+    <>
+      <rect x="2" y="6" width="20" height="12" rx="6" />
+      <circle cx="8" cy="12" r="2.5" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
   x: (
     <>
       <line x1="18" y1="6" x2="6" y2="18" />

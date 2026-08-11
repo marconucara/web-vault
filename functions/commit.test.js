@@ -128,3 +128,47 @@ describe('path safety', () => {
     expect(isSafeNotePath('notes/ada.txt')).toBe(false);
   });
 });
+
+describe('type visibility frontmatter (ADR 0046, criterion 7)', () => {
+  it('accepts visible as a settable key', () => {
+    expect(isSettableKey('visible')).toBe(true);
+    // The underscore form is not writable either: nothing in the app writes it.
+    expect(isSettableKey('_visible')).toBe(false);
+  });
+
+  it('writes visible: false without disturbing the other keys', () => {
+    const fm = FM('type: Type', 'order: 0', '_organized: true');
+    const out = setFrontmatterKey(fm, 'visible', false);
+    expect(out).toContain('visible: false');
+    expect(out).toContain('order: 0');
+    expect(out).toContain('_organized: true');
+  });
+
+  it('removes the line when showing again, leaving the rest verbatim', () => {
+    const fm = FM('type: Type', 'order: 0', 'visible: false', '_organized: true');
+    const out = setFrontmatterKey(fm, 'visible', null);
+    expect(out).not.toContain('visible');
+    expect(out).toBe(FM('type: Type', 'order: 0', '_organized: true'));
+  });
+
+  it('is a no-op when showing a type that never carried the key', () => {
+    // The common case: every type in a vault that predates the feature.
+    const fm = FM('type: Type', 'icon: user');
+    expect(setFrontmatterKey(fm, 'visible', null)).toBe(fm);
+  });
+
+  it('hides through applyOps without touching the body', () => {
+    const raw = `${FM('type: Type', '_organized: true')}\n# Type\n\nHand-written description.\n`;
+    const out = applyOps(raw, { frontmatter: { visible: false } });
+    expect(out).toContain('visible: false');
+    expect(out).toContain('Hand-written description.');
+    expect(out).toContain('# Type');
+  });
+
+  it('round-trips: hiding then showing restores the original file', () => {
+    const raw = `${FM('type: Type', 'order: 0', '_organized: true')}\n# Type\n\nWhat a type is.\n`;
+    const hidden = applyOps(raw, { frontmatter: { visible: false } });
+    const shown = applyOps(hidden, { frontmatter: { visible: null } });
+    expect(shown).toBe(raw);
+  });
+});

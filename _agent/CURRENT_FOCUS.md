@@ -9,13 +9,38 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** — heading anchors in
-  the URL (`done/2026-08-11-heading-anchors-in-the-url`) shipped 2026-08-11.
+- **Active item:** none in flight. **The queue is empty** — type visibility
+  (`done/2026-08-11-type-visibility`) is the most recent item.
 - **Blockers:** none.
-- **Uncommitted work:** none.
+- **Uncommitted work:** **yes — ADR `0046` and its implementation are in the
+  working tree, unsigned and uncommitted, awaiting the owner's manual test**
+  (exit criterion 13). `yarn verify` is green. Nothing is staged.
 
 ## Release state
 
+- **Unreleased on `main`:** ADR `0046`, type visibility (plan
+  `done/2026-08-11-type-visibility`) — *pending commit, see Uncommitted work*.
+  A type document carrying `visible: false` is kept out of the sidebar, and a
+  manager opened from the Types heading lists every type, hidden included, with
+  a switch each. A **patch** when cut, per `0037`: no adopter-facing contract
+  moves. `visible` was already Tolaria's key and already present in real vaults,
+  so this makes web-vault honour a format it was ignoring rather than inventing
+  one; a vault that never carried the key renders exactly as before and is not
+  written to until a toggle is used.
+  - **The key is bare `visible`, and `_visible` is deliberately NOT an alias**,
+    unlike `icon`/`color`/`order`. Tolaria writes and reads only the bare
+    spelling — confirmed by toggling from its own UI and reading the file — so
+    accepting the underscore form would hide a type here that stays visible
+    there. A test pins the asymmetry so it reads as a decision.
+  - **Visibility is a surface of its own, not a field in the type panel.** A
+    checkbox there would put the control that removes a sidebar row inside that
+    row's only route: hide a type and it becomes uneditable from the app. The
+    manager is reachable whatever is hidden, and makes "hidden" a state you read
+    rather than an absence you must remember. This is why Tolaria has the same
+    split, understood only after finding its menu.
+  - **Showing removes the key rather than writing `visible: true`**, so
+    hide-then-show returns the file byte-identical (pinned by a test) and files
+    are never littered with a key stating the default.
 - **Unreleased on `main`:** ADR `0044`, heading anchors in the URL (plan
   `done/2026-08-11-heading-anchors-in-the-url`). The hash now addresses a note
   and, optionally, a heading within it (`#/n/<id>#<slug>`), on the same slug
@@ -155,6 +180,27 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## Last shipped
 
+- **ADR `0046` — type visibility (2026-08-11, uncommitted).** `Type`, the
+  meta-type every type document carries, had become a sidebar row that could
+  never be populated: `0045` made the list the union of declared and used types,
+  and `contentOnly` excludes `type: Type` notes from every list, so selecting it
+  showed an empty list *by construction*. Tolaria hides it with `visible: false`;
+  web-vault read no such key. **How the format was established matters more than
+  the format**, because two early readings were wrong and each would have
+  produced a different ADR: Tolaria does **not** re-read a type document's
+  frontmatter without a restart, so three tests run against a refresh proved
+  nothing; and a note that was never indexed is invisible for that reason alone —
+  a probe created from outside a running Tolaria read exactly like a hidden one,
+  and briefly convinced both of us that `visible` worked on ordinary notes. It
+  does not. Every later test started from something already visible, so that
+  "it disappeared" had one meaning. What survived: `visible` is type metadata
+  only; the key is bare, never `_visible`; a hidden type keeps its notes in every
+  list and count; absent means visible. The manager is a surface of its own for
+  the reason Tolaria's is — a checkbox in the type panel would hide the row that
+  is the only way back to that panel. `functions/commit.js` had to learn
+  `visible` in its closed `SETTABLE_KEYS` allowlist; the `CommitFile` typedef had
+  to admit booleans. 367 → 396 tests. See
+  `plan/done/2026-08-11-type-visibility.md`.
 - **Icon chunks grouped into buckets (2026-08-10, unreleased).** lucide's
   dynamic entry point states the whole catalogue as a map of ~1,750 `import()`s,
   so Rollup emitted one chunk per icon — nothing slow at runtime, but a `dist/`
@@ -360,24 +406,17 @@ If status files and git disagree, git is authoritative; correct this file.
 
 ## ADR state
 
-`0001`–`0045` exist. All **Implemented** except: `0026` **Superseded** (by
-`0040`), and `0030`, `0031`, `0032`, `0034`, `0043`, `0044` still **Proposed** —
+`0001`–`0046` exist. All **Implemented** except: `0026` **Superseded** (by
+`0040`), and `0030`, `0031`, `0032`, `0034`, `0043` still **Proposed** —
 decisions drafted, not built. `INDEX.md` is authoritative.
 
 ## Next item
 
-**The queue is empty.** `0006` was the last item; it shipped 2026-08-10.
+**The queue is empty.** `0001` (type visibility) was the last item, 2026-08-11.
 
 Numbers in `plan/todo/` are reused once an item ships — the `0003`, `0004` and
 `0005` slots have each been used more than once, so a new item takes the lowest
 free number, not the next unused one.
-Not queued, because it needs a decision first: **ADR `0044`** — what the URL
-addresses. Written by the 2026-08-05 audit, promoted from
-`_agent/prompts/routing-adr.md` (now removed) where it had been invisible to
-both `INDEX.md` and the queue. `Proposed`: it fixes the slug rule as a
-compatibility surface and settles that heading anchors are addressable while
-sidebar/view selection stays out of the URL. Implementation is queued once it
-is `Accepted`.
 
 ## Backlog — not queued, and why
 

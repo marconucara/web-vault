@@ -2,7 +2,9 @@ import React from 'react';
 import Icon from './Icon.jsx';
 import BrandMark from './BrandMark.jsx';
 
-export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, onSelect, onNewType, onEditType }) {
+// `types` here is the VISIBLE list (adr/0046): the manager gets the full one, so
+// a hidden type can be found and switched back on.
+export default function Sidebar({ views, types, typeMeta, counts = /** @type {Record<string, number>} */ ({}), selection, onSelect, onNewType, onEditType, onManageVisibility }) {
   const isSel = (kind, id) => selection.kind === kind && selection.id === id;
   const Count = ({ n }) =>
     n != null ? <span className="count-badge">{n}</span> : null;
@@ -54,11 +56,27 @@ export default function Sidebar({ views, types, typeMeta, counts = /** @type {Re
 
       <div className="group-label group-label-row">
         <span>Types</span>
-        {onNewType && (
-          <button className="group-action" onClick={onNewType} title="New type" aria-label="New type">
-            <Icon name="plus" size={14} />
-          </button>
-        )}
+        {/* Both actions in one box, so `space-between` puts the label at one end
+            and the pair at the other — with three direct children it would
+            spread the eye into the middle of the row instead. Visibility first,
+            then create: the order Tolaria uses. */}
+        <span className="group-actions">
+          {onManageVisibility && (
+            <button
+              className="group-action"
+              onClick={onManageVisibility}
+              title="Show or hide types"
+              aria-label="Show or hide types"
+            >
+              <Icon name="toggle-left" size={14} />
+            </button>
+          )}
+          {onNewType && (
+            <button className="group-action" onClick={onNewType} title="New type" aria-label="New type">
+              <Icon name="plus" size={14} />
+            </button>
+          )}
+        </span>
       </div>
       {types.map((t) => {
         const meta = typeMeta[t] || {};

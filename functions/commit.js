@@ -59,9 +59,10 @@ export function removeShareLine(fmBlock) {
   return fmBlock.replace(/^[ \t]*share_id[ \t]*:.*\r?\n/m, '');
 }
 
-// Frontmatter keys the type panel owns and may write (adr/0045). A closed list:
-// everything else in the document is preserved verbatim, never re-serialized.
-const SETTABLE_KEYS = new Set(['icon', 'color', 'order']);
+// Frontmatter keys the type panel owns and may write (adr/0045), plus `visible`
+// for the visibility manager (adr/0046). A closed list: everything else in the
+// document is preserved verbatim, never re-serialized.
+const SETTABLE_KEYS = new Set(['icon', 'color', 'order', 'visible']);
 export function isSettableKey(k) {
   return SETTABLE_KEYS.has(k);
 }
