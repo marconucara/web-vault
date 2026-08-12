@@ -81,7 +81,7 @@ renders the green tick — the confirmation for the opposite answer — for
   toggles the panel and still does not re-check.
 - The panel's contents, actions, or the `canWrite` branch within it.
 - The throttle, its window, or its unobservability (AC8).
-- The tooltip that covers the panel once it is open — item `0002`.
+- The tooltip that covers the panel once it is open — `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip`.
 - Anything about the automatic on-open check.
 
 ## Exit criteria
@@ -107,5 +107,16 @@ renders the green tick — the confirmation for the opposite answer — for
 
 ## Dependencies
 
-None. Item `0002` touches the same component; if both are in flight, `0002`
-depends on this one's panel-opening behaviour existing, not the reverse.
+None. `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip`
+touches the same component and depended on this one's panel-opening behaviour
+existing, not the reverse. Both shipped together.
+
+---
+
+**Shipped:** 14d815f — `fix(ui): report what a manual update check found, and
+get out of its way`, together with the tooltip item below it in the queue.
+`adr/0038-in-app-upgrade-notice.md` → r10 (AC9.4 added), stays Implemented, so
+`INDEX.md` needs no regeneration. Verified by hand against the real endpoint
+with the declared version temporarily lowered, so the published `v0.11.1`
+registered as newer — the same technique the `0038` implementation used, since
+this repo is always at or ahead of its newest tag. Released as **v0.11.2**.

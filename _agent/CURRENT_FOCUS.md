@@ -9,37 +9,40 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight.
-  `done/2026-08-11-content-chip-reports-the-build-truthfully` is the most recent
-  item.
-- **Queued:** two items, both on the status bar's version indicator, both found
-  by using the deployed app. `todo/0001` — a manual update check that *finds* an
-  update does not open the panel, because the click dispatches on `available` as
-  it was before the check ran; amends `adr/0038-*.md`, whose AC9.2 names the
-  *update available* outcome without ever describing it. `todo/0002` — the
-  indicator's own tooltip covers the panel it just opened; adds the
-  popover-suppresses-tooltip rule to `CONVENTIONS.md`. `0002` reads better after
-  `0001`, which is the path that most reliably reproduces it.
+- **Active item:** none in flight. **The queue is empty** —
+  `done/2026-08-12-a-manual-check-that-finds-an-update-shows-it` and
+  `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip` are the
+  most recent items, shipped together in one change.
 - **Blockers:** none.
 - **Uncommitted work:** none.
-- **Unreleased on `main`:** the tooltip migration
-  (`done/2026-08-11-one-tooltip-across-the-interface`) and the content chip fix
-  (`done/2026-08-11-content-chip-reports-the-build-truthfully`). Deliberately
-  not released — accumulating further changes before the next version. The four
-  version locations still read `v0.11.1`, which is correct: that is the last
-  *published* version, and they move together with the tag when one is cut.
+- **Unreleased on `main`:** nothing. `v0.11.2` gathers everything that had
+  accumulated.
 
 ## Release state
 
-- **`main` is ahead of the last tag.** The tooltip migration and the content
-  chip fix sit on `main` unreleased, by choice. Whatever is cut next carries
-  them, so their exit criteria are part of that release's manual check, not only
-  of their own.
-  - **The content chip fix wants a deployed check.** Its dirty-flag half cannot
-    be observed locally — a local build is genuinely dirty — so the first CI
-    deploy after the next release is where `(uncommitted local changes)`
-    disappearing gets confirmed. Everything else about it was verified by hand.
-- **Current tag: `v0.11.1`** — ADR `0034` r5: commit actions hold their place.
+- **Current tag: `v0.11.2`** — three status-bar defects, all reported from a
+  real deployed vault in one sitting, all found by using the app rather than by
+  reading it. Carries the tooltip migration
+  (`done/2026-08-11-one-tooltip-across-the-interface`), which had been sitting
+  on `main` unreleased.
+  - **A patch, not a minor.** Nothing in the adopter-facing contract moved —
+    same CLI, same shell config, same vault layout, same deploy substrate.
+  - **One of the three cannot be confirmed until this is deployed.** The content
+    chip's dirty flag is invisible locally, because a local build is genuinely
+    dirty; the first CI build on `v0.11.2` is where `(uncommitted local
+    changes)` disappearing gets seen. It is covered by
+    `scripts/build-dirty-flag.test.mjs`, which was itself checked by restoring
+    the old guard and watching exactly the two hosted cases fail. **If it is
+    still wrong after the next deploy, the remaining suspect is the SHA path,
+    not the flag** — `CF_PAGES_COMMIT_SHA` is empty on Workers, so the chip
+    reports `git rev-parse HEAD` of the build clone.
+  - **The regression it fixes was a consequence of `0040` nobody chased.**
+    Moving the substrate from Pages to Workers stranded every `CF_PAGES_*`
+    variable used as a proxy for "am I in CI". `generate-worker.mjs` was updated
+    at the time; `build-content.mjs` was not, and reported every production
+    build as having uncommitted changes for eleven days. Worth remembering as a
+    class: a vendor variable read as a question it does not answer.
+- **Previous tag: `v0.11.1`** — ADR `0034` r5: commit actions hold their place.
   They are rendered whatever the deployment answers and go inert until write
   access is confirmed, tipped *Editing is off* once the answer is settled.
   - **A patch, not a minor.** Nothing in the adopter-facing contract moved —
@@ -520,23 +523,27 @@ If status files and git disagree, git is authoritative; correct this file.
 ## ADR state
 
 `0001`–`0047` exist. All **Implemented** except: `0026` **Superseded** (by
-`0040`), and `0030`, `0031`, `0032`, `0034`, `0043` still **Proposed** —
-decisions drafted, not built. `INDEX.md` is authoritative.
+`0040`), and `0030`, `0031`, `0032`, `0043` still **Proposed** — decisions
+drafted, not built. `INDEX.md` is authoritative.
 
 ## Next item
 
-**The queue is empty.** The UI language layer
-(`done/2026-08-11-ui-language-i18n-layer`, queue slot `0008`) was the last item
-to ship, 2026-08-11.
+**The queue is empty.** The two version-indicator fixes
+(`done/2026-08-12-a-manual-check-that-finds-an-update-shows-it`,
+`done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip`) were the
+last to ship, 2026-08-12, and released as `v0.11.2`.
 
-**`0034` is the obvious next one, and it is now cheap.** It was already
-`Proposed` with a language selector among its preferences; `0047` deliberately
-built the seam and left the storage alone, so the modal supplies
-`{ locale, formatLocale }` at boot and calls `setLocale`/`setFormatLocale` at
-runtime. Two selectors, not three — a separate date/time format setting was
-considered and rejected in `0047`, because owning the patterns is a different
-and much larger decision than choosing two locales. `0034` also still carries
-the editor gating and the Inbox toggle, so it is not a one-line item.
+**Nothing is queued, and no ADR obviously demands the next slot.** `0030`,
+`0031`, `0032` and `0043` remain `Proposed`; none is blocking anything shipped.
+The backlog below is the honest list of candidates.
+
+**What the last three items have in common is worth acting on before picking a
+feature.** All three came from the owner using a deployed vault, none from
+reading the code, and two of them had been wrong in production for days — the
+dirty flag for eleven. The status bar in particular has now yielded four defects
+in two days (`0012` chip, `0038` indicator ×2, the tooltip migration), which
+suggests the surface deserves one deliberate pass rather than another round of
+individual reports.
 
 Numbers in `plan/todo/` are reused once an item ships — the `0003`, `0004` and
 `0005` slots have each been used more than once, so a new item takes the lowest

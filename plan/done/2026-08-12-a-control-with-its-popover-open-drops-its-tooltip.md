@@ -86,6 +86,15 @@ state now and expensive to rediscover later.
 
 ## Dependencies
 
-Item `0001` — it makes the panel open from a manual check, which is the path
+`done/2026-08-12-a-manual-check-that-finds-an-update-shows-it` — it makes the
+panel open from a manual check, which is the path
 that most reliably leaves the pointer on the button with the panel open. Not a
 blocker: the bug reproduces today by clicking a known update open.
+
+---
+
+**Shipped:** 14d815f — `fix(ui): report what a manual update check found, and
+get out of its way`, in the same change as the panel-opening item it depended
+on. `adr/0038-in-app-upgrade-notice.md` AC11 extended at r10; the general rule
+is in `CONVENTIONS.md`. `INDEX.md` needs no regeneration — 0038 stays
+Implemented. Released as **v0.11.2**.
