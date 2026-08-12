@@ -66,6 +66,9 @@ export default function VersionIndicator() {
   const poll = useRef(null);
   const confirmTimer = useRef(null);
   const alive = useRef(true);
+  // Armed by a manual check, consumed when that check turns out to have found
+  // an update. See the effect below for why this is not read inside runCheck.
+  const revealOnFind = useRef(false);
 
   // A poll outliving the component would keep fetching against a panel nobody
   // is looking at.
@@ -84,6 +87,25 @@ export default function VersionIndicator() {
     checkForUpdate();
     loadCapabilities();
   }, []);
+
+  // A manual check that FINDS an update opens the panel as part of its outcome
+  // (adr/0038-*.md AC9.2). Without this the click that discovers an update is
+  // the one click that reports nothing: `onClick` dispatches on `available` as
+  // it stood *before* the check, so it routes to runCheck, the fetch flips
+  // `available` to true, and nothing consumes the new state — the adopter has
+  // to click a second time to see what the first click found.
+  //
+  // Keyed on the transition rather than read inside runCheck, where `available`
+  // is the render-time value captured in the closure and is still false after
+  // the await. Only a manual check arms this: the automatic one on page open
+  // must not pop a panel over an app nobody has touched, and a throttled
+  // re-check of an already-known update never transitions (AC8 keeps it
+  // indistinguishable from a completed check).
+  useEffect(() => {
+    if (!available || !revealOnFind.current) return;
+    revealOnFind.current = false;
+    setOpen(true);
+  }, [available]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -150,6 +172,7 @@ export default function VersionIndicator() {
   const runCheck = async () => {
     if (check === 'pending') return;
     clearTimeout(confirmTimer.current);
+    revealOnFind.current = true;
     setCheck('pending');
     // Both are started before awaiting either: the floor runs alongside the
     // fetch rather than after it, so a slow check is not further delayed by it.
@@ -166,6 +189,18 @@ export default function VersionIndicator() {
       confirmTimer.current = setTimeout(() => alive.current && setCheck('idle'), CONFIRM_MS);
       return;
     }
+    // The green tick is the *up to date* confirmation and only that (AC10):
+    // green means "no action needed", which is the opposite of what a found
+    // update means. The panel is that outcome's terminal state instead.
+    //
+    // The effect above consumes the flag when it opens the panel, so a cleared
+    // flag here says an update was found — `available` itself is still the
+    // pre-check value in this closure and cannot answer.
+    if (!revealOnFind.current) {
+      setCheck('idle');
+      return;
+    }
+    revealOnFind.current = false;
     setCheck('confirmed');
     confirmTimer.current = setTimeout(() => alive.current && setCheck('idle'), CONFIRM_MS);
   };
@@ -191,9 +226,15 @@ export default function VersionIndicator() {
           ? t('version.availableTip', { version: latest, checked: checkedLabel(checkedAt) })
           : t('version.upToDateTip', { checked: checkedLabel(checkedAt) });
 
+  // Whether the panel is actually on screen — `open` alone is not that, since
+  // the panel renders on `open && available`. One name for both the render
+  // below and the tooltip suppression, so the two cannot drift into a state
+  // where the bubble is withheld with no panel to justify it.
+  const panelOpen = open && available;
+
   return (
     <span className="sb-version-wrap" ref={ref}>
-      {open && available && (
+      {panelOpen && (
         <div className="versionpanel">
           <div className="vp-head">{t('version.panelHead', { version: latest })}</div>
           <div className="vp-body">{t('version.panelBody', { version: running })}</div>
@@ -241,14 +282,28 @@ export default function VersionIndicator() {
       {/* The in-app tooltip (`.tt` + `data-tip`), not the native `title`:
           consistent with the rest of the app, and it opens upward because this
           sits in the status bar at the bottom of the viewport, where a
-          downward one would be cut off (adr/0038-*.md AC11). */}
+          downward one would be cut off (adr/0038-*.md AC11).
+
+          It is dropped while the panel is open — a control that owns an
+          anchored popover suppresses its own tooltip, see CONVENTIONS.md. The
+          panel is the fuller form of the same answer and `tt-up` opens into
+          exactly the space it occupies, so the bubble would both duplicate and
+          cover it. The pointer is almost certainly there: the adopter just
+          clicked this button to open the panel, so the 300ms delay fires
+          without them moving at all.
+
+          The class goes with the attribute rather than either alone: `.tt::after`
+          renders `content: attr(data-tip)`, which with the attribute absent is
+          an empty string — still a painted, empty bubble. `aria-label` is
+          untouched; it is the accessible name, not the tooltip, and a screen
+          reader is not the one being occluded. */}
       <button
         type="button"
-        className={`sb-version tt tt-up${available ? ' has-update' : ''}${
+        className={`sb-version${panelOpen ? '' : ' tt tt-up'}${available ? ' has-update' : ''}${
           check === 'confirmed' ? ' is-confirmed' : ''
         }`}
         onClick={onClick}
-        data-tip={tip}
+        {...(panelOpen ? {} : { 'data-tip': tip })}
         // The label replaces the visible text for a screen reader rather than
         // sitting beside it, so it keeps the version the tooltip can leave out.
         aria-label={t('version.indicatorLabel', { version: running, tip })}

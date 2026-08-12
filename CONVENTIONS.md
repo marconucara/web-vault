@@ -117,6 +117,14 @@ more than one line. A control stacked above the page (a map overlay, a floating
 panel) needs its bubble's `z-index` raised to match, or it renders behind what
 the control sits on.
 
+**A control that owns an anchored popover drops its tooltip while that popover
+is open.** The popover is the fuller form of the same answer, so the bubble
+duplicates it — and, being anchored to the same element, generally covers it.
+Assume the pointer is on the control: the click that opened the popover left it
+there, and the hover delay fires without the reader moving. Drop the `tt` class
+along with `data-tip`, since `content: attr(data-tip)` with the attribute absent
+still paints an empty bubble. `aria-label` is unaffected in either state.
+
 ## Multi-Agent Rules
 
 A single agent owns this repo. The `_agent/` directory tracks live state and

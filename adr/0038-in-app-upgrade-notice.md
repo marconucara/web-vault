@@ -115,7 +115,14 @@ Performing the upgrade is `adr/0039-*.md`.
       available*, or *could not check*;
    3. the *up to date* outcome is a transient confirmation that clears itself
       and leaves the indicator in its resting state; it never becomes a
-      persistent badge.
+      persistent badge;
+   4. the *update available* outcome opens the notice panel as part of the
+      outcome itself, on the click that ran the check — the adopter never has to
+      click again to see what the check found. It does not present as the
+      transient confirmation of AC9.3, which asserts the opposite answer.
+      A check that is refused by the throttle when the update is already known
+      is not this case: it is unobservable per AC8, and the panel opens there by
+      the ordinary click behaviour.
 10. Colour carries one meaning each. The resting, up-to-date indicator has no
     marker at all. The update-available marker is not green. Green appears only
     as the transient confirmation of a manual check (AC9.3), never as a standing
@@ -124,7 +131,10 @@ Performing the upgrade is `adr/0039-*.md`.
     component used elsewhere in the app rather than the browser's native
     `title`, naming the running version, whether an update is available, and
     when the last successful check happened. It is positioned so it stays fully
-    on screen from the status bar at the bottom of the viewport.
+    on screen from the status bar at the bottom of the viewport, and it is
+    withheld while the notice panel is open — the panel is the same answer at
+    greater length, and the bubble opens into the space the panel occupies. The
+    accessible name is unaffected in either state.
 
 ## Out of scope
 
@@ -162,9 +172,10 @@ Performing the upgrade is `adr/0039-*.md`.
 | 2026-08-06 | r7 | marco | Back to Accepted. Found in use: the manual re-check (AC8) had no observable outcome in the commonest case — an adopter clicking to confirm they are current saw nothing change, since a check finding no update touches no rendered state. AC8 specified the action without specifying its feedback, and AC6's blanket silence, correct for the automatic check, made a failed manual check indistinguishable from "up to date". Qualified AC6 by mode, rewrote AC8 so a throttle refusal is unobservable, and added AC9 (pending state and exactly one terminal outcome), AC10 (colour semantics — the shipped marker was green, which reads as "no action needed" while meaning the opposite), and AC11 (in-app tooltip carrying the running version and last-check time). |
 | 2026-08-06 | r8 | marco | Closed the AC11 open question with the shipped format: relative under the hour, clock time within the day, date beyond. |
 | 2026-08-06 | r9 | marco | Implemented: outcome-aware store (success and attempt timestamps split), visible pending state with a floor, the three terminal outcomes, amber marker with green reserved for the transient confirmation, and the upward in-app tooltip. |
+| 2026-08-11 | r10 | marco | Found in use: a manual check that *finds* an update left the panel shut. The click dispatches on `available` as it stood before the check, so the click that discovers an update routes to the check and nothing consumes the result — a second click was needed to see what the first one found. AC9.2 named the *update available* outcome and, unlike AC9.3 for *up to date*, never described it, so the gap was in this ADR before it was in the code. Added AC9.4. Also extended AC11: the indicator withheld its tooltip nowhere, so the bubble covered the very panel it had just opened. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Maintainer | Marco Nucara | 2026-08-06 | — (r7) |
+| Maintainer | Marco Nucara | 2026-08-11 | — (r10) |

@@ -256,6 +256,122 @@ describe('the manual check is visible from click to answer', () => {
     expect(forcedCalls()).toBe(0);
     expect(container.querySelector('.versionpanel')).not.toBe(null);
   });
+
+  // The case the two-meaning click used to drop: `onClick` dispatches on
+  // `available` as it stood BEFORE the check, so the click that discovers an
+  // update routed to runCheck and nothing consumed the result. The adopter had
+  // to click a second time to see what the first click found (AC9.2).
+  describe('when the check is the one that finds the update', () => {
+    // What a fetch discovering a new version does: the store flips and the
+    // component re-renders off it.
+    const findsUpdate = () =>
+      checkForUpdate.mockImplementation(async () => {
+        upgrade = { running: '0.6.1', latest: '0.7.0', available: true, checkedAt: 1 };
+        return OUTCOME.checked;
+      });
+
+    it('opens the panel on that same click, naming the new version', async () => {
+      findsUpdate();
+      await mount();
+      await click();
+      await advance(600);
+      expect(forcedCalls()).toBe(1);
+      const panel = container.querySelector('.versionpanel');
+      expect(panel).not.toBe(null);
+      expect(panel.textContent).toContain('0.7.0');
+    });
+
+    it('does not dress that outcome as the up-to-date confirmation', async () => {
+      // Green is reserved for "no action needed" (AC10), which is the opposite
+      // of what a found update means.
+      findsUpdate();
+      await mount();
+      await click();
+      await advance(600);
+      expect(container.querySelector('.sb-version.is-confirmed')).toBe(null);
+      expect(container.querySelector('.sb-version-spin')).toBe(null);
+    });
+
+    it('leaves the panel open rather than clearing it on the confirm timer', async () => {
+      // The confirmation is transient by design; the panel must not inherit
+      // that lifetime.
+      findsUpdate();
+      await mount();
+      await click();
+      await advance(4000);
+      expect(container.querySelector('.versionpanel')).not.toBe(null);
+    });
+
+    it('opens nothing when the check that finds it answers after unmount', async () => {
+      findsUpdate();
+      await mount();
+      const { act } = await import('react');
+      await act(async () => {
+        container.querySelector('button.sb-version').click();
+        await act(async () => root.unmount());
+      });
+      root = null;
+      expect(container.querySelector('.versionpanel')).toBe(null);
+    });
+
+    it('still confirms, and opens nothing, when the check finds no update', async () => {
+      // The commonest path is unchanged: no panel, transient green tick.
+      await mount();
+      await click();
+      await advance(600);
+      expect(container.querySelector('.versionpanel')).toBe(null);
+      expect(container.querySelector('.sb-version.is-confirmed')).not.toBe(null);
+    });
+
+    // The bubble opens upward into exactly the space the panel occupies, and
+    // the pointer is still on the button that opened it.
+    it('drops its own tooltip while the panel it opened is showing', async () => {
+      findsUpdate();
+      await mount();
+      await click();
+      await advance(600);
+      const btn = container.querySelector('button.sb-version');
+      expect(container.querySelector('.versionpanel')).not.toBe(null);
+      expect(btn.getAttribute('data-tip')).toBe(null);
+      // Without dropping the class too, `content: attr(data-tip)` paints an
+      // empty bubble rather than none.
+      expect(btn.className).not.toMatch(/\btt\b/);
+      // The accessible name is not the tooltip and stays put.
+      expect(btn.getAttribute('aria-label')).toContain('0.6.1');
+    });
+
+    it('takes its tooltip back when the panel closes', async () => {
+      findsUpdate();
+      await mount();
+      await click();
+      await advance(600);
+      // Escape is one of the panel's dismissals; the tooltip must return with
+      // any of them.
+      const { act } = await import('react');
+      await act(async () => {
+        document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+      });
+      const btn = container.querySelector('button.sb-version');
+      expect(container.querySelector('.versionpanel')).toBe(null);
+      expect(btn.getAttribute('data-tip')).toBeTruthy();
+      expect(btn.className).toMatch(/\btt tt-up\b/);
+    });
+
+    it('opens nothing on the automatic check at page open', async () => {
+      // Only a manual check reveals. An update found by the check that runs on
+      // mount marks the indicator; it does not pop a panel over the app.
+      findsUpdate();
+      await mount();
+      await advance(600);
+      // The store is stubbed here, so the re-render its emit() would cause in
+      // the real thing is performed explicitly — otherwise the assertion below
+      // would pass on a component that simply never saw the new state.
+      const { act } = await import('react');
+      await act(async () => root.render(<VersionIndicator />));
+      expect(container.querySelector('.has-update')).not.toBe(null);
+      expect(container.querySelector('.versionpanel')).toBe(null);
+    });
+  });
 });
 
 // The panel opens on click, which static rendering does not perform; drive it
