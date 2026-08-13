@@ -92,8 +92,11 @@ addressed as it is today; a heading within a note body is addressable by an
 anchor derived from its text with a documented, stable slug rule, and following
 such a link scrolls to that heading. The anchor is carried **inside** the note
 route (`#/n/<id>#<slug>`), so it survives reload and being shared, and cannot
-collide with the route grammar. The slug rule is shared by the always-editable
-app surface and the static share pages, so the same link resolves in both. A
+collide with the route grammar. An anchor an author writes is rewritten into
+that form when the link is followed — against the open note for a bare
+`#<slug>`, and against the target note for a wikilink carrying one
+(`[[folder/note#heading]]`). The slug rule is shared by the always-editable app
+surface and the static share pages, so the same link resolves in both. A
 heading in the app offers a hover affordance that copies its link, so an address
 can be obtained without composing it by hand. Sidebar and saved-view selection
 deliberately stay **out** of the URL for now; this ADR records that as a
@@ -135,9 +138,11 @@ decision rather than leaving it an accident.
    share an id there, and an anchor resolves to the first — the same outcome
    `getElementById` gives. It is a limitation of addressing headings in a live
    editor, not a difference in the slug rule, which stays identical.
-5. The addressable form of a position within a note is `#/n/<id>#<slug>`. A
-   bare `#<slug>` href written by an author is rewritten to that form at
-   activation time, using the currently open note id.
+5. The addressable form of a position within a note is `#/n/<id>#<slug>`. An
+   anchor written by an author is rewritten to that form at activation time,
+   taking the note id from the currently open note for a bare `#<slug>` href,
+   and from the link's own target for a wikilink that carries an anchor
+   (`[[folder/note#heading]]`, alias form included).
 6. No generated anchor can match the app-route grammar `^#/`: the rule strips
    `/`, so a heading cannot produce a slug that begins with it.
 7. Following an in-note anchor scrolls to the heading and leaves the open note
@@ -157,6 +162,15 @@ decision rather than leaving it an accident.
     than the affordance itself places the cursor, as on any other text.
 14. Nothing the affordance adds is part of the note: the markdown a note
     round-trips to is byte-identical with the affordance present.
+15. A wikilink target may carry an anchor. The note half resolves by the rules
+    of `adr/0008-wikilink-resolution.md`, unchanged; the anchor is carried
+    through to the link **without being resolved or validated**, so nothing has
+    to know the target note's contents. An anchor matching no heading there
+    falls under criterion 8, and a target whose note does not resolve stays a
+    dead chip as before. Because a note id may itself contain a `#` (a file
+    named `C# tips.md`, which is why the id is percent-encoded in the route),
+    the whole target is looked up first and only split — at the last `#` — when
+    that misses.
 
 ## Design notes
 
@@ -248,8 +262,14 @@ product does not do.
   deferred, not forgotten: it would make view identity a compatibility surface
   too, and saved views are themselves mid-decision
   (`adr/0032-dual-format-views-base-yml.md`). Revisit once that settles.
-- **Cross-note heading links** (`[[note#heading]]`). That extends wikilink
-  resolution and belongs with `adr/0008-wikilink-resolution.md`, not here.
+- ~~**Cross-note heading links** (`[[note#heading]]`). That extends wikilink
+  resolution and belongs with `adr/0008-wikilink-resolution.md`, not here.~~
+  **Brought into scope at r5 as criterion 15**, and the routing corrected rather
+  than deleted, because it sent the work to the wrong document twice. It is not
+  an extension of resolution: which note a target names is answered exactly as
+  0008 already answers it, on a substring, and the anchor is never resolved at
+  all. It is criterion 5's rewrite with the note id taken from the target
+  instead of from the open note.
 - The routing mechanism itself, decided in `adr/0006-hash-based-routing.md`.
 
 ## Open questions
@@ -279,6 +299,8 @@ there is editable.
 - src/components/BlockEditor.jsx — the app's only note-body surface.
 - src/lib/blocknoteSchema.jsx, src/lib/chipClick.js — the existing in-editor
   link activation path.
+- src/lib/wikilinks.js — where a wikilink target is split and resolved
+  (criterion 15).
 - scripts/shared-render.mjs — the share-page renderer that must match it.
 
 ## Revision History
@@ -289,9 +311,10 @@ there is editable.
 | 2026-08-11 | r2 | marco | Corrected the surface story: there is no read-only reader in the app — every note body is BlockNote, always editable, and `Markdown.jsx` is dead on that path. Chose the compound `#/n/<id>#<slug>` grammar so the note id survives an anchor. Closed all three open questions (honour anchors while editing; no copy affordance; adopt `github-slugger`). Added Design notes and the editable-slug limitation. Accepted. |
 | 2026-08-11 | r3 | marco | Replaced the mechanism after implementation disproved it: ids come from the heading's own `render` (wrapping the stock spec, whose behaviour lives in `extensions`), because ProseMirror discards anything stamped onto its DOM from outside. Recorded that a MutationObserver on the editor loops and hangs it. Relaxed criterion 4: duplicate suffixes hold on the share pages but cannot in the live editor, where an anchor resolves to the first match. Added the settle-aware scroll for cold loads and `scroll-margin-top` for the landing offset. |
 | 2026-08-11 | r4 | marco | Brought the click-to-copy affordance into scope, having found it costs a CSS pseudo-element rather than a component: criteria 12–14, offered on `h2`–`h6` only. Recorded why `::after` is the right shape in an editable surface, the geometric hit test it forces, and that it is not keyboard reachable. Corrected the share-page note: `rehype-slug` is unusable because the body renders in segments. |
+| 2026-08-13 | r5 | marco | Widened criterion 5 and added criterion 15: an anchor carried by a **wikilink** target is rewritten the same way a bare `#<slug>` href is, taking the note id from the target instead of from the open note. Corrected this ADR's own Out of scope, which routed the case to `adr/0008-*.md` as an extension of resolution — it is not: the note half resolves by 0008's existing rules on a substring, and the anchor is carried through unresolved. Recorded that the whole target is looked up before any split, because a note id may contain a `#`. **Criterion 15 is not yet implemented**: queued as `plan/todo/0001-a-wikilink-target-can-carry-an-anchor.md`, which is why the status does not move. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Owner | marco | 2026-08-11 | Accepted |
+| Owner | marco | 2026-08-13 | Accepted (r5) |

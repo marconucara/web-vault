@@ -116,19 +116,15 @@ resolved, validated, or looked at. Nothing in 0008's capability statement or its
 criteria becomes untrue, so it gets no revision row — only a one-line pointer in
 its References, which is editorial and flagged as such in the commit.
 
-What r5 has to do in 0044:
+**r5 is already recorded** — it is the decision, and it landed ahead of the code:
+criterion 5 widened, criterion 15 added (anchor carried through unresolved;
+whole target looked up before any split, because a note id may contain a `#`),
+the Out of scope bullet corrected in place rather than deleted, References
+extended, Revision History and Approvals updated.
 
-- widen AC 5 to name the wikilink form alongside the bare anchor;
-- **amend the Out of scope bullet**, which currently reads "Cross-note heading
-  links (`[[note#heading]]`). That extends wikilink resolution and belongs with
-  `adr/0008-wikilink-resolution.md`, not here." That routing was written when the
-  case looked like an extension of resolution; it turned out to be an extension
-  of the rewrite AC 5 already describes, so the bullet records the correction
-  rather than being quietly deleted;
-- note the whole-target-first split rule and why (a note id may contain a `#`);
-- one Revision History row, Approvals updated.
-
-0044 stays Implemented, so `INDEX.md` is not regenerated.
+0044 stays **Implemented**, and criterion 15 is the one criterion of it that is
+not: the r5 row says so, and this file is what closes the gap. `INDEX.md` is not
+regenerated — no status change, no new ADR.
 
 (Two earlier sizings of this item are dropped: a new ADR 0048, and 0008 r2. The
 first was sized against a much wider reading of the defect; the second followed
