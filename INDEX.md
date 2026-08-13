@@ -52,3 +52,4 @@ hand-edit rows out of sync with the ADR files.
 | [0045](adr/0045-manage-types-from-the-ui.md) | Manage note types from the UI — create, edit, and guarded delete | Implemented | 2026-08-06 |
 | [0046](adr/0046-type-visibility.md) | Hide a type from the sidebar — visibility as its own surface | Implemented | 2026-08-11 |
 | [0047](adr/0047-ui-language-i18n-layer.md) | UI language — i18n layer and locale selection | Implemented | 2026-08-11 |
+| [0048](adr/0048-offline-availability.md) | Offline availability — precached shell and snapshot, editing preserved, commit awaits the network | Proposed | 2026-08-13 |
