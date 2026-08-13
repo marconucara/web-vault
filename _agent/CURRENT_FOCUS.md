@@ -9,10 +9,15 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **The queue is empty** —
-  `done/2026-08-12-a-manual-check-that-finds-an-update-shows-it` and
-  `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip` are the
-  most recent items, shipped together in one change.
+- **Active item:** none in flight. **Queued:**
+  `todo/0001-cross-note-heading-links` — the half of `adr/0044` that was left
+  out on purpose: a link *into* another note's heading
+  (`folder/nota#heading`), in both the wikilink and the markdown form. Its
+  first step is authoring `adr/0048`, since 0008 is Implemented and cannot be
+  widened. Not started.
+- **Last shipped:** `done/2026-08-12-a-manual-check-that-finds-an-update-shows-it`
+  and `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip`,
+  shipped together in one change.
 - **Blockers:** none.
 - **Uncommitted work:** none.
 - **Unreleased on `main`:** nothing. `v0.11.2` gathers everything that had
