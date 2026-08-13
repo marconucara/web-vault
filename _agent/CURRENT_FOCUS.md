@@ -10,11 +10,12 @@ If status files and git disagree, git is authoritative; correct this file.
 
 - **Branch:** main
 - **Active item:** none in flight. **Queued:**
-  `todo/0001-cross-note-heading-links` — the half of `adr/0044` that was left
-  out on purpose: a link *into* another note's heading
-  (`folder/nota#heading`), in both the wikilink and the markdown form. Its
-  first step is authoring `adr/0048`, since 0008 is Implemented and cannot be
-  widened. Not started.
+  `todo/0001-a-wikilink-target-can-carry-an-anchor` — `[[folder/nota#heading]]`
+  is not even drawn as a link, because the whole string (anchor included) goes
+  into the `titleIndex` lookup. Resolve the note half, re-append the anchor to
+  the href; no validation, no new machinery. Markdown links are **not** in it:
+  they already render as links and where they go is the author's choice. Owned
+  by `adr/0008` r2, not a new ADR. Not started.
 - **Last shipped:** `done/2026-08-12-a-manual-check-that-finds-an-update-shows-it`
   and `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip`,
   shipped together in one change.
