@@ -15,7 +15,8 @@ If status files and git disagree, git is authoritative; correct this file.
   into the `titleIndex` lookup. Resolve the note half, re-append the anchor to
   the href; no validation, no new machinery. Markdown links are **not** in it:
   they already render as links and where they go is the author's choice. Owned
-  by `adr/0008` r2, not a new ADR. Not started.
+  by `adr/0044` r5 — its AC 5 already rewrites an author-written anchor into
+  `#/n/<id>#<slug>`; this widens where the note id comes from. Not started.
 - **Last shipped:** `done/2026-08-12-a-manual-check-that-finds-an-update-shows-it`
   and `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip`,
   shipped together in one change.

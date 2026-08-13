@@ -1,7 +1,7 @@
 # A wikilink target can carry a heading anchor
 
-**Owning ADR(s):** `adr/0008-wikilink-resolution.md` (revision r2 — one
-acceptance criterion, no new ADR; see *The ADR* below).
+**Owning ADR(s):** `adr/0044-what-the-url-addresses.md` (revision r5 — one
+acceptance criterion widened, no new ADR; see *The ADR* below).
 
 ## Context
 
@@ -100,24 +100,47 @@ tests instead of teaching it the split. Confirm no importers first.
 
 ## The ADR
 
-**No new ADR.** This is 0008's own decision — which target forms resolve to a
-note — meeting a form it does not cover. Append one acceptance criterion (a
-target may carry an `#anchor`; the note half resolves by the existing rules and
-the anchor is carried through to the link), one Revision History row (r2), and
-update the Approvals table. `adr/0044-*.md` needs no change: its Out of scope
-already says cross-note heading links belong with 0008, which is where they land.
-`INDEX.md` is not regenerated — no status change, no new ADR.
+**No new ADR — `adr/0044-*.md`, revision r5.**
 
-(The earlier revision of this plan proposed a new ADR 0048 for this. That was
-sized against a much wider reading of the defect and is dropped.)
+0044 already owns this criterion. AC 5 reads: *"A bare `#<slug>` href written by
+an author is rewritten to that form at activation time, using the currently open
+note id."* That is exactly the mechanism this item extends — an anchor an author
+wrote, turned into `#/n/<id>#<slug>` when the link is followed. The only thing
+that widens is where the note id comes from: the open note for a bare anchor, the
+wikilink's own target for this one. Same criterion, one form wider.
+
+The note half is resolved by `adr/0008-*.md`'s existing rules, applied to a
+substring, and **0008's decision does not move**: which note a target names is
+answered exactly as before, and the anchor is carried through without ever being
+resolved, validated, or looked at. Nothing in 0008's capability statement or its
+criteria becomes untrue, so it gets no revision row — only a one-line pointer in
+its References, which is editorial and flagged as such in the commit.
+
+What r5 has to do in 0044:
+
+- widen AC 5 to name the wikilink form alongside the bare anchor;
+- **amend the Out of scope bullet**, which currently reads "Cross-note heading
+  links (`[[note#heading]]`). That extends wikilink resolution and belongs with
+  `adr/0008-wikilink-resolution.md`, not here." That routing was written when the
+  case looked like an extension of resolution; it turned out to be an extension
+  of the rewrite AC 5 already describes, so the bullet records the correction
+  rather than being quietly deleted;
+- note the whole-target-first split rule and why (a note id may contain a `#`);
+- one Revision History row, Approvals updated.
+
+0044 stays Implemented, so `INDEX.md` is not regenerated.
+
+(Two earlier sizings of this item are dropped: a new ADR 0048, and 0008 r2. The
+first was sized against a much wider reading of the defect; the second followed
+0044's own Out of scope pointer without checking it against AC 5.)
 
 ## Exit criteria
 
 1. `[[folder/nota#heading]]` renders as a **live** chip, not a dead span, and a
    plain click opens the note and lands on the heading.
 2. The href carries the anchor verbatim: `#/n/<encoded id>#heading`.
-3. All three target forms of 0008 AC 4 still resolve with an anchor appended:
-   path, H1 title, bare basename.
+3. All three target forms of `adr/0008-*.md` AC 4 still resolve with an anchor
+   appended: path, H1 title, bare basename.
 4. `[[folder/nota#heading|alias]]` shows the alias.
 5. A target whose note does not resolve stays a dead chip, anchor or no anchor.
 6. An anchor matching no heading opens the note at the top: no error, no scroll
