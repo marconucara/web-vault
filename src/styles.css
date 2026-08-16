@@ -771,6 +771,12 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .mapview-panel-toggle:hover { background: var(--bg-active); }
+/* The button is already absolute (context for the tooltip's ::after): the .tt
+   class, declared later at the same specificity, would otherwise win and bring
+   it back to relative — which drops it out of the map's top-right corner and
+   into the flow at the top-left, on top of Leaflet's zoom control. Same
+   correction `.scope-toggle.tt` already needed. */
+.mapview-panel-toggle.tt { position: absolute; }
 /* The control sits above the map at z-index 1000, well over `.tt::after`'s 60,
    so its own tooltip would render behind the map tiles — the same layering the
    note header's buttons already had to correct. */
