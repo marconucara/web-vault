@@ -43,6 +43,33 @@ describe('wikilink chip', () => {
     expect(html).toContain('dead');
   });
 
+  // A target carrying a heading anchor is a live chip, not a dead span, and the
+  // anchor rides along verbatim (adr/0044-what-the-url-addresses.md).
+  it('renders a target carrying an anchor as an anchor into the heading', () => {
+    const html = render(WikilinkChip, { target: 'Some Note#convenzioni', alias: '' });
+    expect(html).toContain('<a');
+    expect(html).toContain(`href="#/n/${encodeURIComponent('notes/some-note')}#convenzioni"`);
+  });
+
+  // A vault written in Obsidian carries the heading text, which its link picker
+  // inserts; it has to reach the same heading as the slug form.
+  it('reaches the heading when the target names it by its text', () => {
+    const html = render(WikilinkChip, { target: 'Some Note#Le Convenzioni', alias: '' });
+    expect(html).toContain(`href="#/n/${encodeURIComponent('notes/some-note')}#le-convenzioni"`);
+  });
+
+  // The label rule is untouched: alias, else the note title, else the target.
+  it('shows the alias on a target carrying an anchor', () => {
+    const html = render(WikilinkChip, { target: 'Some Note#convenzioni', alias: 'Le regole' });
+    expect(html).toContain('Le regole');
+  });
+
+  it('leaves a dead target dead even when it carries an anchor', () => {
+    const html = render(WikilinkChip, { target: 'No Such Note#heading', alias: '' });
+    expect(html).not.toContain('<a');
+    expect(html).toContain('dead');
+  });
+
   // The old tooltip named a gesture that no longer applies (and never existed on
   // touch); it names the target now.
   it('does not tell the user to Cmd/Ctrl+click', () => {

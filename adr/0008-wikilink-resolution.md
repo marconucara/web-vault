@@ -66,6 +66,10 @@ interactive wikilink chips (`adr/0016-wikilink-and-media-blocks.md`).
 - src/lib/wikilinks.js
 - src/lib/mdLinks.js
 - adr/0002-build-time-content-pipeline.md
+- adr/0044-what-the-url-addresses.md — a target may carry a heading anchor
+  (`[[note#heading]]`). The rules below are unchanged: they answer which note the
+  target names, applied to the substring left of the anchor, and the anchor
+  itself is never resolved here.
 
 ## Revision History
 

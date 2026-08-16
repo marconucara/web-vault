@@ -475,6 +475,10 @@ describe('the link passes leave code alone (ADR 0015, ADR 0008)', () => {
     ['a lone opener with no closer anywhere', 'Type `[[` and nothing else.'],
     ['an aliased wikilink inside a fence', '```\nUse [[a|b]] here.\n```'],
     ['a labelled fence holding a wikilink', '```md\nSee [[welcome]].\n```'],
+    // A target carrying a heading anchor is parsed only where the href is built,
+    // never written back, and the `#` rides inside the token percent-encoded.
+    ['a wikilink target carrying an anchor', 'See [[folder/nota#heading]] below.'],
+    ['an aliased wikilink target carrying an anchor', 'See [[folder/nota#heading|Alias]].'],
     // The media pass shares the shape of the problem, so it gets the same cases.
     ['a media link in a code span', 'Write `[c](attachments/a.mp4)` to embed.'],
     ['a media link inside a fence', '```\n[c](attachments/a.mp4)\n```'],

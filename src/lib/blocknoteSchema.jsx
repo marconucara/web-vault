@@ -6,12 +6,14 @@ import MapCard from '../components/MapCard.jsx';
 import { MEDIA_EXT } from './mdLinks.js';
 import { chipClickIntent, isChipAuxClick } from './chipClick.js';
 import { headingSpecWithAnchors } from './headingAnchors.js';
+import { noteHash } from './headingSlug.js';
+import { resolveTargetAnchor } from './wikilinks.js';
 import { titleIndex, idTitle } from '../content.js';
 
-// Resolves a wikilink target (path form `folder/filename`, title, or filename)
-// to the note id, as transformWikilinks does for the read view.
+// Resolves a wikilink target (path form `folder/filename`, title, or filename,
+// each optionally carrying a `#heading` anchor) to the note id and the anchor.
 function resolveWikilink(target) {
-  return titleIndex[String(target).trim().toLowerCase()] || null;
+  return resolveTargetAnchor(target, titleIndex);
 }
 
 // Opens `href` per the gesture behind `e`: a plain click follows it, a modifier
@@ -49,10 +51,10 @@ function chipClickHandlers(href, options) {
 // gives the context menu, middle click and long-press "Open in new tab" for
 // free. See adr/0016-wikilink-and-media-blocks.md.
 export function WikilinkChip({ target, alias }) {
-  const id = resolveWikilink(target);
+  const { id, anchor } = resolveWikilink(target);
   const label = alias || (id && idTitle[id]) || target;
   if (!id) return <span className="wl-chip dead" title={target}>{label}</span>;
-  const href = `#/n/${encodeURIComponent(id)}`;
+  const href = noteHash(id, anchor);
   return (
     <a className="wl-chip" href={href} title={target} {...chipClickHandlers(href)}>
       {label}

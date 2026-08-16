@@ -18,6 +18,46 @@ function pageWithBody(body) {
   );
 }
 
+// Two notes, only some of them shared: a wikilink between them is a link on the
+// share page only when its target is itself shared (adr/0025-*.md).
+function pageWithVault({ body, frontmatter = {}, targetShared = true }) {
+  const source = { id: 'tasks', path: 'tasks.md', title: 'Tasks', body, frontmatter: { share_id: 'abc123', ...frontmatter } };
+  const target = {
+    id: 'notes/alpha',
+    path: 'notes/alpha.md',
+    title: 'Alpha',
+    body: '# Alpha\n\n## Convenzioni\n',
+    frontmatter: targetShared ? { share_id: 'def456' } : {},
+  };
+  return renderSharedPage(
+    {
+      notes: [source, target],
+      titleIndex: { alpha: 'notes/alpha', 'notes/alpha': 'notes/alpha' },
+      idTitle: { 'notes/alpha': 'Alpha' },
+      maps: {},
+    },
+    'abc123',
+  );
+}
+
+describe('share page wikilinks carrying a heading anchor', () => {
+  it('links into the heading when the target note is shared', () => {
+    const page = pageWithVault({ body: 'See [[alpha#convenzioni]].' });
+    expect(page).toContain('href="/shared/def456/#convenzioni"');
+  });
+
+  it('leaves it plain text when the target note is not shared', () => {
+    const page = pageWithVault({ body: 'See [[alpha#convenzioni]].', targetShared: false });
+    expect(page).toContain('<p>See Alpha.</p>');
+    expect(page).not.toContain('href="/shared/');
+  });
+
+  it('carries the anchor on a frontmatter relationship too', () => {
+    const page = pageWithVault({ body: 'Body.', frontmatter: { related: '[[alpha#convenzioni]]' } });
+    expect(page).toContain('class="chip" href="/shared/def456/#convenzioni"');
+  });
+});
+
 // The style block, isolated: asserting a rule exists must not be satisfied by
 // the same text appearing in the body.
 function cssOf(page) {

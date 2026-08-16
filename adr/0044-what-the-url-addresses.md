@@ -171,6 +171,16 @@ decision rather than leaving it an accident.
     named `C# tips.md`, which is why the id is percent-encoded in the route),
     the whole target is looked up first and only split — at the last `#` — when
     that misses.
+16. The anchor half of a wikilink target is put through the slug rule of
+    criterion 1, so a target may name a heading either by its slug
+    (`[[note#my-heading]]`) or by its **text** (`[[note#My Heading]]`) and both
+    reach it. The text form is what Obsidian's link picker inserts, and a vault
+    authored there is the ordinary case, not an edge one. This is a
+    normalisation of the anchor, not a resolution of it: nothing reads the
+    target note, so criterion 15 stands, and a target already carrying a slug is
+    unchanged because the rule is idempotent over its own output. Duplicate
+    headings are not disambiguated — the text form reaches the first of them,
+    and the suffixed slug (`#note-1`) written out addresses the rest.
 
 ## Design notes
 
@@ -270,6 +280,14 @@ product does not do.
   0008 already answers it, on a substring, and the anchor is never resolved at
   all. It is criterion 5's rewrite with the note id taken from the target
   instead of from the open note.
+- **Showing the heading in a wikilink chip's label.** A chip pointing into a
+  heading reads exactly like one pointing at the note: alias, else the note
+  title, else the target as written. Kept deliberately, not left undone — the
+  alternative has no clean form. The slug reads badly in a label, the heading
+  *text* is not available without reading the target note (which criterion 15
+  exists to avoid), and appending anything to an author's alias contradicts the
+  alias. Revisit only as its own decision, with the question "what does a chip
+  pointing inside a note show" asked properly.
 - The routing mechanism itself, decided in `adr/0006-hash-based-routing.md`.
 
 ## Open questions
@@ -299,8 +317,11 @@ there is editable.
 - src/components/BlockEditor.jsx — the app's only note-body surface.
 - src/lib/blocknoteSchema.jsx, src/lib/chipClick.js — the existing in-editor
   link activation path.
-- src/lib/wikilinks.js — where a wikilink target is split and resolved
-  (criterion 15).
+- src/lib/wikilinks.js — `resolveTargetAnchor`, where a wikilink target is split
+  and resolved (criteria 15–16); the one helper both the app and the build
+  scripts import, so the two surfaces split a target identically.
+- src/lib/headingSlug.js — the slug rule, applied to the anchor half by
+  criterion 16 as well as to headings themselves.
 - scripts/shared-render.mjs — the share-page renderer that must match it.
 
 ## Revision History
@@ -312,9 +333,10 @@ there is editable.
 | 2026-08-11 | r3 | marco | Replaced the mechanism after implementation disproved it: ids come from the heading's own `render` (wrapping the stock spec, whose behaviour lives in `extensions`), because ProseMirror discards anything stamped onto its DOM from outside. Recorded that a MutationObserver on the editor loops and hangs it. Relaxed criterion 4: duplicate suffixes hold on the share pages but cannot in the live editor, where an anchor resolves to the first match. Added the settle-aware scroll for cold loads and `scroll-margin-top` for the landing offset. |
 | 2026-08-11 | r4 | marco | Brought the click-to-copy affordance into scope, having found it costs a CSS pseudo-element rather than a component: criteria 12–14, offered on `h2`–`h6` only. Recorded why `::after` is the right shape in an editable surface, the geometric hit test it forces, and that it is not keyboard reachable. Corrected the share-page note: `rehype-slug` is unusable because the body renders in segments. |
 | 2026-08-13 | r5 | marco | Widened criterion 5 and added criterion 15: an anchor carried by a **wikilink** target is rewritten the same way a bare `#<slug>` href is, taking the note id from the target instead of from the open note. Corrected this ADR's own Out of scope, which routed the case to `adr/0008-*.md` as an extension of resolution — it is not: the note half resolves by 0008's existing rules on a substring, and the anchor is carried through unresolved. Recorded that the whole target is looked up before any split, because a note id may contain a `#`. **Criterion 15 is not yet implemented**: queued as `plan/todo/0001-a-wikilink-target-can-carry-an-anchor.md`, which is why the status does not move. |
+| 2026-08-16 | r6 | marco | Added criterion 16 during implementation: the anchor half is normalised through the slug rule, so a target may name a heading by its **text** as well as by its slug. Obsidian's link picker inserts the text form, so without this the ordinary case in an Obsidian-authored vault opens the note at its top; the rule is idempotent over its own output, so a target already carrying a slug cannot regress. It normalises the anchor, it does not resolve it — nothing reads the target note — so criterion 15 stands unchanged. Recorded the limit this does not lift: duplicate headings are not disambiguated, the text form reaching the first of them. Recorded in Out of scope that a chip pointing into a heading keeps the label rule unchanged — a design choice with no clean alternative, not an omission. Criterion 15 is now implemented, closing the gap the r5 row left open. |
 
 ## Approvals
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Owner | marco | 2026-08-13 | Accepted (r5) |
+| Owner | marco | 2026-08-16 | Accepted (r6) |

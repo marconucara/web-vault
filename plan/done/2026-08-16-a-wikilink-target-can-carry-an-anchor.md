@@ -51,12 +51,19 @@ safely — `preProcessWikilinks` percent-encodes the payload (`#` → `%23`) and
 `decodeWikilink` restores it — so the markdown that goes back to the vault is the
 markdown that came out of it.
 
-**One judgement call left open**, one line either way. The anchor is re-appended
-verbatim, as instructed, so `[[nota#my-heading]]` lands and
-`[[nota#My Heading]]` — the heading *text*, which is what Obsidian's own link
-picker inserts — does not. Passing it through `headingSlug` would accept both,
-and cannot regress the first form because the function is idempotent over its own
-output. Left out; say the word and it goes in.
+**The judgement call, decided during implementation: the anchor goes through
+`headingSlug`.** So `[[nota#my-heading]]` and `[[nota#My Heading]]` — the heading
+*text*, which is what Obsidian's own link picker inserts — both land. The slug
+form cannot regress, the function being idempotent over its own output, and
+nothing reads the target note, so this normalises the anchor rather than
+resolving it. Recorded as criterion 16 of `adr/0044-*.md` (r6). It does not
+disambiguate duplicate headings: the text form reaches the first, and `#note-1`
+written out addresses the rest.
+
+**The other one is decided the other way: the chip label stays as it is.** No
+clean form exists — the slug reads badly, the heading text is unavailable without
+reading the target note, and appending to an author's alias contradicts it.
+Recorded in 0044's Out of scope so it reads as a choice, not an omission.
 
 ## Scope
 
@@ -134,7 +141,7 @@ first was sized against a much wider reading of the defect; the second followed
 
 1. `[[folder/nota#heading]]` renders as a **live** chip, not a dead span, and a
    plain click opens the note and lands on the heading.
-2. The href carries the anchor verbatim: `#/n/<encoded id>#heading`.
+2. The href carries the anchor: `#/n/<encoded id>#heading`.
 3. All three target forms of `adr/0008-*.md` AC 4 still resolve with an anchor
    appended: path, H1 title, bare basename.
 4. `[[folder/nota#heading|alias]]` shows the alias.
@@ -157,3 +164,30 @@ first was sized against a much wider reading of the defect; the second followed
 ## Dependencies
 
 None. The queue is otherwise empty and nothing else touches link resolution.
+
+---
+
+Shipped: HEAD `(this commit)`. The split lives in one exported helper,
+`resolveTargetAnchor` (`src/lib/wikilinks.js`), imported by the client bundle and
+by `scripts/shared-render.mjs` alike, so the app and the share pages split a
+target identically rather than by two copies of one regex. All four call sites go
+through it. `transformWikilinks` was deleted with its two tests: no importer
+since `Markdown.jsx` went with 0044.
+
+Both judgement calls the item left open were decided, in opposite directions.
+**The anchor goes through `headingSlug`** — recorded as criterion 16 of
+`adr/0044-*.md` (r6) — so a target may name a heading by its text as well as by
+its slug, which is what Obsidian's link picker inserts and therefore the ordinary
+case in a vault authored there. It normalises the anchor without resolving it,
+so criterion 15 stands as written, which is why it is a new criterion rather than
+an edit to that one. **The chip label stays unchanged**, recorded in 0044's Out
+of scope with the reasoning, so it reads as a choice and not as an omission.
+
+`adr/0044-*.md` → r6, stays Implemented (criterion 15 was the one criterion of it
+that was not, and this closes it); `adr/0008-*.md` gets a References pointer only
+— its decision does not move — which is editorial and flagged as such in the
+commit. `INDEX.md` needs no regeneration: no status change, no new ADR.
+
+533 tests (was 528). Verified by hand in the running app and on a real share
+page, per exit criterion 12. Released as **v0.11.4** — a patch under
+`adr/0037-*.md`: nothing in the adopter-facing contract moved.

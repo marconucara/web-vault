@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { wikilinkTargets } from '../lib/wikilinks.js';
+import { noteHash } from '../lib/headingSlug.js';
 import { idTitle } from '../content.js';
 import { usePending, setEdit, effectiveBody } from '../lib/pending.js';
 import { setDraftBody } from '../lib/drafts.js';
@@ -72,7 +73,7 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
   const newNote = isDraft && /^\s*#\s*$/.test(note.body || '');
   const status = note.frontmatter.status ?? note.frontmatter.Status;
 
-  /** @type {[string, { text: string, id: string | null }[]][]} */
+  /** @type {[string, { text: string, id: string | null, anchor: string | null }[]][]} */
   const rels = [];
   for (const [key, val] of Object.entries(note.frontmatter)) {
     if (key.startsWith('_')) continue;
@@ -136,7 +137,7 @@ export default function NoteView({ note, titleIndex, onBack = null }) {
               <span className="rel-key">{key}:</span>
               {targets.map((t, i) => (
                 t.id
-                  ? <a key={i} className="chip" href={`#/n/${encodeURIComponent(t.id)}`}>{t.text}</a>
+                  ? <a key={i} className="chip" href={noteHash(t.id, t.anchor)}>{t.text}</a>
                   : <span key={i} className="chip dead">{t.text}</span>
               ))}
             </span>

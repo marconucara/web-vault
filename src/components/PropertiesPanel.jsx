@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Icon from './Icon.jsx';
 import { wikilinkTargets } from '../lib/wikilinks.js';
+import { noteHash } from '../lib/headingSlug.js';
 import { titleIndex, idTitle, build } from '../content.js';
 import { useTypeMeta } from '../lib/typeMetaContext.jsx';
 import { commitFiles } from '../lib/commit.js';
@@ -47,7 +48,7 @@ function Chips({ targets }) {
     <>
       {targets.map((t, i) =>
         t.id ? (
-          <a key={i} className="chip" href={`#/n/${encodeURIComponent(t.id)}`}>{t.text}</a>
+          <a key={i} className="chip" href={noteHash(t.id, t.anchor)}>{t.text}</a>
         ) : (
           <span key={i} className="chip dead">{t.text}</span>
         )
@@ -99,7 +100,7 @@ export default function PropertiesPanel({ note, onClose }) {
   const fm = note.frontmatter || {};
   /** @type {[string, unknown][]} */
   const scalars = []; // [key, value] non-relationship, non-`_`, non-`type`
-  /** @type {[string, { text: string, id: string | null }[]][]} */
+  /** @type {[string, { text: string, id: string | null, anchor: string | null }[]][]} */
   const rels = []; // [key, targets]
   for (const [key, val] of Object.entries(fm)) {
     if (key.startsWith('_') || key === 'type') continue;

@@ -9,25 +9,45 @@ If status files and git disagree, git is authoritative; correct this file.
 ## Active state
 
 - **Branch:** main
-- **Active item:** none in flight. **Queued:**
-  `todo/0001-a-wikilink-target-can-carry-an-anchor` — `[[folder/nota#heading]]`
-  is not even drawn as a link, because the whole string (anchor included) goes
-  into the `titleIndex` lookup. Resolve the note half, re-append the anchor to
-  the href; no validation, no new machinery. Markdown links are **not** in it:
-  they already render as links and where they go is the author's choice. Owned
-  by `adr/0044` r5 — its AC 5 already rewrites an author-written anchor into
-  `#/n/<id>#<slug>`; this widens where the note id comes from. Not started.
-- **Last shipped:** `done/2026-08-12-a-manual-check-that-finds-an-update-shows-it`
-  and `done/2026-08-12-a-control-with-its-popover-open-drops-its-tooltip`,
-  shipped together in one change.
+- **Active item:** none in flight. **The queue is empty** — `plan/todo/` has no
+  files. Per `_agent/HANDOFF.md` that is a stop condition: a fresh agent should
+  surface it rather than invent work. Candidates live in `INDEX.md` as ADRs that
+  are Proposed rather than Implemented — `adr/0048-*.md` (offline availability)
+  is the newest, proposed 2026-08-16 and not yet queued.
+- **Last shipped:** `done/2026-08-16-a-wikilink-target-can-carry-an-anchor`,
+  released as `v0.11.4`.
 - **Blockers:** none.
 - **Uncommitted work:** none.
-- **Unreleased on `main`:** nothing. `v0.11.2` gathers everything that had
-  accumulated.
+- **Unreleased on `main`:** nothing. `v0.11.4` is the tip.
 
 ## Release state
 
-- **Current tag: `v0.11.2`** — three status-bar defects, all reported from a
+- **Current tag: `v0.11.4`** — `adr/0044` r6: a wikilink target can carry a
+  heading anchor. `[[folder/nota#heading]]` was not merely imperfect, it was
+  invisible — a dead grey span, because the whole string went into the
+  `titleIndex` lookup with `#heading` still attached.
+  - **A patch, not a minor.** Nothing in the adopter-facing contract moved —
+    same CLI, same shell config, same vault layout, same deploy substrate. A
+    link that was dead is now live; nothing that worked changed shape.
+  - **The whole target is looked up before any split, which is the whole
+    subtlety.** A note id may contain a `#` (`C# tips.md` — which is why the id
+    is percent-encoded in the route), so splitting eagerly would have broken
+    links that resolve today. Pinned by a test, not by inspection.
+  - **The anchor is normalised through `headingSlug`, so heading TEXT works too**
+    (criterion 16). That is the form Obsidian's link picker inserts, so without
+    it the ordinary case in an Obsidian-authored vault opened the note at its
+    top. Verified idempotent over its own output before adopting it, accents and
+    unicode included. It does not disambiguate duplicate headings — the text
+    form reaches the first — and the criterion says so rather than leaving it to
+    be found.
+  - **One helper, four call sites.** `resolveTargetAnchor` in
+    `src/lib/wikilinks.js`, imported by both the client bundle and
+    `scripts/shared-render.mjs`, as `headingSlug.js` already was. The app and
+    the share pages cannot drift apart on how a target splits.
+- **Previous tag: `v0.11.3`** — `wv dev` failed to mount because the shim's
+  `react-i18next` imports were not pre-bundled. Never recorded here at the time;
+  noted now so the tag list and this file agree.
+- **Previous tag: `v0.11.2`** — three status-bar defects, all reported from a
   real deployed vault in one sitting, all found by using the app rather than by
   reading it. Carries the tooltip migration
   (`done/2026-08-11-one-tooltip-across-the-interface`), which had been sitting

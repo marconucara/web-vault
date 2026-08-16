@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import GithubSlugger from 'github-slugger';
 import { parseMapCardLine, createMapGrouper, createColorAssigner, markerColor } from '../src/lib/mdLinks.js';
+import { resolveTargetAnchor } from '../src/lib/wikilinks.js';
 
 const WIKILINK = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 export const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -21,13 +22,21 @@ export function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
+// The URL of a shared page, or of a heading within it. The anchor is the one
+// the author wrote in the wikilink, carried through unresolved: on a share page
+// it is a native document anchor, so it lands on the heading if one matches its
+// derived id and is ignored otherwise.
+function sharedHref(uuid, anchor) {
+  return anchor ? `/shared/${uuid}/#${anchor}` : `/shared/${uuid}/`;
+}
+
 // Body: wikilink -> link only if the target is shared, otherwise plain text.
 function transformSharedWikilinks(md, titleIndex, idTitle, sharedUuidByNoteId) {
   return md.replace(WIKILINK, (_m, target, alias) => {
-    const id = titleIndex[target.trim().toLowerCase()];
+    const { id, anchor } = resolveTargetAnchor(target, titleIndex);
     const text = (alias || (id && idTitle[id]) || target).trim();
     const uuid = id ? sharedUuidByNoteId[id] : null;
-    return uuid ? `[${text}](/shared/${uuid}/)` : text;
+    return uuid ? `[${text}](${sharedHref(uuid, anchor)})` : text;
   });
 }
 
@@ -41,9 +50,9 @@ function sharedRelTargets(value, titleIndex, idTitle, sharedUuidByNoteId) {
     WIKILINK.lastIndex = 0;
     while ((m = WIKILINK.exec(v))) {
       const target = m[1].trim();
-      const id = titleIndex[target.toLowerCase()];
+      const { id, anchor } = resolveTargetAnchor(target, titleIndex);
       const uuid = id ? sharedUuidByNoteId[id] : null;
-      if (uuid) out.push({ text: (m[2] || (id && idTitle[id]) || target).trim(), uuid });
+      if (uuid) out.push({ text: (m[2] || (id && idTitle[id]) || target).trim(), uuid, anchor });
     }
   }
   return out;
@@ -228,7 +237,7 @@ function renderPage(note, bodyHtml, relRows) {
   if (status) meta.push(`<span class="badge status">${escapeHtml(String(status))}</span>`);
   for (const [key, targets] of relRows) {
     const chips = targets
-      .map((t) => `<a class="chip" href="/shared/${t.uuid}/">${escapeHtml(t.text)}</a>`)
+      .map((t) => `<a class="chip" href="${escapeHtml(sharedHref(t.uuid, t.anchor))}">${escapeHtml(t.text)}</a>`)
       .join('');
     meta.push(`<span class="rel"><span class="rel-key">${escapeHtml(key)}:</span>${chips}</span>`);
   }
