@@ -4,15 +4,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Icon from './Icon.jsx';
 import { maps } from '../content.js';
-import { parseMapCardLine, createMapGrouper, createColorAssigner, markerColor } from '../lib/mdLinks.js';
+import { parseMapCardLine, createMapGrouper, createColorAssigner, markerColor, placeText } from '../lib/mdLinks.js';
+import { escapeHtml, inlineHtml } from '../lib/inlineText.js';
 
-function esc(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+// The popup is built as an HTML string (Leaflet takes markup, not React), so
+// every interpolated value is escaped. Shared with the inline renderer, which
+// escapes the same way for the same reason.
+const esc = escapeHtml;
 
 // Collect every map card point of a note body, in order of appearance, each
 // tagged with the heading (markdown section) it sits under. Returns
@@ -42,8 +40,9 @@ export function collectPoints(body) {
     if (!parsed) continue;
     const color = markerColor(colorOf(rawGroup));
     const info = maps[parsed.url] || {};
-    const note = parsed.desc || (info.title ? parsed.label : null);
-    const title = info.title || parsed.label || 'Google Maps';
+    // Same rule as the body card (adr/0049-*.md AC 9), from the same helper, so
+    // a place cannot be named one thing in the note and another on the map.
+    const { title, note } = placeText(parsed, info);
     if (Number.isFinite(info.lat) && Number.isFinite(info.lng)) {
       points.push({
         lat: info.lat,
@@ -108,7 +107,11 @@ function pinHtml(num, color) {
 function popupHtml(p) {
   const img = p.image ? `<img class="mapview-popup-img" src="${esc(p.image)}" alt="" referrerpolicy="no-referrer">` : '';
   const addr = p.address ? `<div class="mapview-popup-sub">${esc(p.address)}</div>` : '';
-  const note = p.note ? `<div class="mapview-popup-note">${esc(p.note)}</div>` : '';
+  // The description carries the author's emphasis (adr/0049-*.md AC 7).
+  // `inlineHtml` escapes every token's text itself, so the only markup that
+  // reaches the popup is its own fixed <strong>/<em>/<code> — not `esc`'d here,
+  // which would show the tags literally.
+  const note = p.note ? `<div class="mapview-popup-note">${inlineHtml(p.note)}</div>` : '';
   return (
     `<a class="mapview-popup" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${img}` +
     `<div class="mapview-popup-body"><div class="mapview-popup-title">${esc(p.title)}</div>${addr}${note}</div></a>`

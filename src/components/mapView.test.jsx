@@ -15,6 +15,12 @@ vi.mock('../content.js', () => ({
     },
     // Coordinates but nothing else: a link the resolver placed without naming.
     'https://maps.app.goo.gl/coords-only': { lat: 45.4642, lng: 9.19 },
+    'https://maps.app.goo.gl/ciolo': {
+      title: 'Il Ciolo',
+      address: 'Gagliano del Capo',
+      lat: 39.8465,
+      lng: 18.3745,
+    },
   },
 }));
 
@@ -66,6 +72,31 @@ describe('map links degrade rather than disappear (ADR 0028 AC 7)', () => {
     expect(points).toHaveLength(1);
     expect(points[0].heading).toBe('Day 1');
     expect(missing).toEqual(['Not found']);
+  });
+});
+
+// adr/0049-*.md AC 9: a place is named identically on both surfaces, because
+// both read the same rule from `placeText`.
+describe('the map names a place as the card does (ADR 0049 AC 9)', () => {
+  it('titles a marker with the author\'s link text over the resolved name', () => {
+    const { points } = collectPoints(
+      '- [Ciolo](https://maps.app.goo.gl/ciolo) ~30 min. Fiordo con ciottoli\n'
+    );
+    expect(points[0]).toMatchObject({
+      title: 'Ciolo',
+      note: '~30 min. Fiordo con ciottoli',
+      address: 'Gagliano del Capo',
+    });
+  });
+
+  it('falls back to the resolved name when the author named nothing', () => {
+    const { points } = collectPoints('- https://maps.app.goo.gl/ciolo ~30 min.\n');
+    expect(points[0]).toMatchObject({ title: 'Il Ciolo', note: '~30 min.' });
+  });
+
+  it('never shows the link text as the marker note', () => {
+    const { points } = collectPoints('- [Ciolo](https://maps.app.goo.gl/ciolo)\n');
+    expect(points[0]).toMatchObject({ title: 'Ciolo', note: null });
   });
 });
 

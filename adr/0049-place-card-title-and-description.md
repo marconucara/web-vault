@@ -1,7 +1,7 @@
 ---
 adr: 0049
 title: A place card's title and description are the author's to write
-status: Proposed
+status: Implemented
 date: 2026-08-16
 owner: marco
 supersedes:
@@ -52,6 +52,22 @@ The parser is not the problem. `parseMapCardLine` has always returned
 `{ label, desc }` separately for `[text](url) trailing text`. Only the reader
 collapses them.
 
+**Why criteria 8 and 9 exist.** Giving the description a purpose of its own made
+it worth writing markup in, and that exposed two defects that were unreachable
+while it held at most a bare sentence. A place card survives the editor as a
+percent-encoded block token, but the encoding leaves markdown punctuation
+untouched (`*`, `_`, `~`, `!`, `[` are unreserved URI characters), so a
+description carrying emphasis reached the parser with its markers live: the
+token came back split across several styled spans, the promotion — which
+required a single span — failed, and the reader was shown the raw token instead
+of the card. Joining the spans fixed that and revealed the second half: the
+parser does not merely split the payload, it *consumes* the markers into each
+span's `styles`, so the joined text was `a b c` where the author wrote
+`a **b** c`. The vault file stayed correct throughout, because the exporter
+re-applies the styles on the way out — which is exactly why this was invisible
+to a round-trip test and plainly visible on screen. Both are stated as criteria
+because both are properties a reader would otherwise assume, and neither held.
+
 ## Capability statement
 
 **The author writes the card's title and its description, independently, in
@@ -98,15 +114,25 @@ the parts the author did not touch.
 6. Saving from the editor rewrites only the fields the author changed; a
    title-and-description line saved with an edited description keeps its title,
    and its list marker and number are preserved.
-7. The description renders inline markdown — at least emphasis, strong emphasis
-   and inline code. Any markup it cannot render degrades to its literal source
-   text rather than being dropped.
-8. The line round-trips to the vault verbatim per
-   `adr/0015-durable-markdown-round-trip.md`: opening a note and saving it
-   without touching a card leaves that card's line byte-identical, including a
-   description containing markdown.
-9. The map view's marker popup follows the same title and description rules as
-   the card, so a place is named identically in both surfaces.
+7. The description renders inline markdown — emphasis, strong emphasis, inline
+   code and strikethrough. Any markup it cannot render degrades to its literal
+   source text rather than being dropped.
+8. **What the description contains never decides whether the line is a card.**
+   Whether a block is promoted to a place card depends on its shape alone — a
+   Maps link starting a paragraph or list item — so a description carrying
+   markup renders as a card exactly as a plain one does, and a raw block token
+   is never shown to the reader.
+9. **The markup the author wrote survives to the card.** Emphasis applied
+   through the editor's toolbar and emphasis typed as markdown are the same
+   thing by the time the card renders it: a description's markup is rendered as
+   markup, never flattened to plain text, and never only until the next reload.
+10. The line round-trips to the vault verbatim per
+    `adr/0015-durable-markdown-round-trip.md`: opening a note and saving it
+    without touching a card leaves that card's line byte-identical, including a
+    description containing markdown, and including a place nested under a plain
+    list item.
+11. The map view's marker popup follows the same title and description rules as
+    the card, so a place is named identically in both surfaces.
 
 ## Out of scope
 
@@ -114,8 +140,12 @@ the parts the author did not touch.
   build-resolved and read-only, per `adr/0028-*.md`.
 - Block-level markdown in the description (lists, headings, images). Inline only.
 - Any change to link *detection* — which lines become cards is 0028's rule and is
-  unchanged here.
+  unchanged here. Criterion 8 states that rule's independence from the
+  description; it does not widen or narrow what matches.
 - Multi-line descriptions.
+- Editing the description's markup through a rich-text control on the card. The
+  field is plain markdown text; the editor's toolbar reaches it only via the
+  note body.
 
 ## Open questions
 
@@ -132,6 +162,7 @@ the parts the author did not touch.
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-08-16 | r1 | marco | Initial draft. Splits the single author-text slot 0028 defined into an explicit title and description, and removes the conditional in which the link text meant one or the other depending on whether the build resolved a place name. |
+| 2026-08-17 | r2 | marco | Added criteria 8 and 9 after implementation. Both were assumed by r1 and neither was true: a description carrying markup broke the promotion (the block token reached the parser with its markers intact, came back split across styled spans, and the reader was shown the raw token), and once promotion was fixed the parser had consumed those markers into the spans' styles, so the card rendered flat while the vault file stayed correct. Criterion 7 gained strikethrough — the editor's toolbar writes it, so a description acquires one without the author typing markdown. Criterion 10 gained the nested-list case, a pre-existing round-trip defect this work surfaced. |
 
 ## Approvals
 

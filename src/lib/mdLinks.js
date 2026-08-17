@@ -54,6 +54,67 @@ export function parseMapCardLine(line) {
   return { marker, num, url, label: label || null, desc: desc.trim() };
 }
 
+// What a place card is CALLED and what it SAYS, from the parsed line and the
+// build-resolved place (adr/0049-*.md). Both are the author's to write and
+// neither depends on what the build managed to resolve:
+//
+//   title = the link's own text, else the resolved place name, else the URL
+//   note  = the text after the link, and nothing else
+//
+// The conditional this replaces (`desc || (info.title ? label : null)`) made the
+// link text mean "title" or "description" depending on whether a build-time
+// fetch succeeded, so an author could never write both — and a 429 silently
+// renamed their places. Shared by the body card and the map popup so a place is
+// named identically on both surfaces.
+export function placeText(parsed, info = {}) {
+  const label = parsed?.label || null;
+  return {
+    title: label || info.title || parsed?.url || 'Google Maps',
+    note: parsed?.desc || null,
+  };
+}
+
+// Rebuild a map card line from its parts, preserving the list marker/number.
+// Inverse of `parseMapCardLine` for the fields the in-place editor can write.
+// The brackets appear only with a title, the trailing text only with a
+// description — so clearing the title yields a bare link, which is exactly the
+// "no override" the card falls back from.
+/**
+ * @param {{ marker?: string|null, num?: number|null, url: string,
+ *           title?: string|null, desc?: string|null }} parts
+ */
+export function buildMapCardLine({ marker, num, url, title, desc }) {
+  const prefix = marker === 'ordered' ? `${num || 1}. ` : marker === 'unordered' ? '- ' : '';
+  const t = (title || '').trim();
+  const d = (desc || '').trim();
+  const link = t ? `[${t}](${url})` : url;
+  return prefix + link + (d ? ` ${d}` : '');
+}
+
+// The ⟬…⟭ token payload: a map card line, percent-encoded so it survives the
+// trip through BlockNote as text rather than as markdown.
+//
+// The encoding is NOT relied on to keep the payload in a single span. It cannot:
+// `encodeURIComponent` leaves most markdown punctuation untouched — `*`, `_`,
+// `~`, `!`, `[` are all unreserved URI characters — so a description carrying
+// emphasis reaches the parser with its markers intact and comes back split
+// across several styled spans. Escaping each of those characters in turn would
+// be a list to keep in sync with a markdown dialect. The block-level side reads
+// the paragraph's whole text instead (`paragraphSoleText`), which makes the
+// split irrelevant, and this stays a plain percent-encoding whose only job is
+// keeping the line's own delimiters out of the token.
+export function encodeMapToken(line) {
+  return encodeURIComponent(line);
+}
+
+export function decodeMapToken(token) {
+  try {
+    return decodeURIComponent(token);
+  } catch {
+    return token;
+  }
+}
+
 // The Google Maps URL in a map card line, or null. Used at build time to collect
 // the links that need resolving.
 export function mapUrlInLine(line) {

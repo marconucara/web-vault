@@ -69,3 +69,7 @@ Purely presentational — no ADR revision, no markdown or resolver surface
 touched. Independent of `plan/todo/0002-*.md`.
 
 Awaiting Marco's own check in the running app before commit.
+
+---
+
+Shipped: `6f7d56c`.

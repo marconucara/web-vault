@@ -664,6 +664,15 @@ a:hover { text-decoration: underline; }
 /* Description that comes from the note markdown: primary text color to set it
    apart from the (dimmed) Maps metadata line. */
 .mapcard-note { color: var(--text); }
+/* The description carries the author's inline emphasis (adr/0049-*.md). Only
+   `code` needs a rule: strong and em inherit what they need, but a code span at
+   the description's own reduced size would otherwise be smaller still. */
+.mapcard-note code {
+  font-size: 0.95em;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg-alt);
+}
 .mapcard-rating { color: #f5a623; font-size: 0.85em; letter-spacing: 1px; }
 .mapcard-thumb {
   flex: none;
@@ -871,6 +880,12 @@ a:hover { text-decoration: underline; }
 .mapview-popup-title { font-weight: 700; line-height: 1.25; }
 .mapview-popup-sub { color: var(--text-dim); font-size: 0.85em; margin-top: 2px; }
 .mapview-popup-note { color: var(--text); font-size: 0.85em; margin-top: 3px; }
+.mapview-popup-note code {
+  font-size: 0.95em;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg-alt);
+}
 
 /* Mobile */
 .app.mobile { display: block; flex: 1 1 auto; min-height: 0; }

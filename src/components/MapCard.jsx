@@ -1,26 +1,38 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { maps } from '../content.js';
-import { parseMapCardLine, markerColor } from '../lib/mdLinks.js';
+import {
+  parseMapCardLine,
+  markerColor,
+  placeText,
+  buildMapCardLine,
+  encodeMapToken,
+  decodeMapToken,
+} from '../lib/mdLinks.js';
+import { parseInline } from '../lib/inlineText.js';
 
 // Reads the ⟬…⟭ token payload (the original line, url-encoded) and parses it
 // back into { marker, num, url, label, desc }.
 function parseToken(token) {
-  let line = token;
-  try {
-    line = decodeURIComponent(token);
-  } catch {
-    /* keep raw */
-  }
+  const line = decodeMapToken(token);
   return parseMapCardLine(line) || { marker: null, num: null, url: line, label: null, desc: '' };
 }
 
-// Rebuild a map card markdown line from edited fields, preserving the list
-// marker/number. The user's description is stored as the link label.
-function buildLine(marker, num, url, desc) {
-  const prefix = marker === 'ordered' ? `${num || 1}. ` : marker === 'unordered' ? '- ' : '';
-  const d = (desc || '').trim();
-  return prefix + (d ? `[${d}](${url})` : url);
+// The description's inline emphasis (adr/0049-*.md AC 7). Rendered as spans
+// rather than <strong>/<em> elements would be: the card is an <a>, and these are
+// phrasing content, so they nest legally inside it.
+function Inline({ text }) {
+  return (
+    <>
+      {parseInline(text).map((tok, i) => {
+        if (tok.type === 'strong') return <strong key={i}>{tok.value}</strong>;
+        if (tok.type === 'em') return <em key={i}>{tok.value}</em>;
+        if (tok.type === 'code') return <code key={i}>{tok.value}</code>;
+        if (tok.type === 'strike') return <del key={i}>{tok.value}</del>;
+        return <React.Fragment key={i}>{tok.value}</React.Fragment>;
+      })}
+    </>
+  );
 }
 
 // Keyless OpenStreetMap embed, kept for a future "map mode" (a toolbar switch
@@ -59,11 +71,15 @@ function Pin({ num, color }) {
   );
 }
 
-// Floating editor: URL + Description (the user's note). Title comes from Maps
-// (resolved at build time), so it is not editable here.
-function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
+// Floating editor: URL + Title + Description, the three fields the line can
+// carry (adr/0049-*.md AC 5). An empty title means NO override — the card falls
+// back to the resolved place name — so the field is seeded with the author's own
+// link text, never with the name Maps resolved: pre-filling it with the latter
+// would turn "no override" into an override the moment anything else was saved.
+function EditPopover({ url, title, desc, onSave, onRemove, onOpen, onClose }) {
   const { t } = useTranslation();
   const [u, setU] = useState(url);
+  const [ti, setTi] = useState(title);
   const [d, setD] = useState(desc);
   const stop = (e) => e.stopPropagation();
   // Keep keys away from the editor; Enter saves (unless a button is focused),
@@ -75,7 +91,7 @@ function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
       onClose();
     } else if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
       e.preventDefault();
-      onSave(u, d);
+      onSave(u, ti, d);
     }
   };
   return (
@@ -93,6 +109,10 @@ function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
           <input value={u} onChange={(e) => setU(e.target.value)} spellCheck={false} autoFocus />
         </label>
         <label className="mapcard-edit-row">
+          <span>{t('mapCard.title')}</span>
+          <input value={ti} onChange={(e) => setTi(e.target.value)} placeholder={t('mapCard.titlePlaceholder')} />
+        </label>
+        <label className="mapcard-edit-row">
           <span>{t('mapCard.description')}</span>
           <input value={d} onChange={(e) => setD(e.target.value)} placeholder={t('mapCard.descriptionPlaceholder')} />
         </label>
@@ -101,7 +121,7 @@ function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
           <button type="button" className="danger" onClick={onRemove}>{t('mapCard.remove')}</button>
           <span className="spacer" />
           <button type="button" onClick={onClose}>{t('common.cancel')}</button>
-          <button type="button" className="primary" onClick={() => onSave(u, d)}>{t('common.save')}</button>
+          <button type="button" className="primary" onClick={() => onSave(u, ti, d)}>{t('common.save')}</button>
         </div>
       </div>
     </>
@@ -109,21 +129,20 @@ function EditPopover({ url, desc, onSave, onRemove, onOpen, onClose }) {
 }
 
 // Compact place-preview card for a Google Maps link that starts its own line
-// (paragraph or list item). Data (name, address, photo, rating, category) is
-// resolved at build time from the Open Graph preview; no API key. The title is
-// ALWAYS the Maps place name; any text the user wrote in the link is shown as a
-// description line below. `editor`/`block` are passed by the BlockNote block
-// spec and enable in-place editing.
+// (paragraph or list item). Data (address, photo, rating, category) is resolved
+// at build time from the Open Graph preview; no API key. The card's NAME and its
+// description are the author's, per adr/0049-*.md: the link text titles the
+// card, the text after it describes the place, and the resolved place name is
+// the fallback for a link the author did not name. `editor`/`block` are passed
+// by the BlockNote block spec and enable in-place editing.
 export default function MapCard({ token, group = 0, editor, block }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
-  const { marker, num, url, label, desc } = parseToken(token);
+  const parsed = parseToken(token);
+  const { marker, num, url, label } = parsed;
   const info = maps[url] || {};
-  const title = info.title || label || 'Google Maps';
+  const { title, note } = placeText(parsed, info);
   const meta = [info.category, info.address].filter(Boolean).join(' · ') || null;
-  // The user's own text: trailing text, or the label (unless the label is
-  // already used as the title because Maps didn't resolve a name).
-  const note = desc || (info.title ? label : null);
   const rating = info.ratingStars ? '★'.repeat(info.ratingStars) : null;
   const canEdit = !!(editor && block);
 
@@ -136,9 +155,15 @@ export default function MapCard({ token, group = 0, editor, block }) {
     if (canEdit) setEditing(true);
   };
 
-  const onSave = (newUrl, newDesc) => {
-    const line = buildLine(marker, num, newUrl.trim() || url, newDesc);
-    editor.updateBlock(block, { props: { token: encodeURIComponent(line) } });
+  const onSave = (newUrl, newTitle, newDesc) => {
+    const line = buildMapCardLine({
+      marker,
+      num,
+      url: newUrl.trim() || url,
+      title: newTitle,
+      desc: newDesc,
+    });
+    editor.updateBlock(block, { props: { token: encodeMapToken(line) } });
     setEditing(false);
   };
   const onRemove = () => {
@@ -163,7 +188,7 @@ export default function MapCard({ token, group = 0, editor, block }) {
         <span className="mapcard-body">
           <span className="mapcard-title">{title}</span>
           {meta && <span className="mapcard-sub">{meta}</span>}
-          {note && <span className="mapcard-sub mapcard-note">{note}</span>}
+          {note && <span className="mapcard-sub mapcard-note"><Inline text={note} /></span>}
           {rating && <span className="mapcard-rating">{rating}</span>}
         </span>
         {info.image && (
@@ -175,7 +200,10 @@ export default function MapCard({ token, group = 0, editor, block }) {
       {editing && (
         <EditPopover
           url={url}
-          desc={note || ''}
+          // The author's own two fields, exactly as written — NOT the rendered
+          // title, which may have fallen back to the resolved place name.
+          title={label || ''}
+          desc={parsed.desc || ''}
           onSave={onSave}
           onRemove={onRemove}
           onOpen={openLink}

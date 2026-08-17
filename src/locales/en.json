@@ -177,6 +177,8 @@
   "mapCard": {
     "openTip": "Cmd/Ctrl+click to open · click to edit",
     "url": "URL",
+    "title": "Title",
+    "titlePlaceholder": "name from Maps",
     "description": "Description",
     "descriptionPlaceholder": "optional",
     "remove": "Remove",

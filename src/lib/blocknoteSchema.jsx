@@ -339,11 +339,45 @@ const MEDIA_ONLY = /^\s*⟦([^⟧]+)⟧\s*$/;
 const MAP_ONLY = /^\s*⟬([^⟭]+)⟭\s*$/;
 const MEDIA_BLOCK_TYPES = new Set(['video', 'audio', 'file']);
 
+// Markers to re-emit around a styled span, innermost first. `code` is applied
+// last (outermost) so it wraps the others, matching how the exporter writes a
+// styled run back out.
+const STYLE_MARKERS = [
+  ['bold', '**'],
+  ['italic', '*'],
+  ['strike', '~~'],
+  ['code', '`'],
+];
+
+// The paragraph's text, joined across ALL its spans — or null if any part of it
+// is not plain text (a link, a wikilink chip, an inline media token).
+//
+// Joining rather than requiring a single span is what makes the promotion depend
+// on the token alone. A token's payload is percent-encoded, but the encoding
+// leaves plenty of markdown punctuation untouched (`*` most visibly, but also
+// `_`, `~`, `!`), so BlockNote's parser reads a description carrying emphasis as
+// markup and hands back several styled spans instead of one. The token is intact
+// in every one of those cases — merely spread across the spans — so requiring a
+// single span rejected a perfectly good card and left the raw ⟬…⟭ on screen.
+//
+// The markers are RE-EMITTED from each span's styles rather than simply
+// dropped. The parser consumed them into `styles` on the way in, so joining the
+// bare text alone would hand the card `a b c` where the author wrote `a **b**
+// c`: the vault file stays correct either way (the exporter re-applies the
+// styles on the way out), but the card renders from this payload, and the
+// emphasis it is supposed to show would be gone by the time it got there.
 function paragraphSoleText(b) {
-  if (!b || b.type !== 'paragraph' || !Array.isArray(b.content) || b.content.length !== 1) return null;
-  const it = b.content[0];
-  if (!it || it.type !== 'text' || typeof it.text !== 'string') return null;
-  return it.text;
+  if (!b || b.type !== 'paragraph' || !Array.isArray(b.content)) return null;
+  let text = '';
+  for (const it of b.content) {
+    if (!it || it.type !== 'text' || typeof it.text !== 'string') return null;
+    const styles = it.styles || {};
+    const marks = STYLE_MARKERS.filter(([name]) => styles[name]).map(([, mark]) => mark);
+    const open = marks.join('');
+    const close = [...marks].reverse().join('');
+    text += open + it.text + close;
+  }
+  return text;
 }
 
 function paragraphMediaToken(b) {

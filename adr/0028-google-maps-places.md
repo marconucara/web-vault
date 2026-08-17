@@ -60,9 +60,12 @@ provider-agnostic and never committed.
 **Body place cards.** A Maps link that starts its own line (paragraph or list item,
 bare or `[title](url)`, with optional trailing text as a description) becomes a
 compact place-preview card (photo, name, address, rating, category) via a custom
-BlockNote `mapcard` block, with an in-place floating editor (URL + description,
-Enter/Esc, Cmd/Ctrl+click to open). The markdown round-trips **exactly**: the block
+BlockNote `mapcard` block, with an in-place floating editor (Enter/Esc,
+Cmd/Ctrl+click to open). The markdown round-trips **exactly**: the block
 carries a token, and the grouped card is derived on render and stripped on export.
+*Where the card's title and description come from is revised by
+`adr/0049-place-card-title-and-description.md`; what becomes a card, and
+everything else here, is unchanged.*
 
 **Map view.** A toolbar toggle replaces the note body with a fullscreen **Leaflet +
 OpenStreetMap** map (keyless raster tiles) of all the note's points; a headings
@@ -96,6 +99,9 @@ appearance), with duplicates spread apart.
 3. A Maps link starting its own line renders as a `mapcard` place card (photo,
    name, address, rating, category) with an in-place editor; other Maps links stay
    inline. The block round-trips to the original markdown exactly (token-based).
+   Promotion depends on the line's SHAPE alone — that a Maps link starts the
+   block — and never on what the description that follows contains.
+   *Which text titles and describes the card: see `adr/0049-*.md`.*
 4. A toolbar toggle shows a keyless Leaflet + OpenStreetMap map of the note's
    points, with a headings filter and per-list coloured pins.
 5. No Google Maps API key is required at build or runtime.
@@ -109,7 +115,9 @@ appearance), with duplicates spread apart.
    A link the resolver could not enrich is never dropped, rewritten, or hidden:
    the note keeps the author's link and its text exactly as written. What
    degrades is only what was fetched — no photo means a card without a photo, no
-   title means the card falls back to the link's own text, and no coordinates
+   resolved name means the card falls back per `adr/0049-*.md` (the author's own
+   link text titles it whether or not a name resolved; the resolved name is what
+   fills in when they named nothing), and no coordinates
    means the link has no marker in the map view and is counted there as a link
    without coordinates. None of these is an error state: `UNRESOLVED` is build
    diagnostics, not a verdict on the link. A link form that resolves to a
@@ -138,6 +146,9 @@ appearance), with duplicates spread apart.
   adr/0016-wikilink-and-media-blocks.md
 - adr/0043-map-link-resolution-diagnostics.md — reporting the links this ADR
   leaves unresolved.
+- adr/0049-place-card-title-and-description.md — revises where a card's title
+  and description come from (criteria 3 and 7 here); the rest of this ADR
+  stands.
 
 ## Revision History
 
@@ -147,6 +158,7 @@ appearance), with duplicates spread apart.
 | 2026-08-02 | r2 | marco | Defined what counts as resolved (title or image; coordinates alone are not a place) after a `429` interstitial was cached as a place — its `continue=` URL yielded plausible coordinates, so the entry passed the old `lat != null` test and was never retried. Blocked responses are now failed fetches, unusable entries stay out of both caches and self-heal, and unresolved links are logged as `UNRESOLVED` without failing the build. Added acceptance criterion 6; parked client-side surfacing as an open question. |
 | 2026-08-03 | r3 | marco | Stated what r2 left implicit and what its wording ("coordinates alone are not a place") invited readers to misread as a limit on which links are supported. Every Maps link is supported and always survives into the note; resolution only adds photo, name, address and marker, and its absence degrades the card rather than removing the link. Added acceptance criterion 7. No behaviour change: the reader already did this (`MapCard` renders from an empty `info`, `MapView` counts coordinate-less links as missing) — criterion 6 governs the resolver and its caches, criterion 7 governs what the reader shows, and only their combination said what the product actually promises. |
 | 2026-08-02 | r3 | marco | Closed the open question on surfacing unresolved links: split out into `adr/0043-map-link-resolution-diagnostics.md`. No behaviour change here. |
+| 2026-08-17 | r4 | marco | Pointed criteria 3 and 7 at `adr/0049-*.md`, which revises where a card's title and description come from — this ADR made the link text mean "title" or "description" depending on whether the build resolved a name, so an author could not write both. Stated in criterion 3 what was always intended but never written down: promotion depends on the line's shape alone, never on what the description contains. NOT superseded — keyless build-time resolution, the encrypted cross-build cache, what becomes a card, and the map view are all unchanged and remain governed here. |
 
 ## Approvals
 

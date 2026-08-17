@@ -8,7 +8,15 @@
 // The goal is a clean round-trip: opening a note, not touching it, and
 // re-serializing must return (ideally) the same markdown.
 import { BlockNoteEditor } from '@blocknote/core';
-import { MEDIA_EXT, MD_LINK, parseMapCardLine, createMapGrouper, createColorAssigner } from './mdLinks.js';
+import {
+  MEDIA_EXT,
+  MD_LINK,
+  parseMapCardLine,
+  createMapGrouper,
+  createColorAssigner,
+  encodeMapToken,
+  decodeMapToken,
+} from './mdLinks.js';
 import { schema, injectCustomBlocks, extractCustomBlocks } from './blocknoteSchema.jsx';
 
 const FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
@@ -163,7 +171,7 @@ export function preProcessMapLinks(body) {
       // The token carries the group (g<N>:) so the block can color its pin; the
       // group is stripped on the way out, so the vault markdown stays clean.
       if (prevWasToken) out.push('');
-      out.push(`⟬g${group}:${encodeURIComponent(line.replace(/\s+$/, ''))}⟭`);
+      out.push(`⟬g${group}:${encodeMapToken(line.replace(/\s+$/, ''))}⟭`);
       prevWasToken = true;
     } else {
       out.push(line);
@@ -178,12 +186,7 @@ const MAP_TOKEN = /⟬([^⟭]+)⟭/g;
 // and decode back to the original line.
 function decodeTokenInner(inner) {
   const m = String(inner).match(/^g\d+:([\s\S]*)$/);
-  const enc = m ? m[1] : inner;
-  try {
-    return decodeURIComponent(enc);
-  } catch {
-    return enc;
-  }
+  return decodeMapToken(m ? m[1] : inner);
 }
 const isListItemLine = (s) => /^\s*(?:[-*+]|\d+[.)])\s/.test(s);
 
@@ -192,8 +195,17 @@ export function postProcessMapLinks(md) {
   // tokens with a blank line. For tokens that were LIST items, collapse that
   // blank line so a list of places round-trips as a tight list (not a loose one
   // split by blank lines). Then restore the original lines verbatim.
-  const collapsed = md.replace(/(⟬[^⟭]+⟭)\n\n+(?=⟬[^⟭]+⟭)/g, (m, tok) =>
+  let collapsed = md.replace(/(⟬[^⟭]+⟭)\n\n+(?=⟬[^⟭]+⟭)/g, (m, tok) =>
     isListItemLine(decodeTokenInner(tok.slice(1, -1))) ? `${tok}\n` : m
+  );
+  // The same blank line appears where the token's list item follows an ORDINARY
+  // one — a place nested under a plain parent item, `- outer` / `  - <link>`.
+  // The rule above cannot see it: it needs a token on both sides, and here the
+  // left side is untouched markdown. Left in, the blank line makes the parent a
+  // loose list and the note comes back changed by merely opening it.
+  collapsed = collapsed.replace(
+    /^([ \t]*(?:[-*+]|\d+[.)])[^\n]*)\n\n+(?=[ \t]*⟬([^⟭]+)⟭)/gm,
+    (m, prev, inner) => (isListItemLine(decodeTokenInner(inner)) ? `${prev}\n` : m)
   );
   return collapsed.replace(MAP_TOKEN, (_m, inner) => decodeTokenInner(inner));
 }

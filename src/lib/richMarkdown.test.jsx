@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BlockNoteEditor } from '@blocknote/core';
 import { schema, injectCustomBlocks } from './blocknoteSchema.jsx';
+import { parseMapCardLine } from './mdLinks.js';
+import { parseInline } from './inlineText.js';
 import {
   postProcessMediaLinks,
   postProcessWikilinks,
@@ -596,5 +598,137 @@ describe('wikilinks inside a table (ADR 0015, ADR 0008)', () => {
     await expect(roundTripBody(body).then(normalizeHarness)).resolves.toBe(
       normalizeHarness(body)
     );
+  });
+});
+
+// adr/0049-*.md AC 8: a place card line carries two author fields now, and one
+// of them may contain markdown — so the round-trip has to be exercised on the
+// shapes that were previously impossible to write.
+describe('a place card line survives the editor untouched (ADR 0049 AC 8)', () => {
+  const url = 'https://www.google.com/maps/search/Il+Ciolo+Gagliano+del+Capo';
+
+  it.each([
+    ['a title and a description', `- [Ciolo](${url}) ~30 min. Fiordo con ciottoli`],
+    ['a title only', `- [Ciolo](${url})`],
+    ['a description only', `- ${url} ~30 min.`],
+    ['neither', `- ${url}`],
+    ['markdown in the description', `- [Ciolo](${url}) ~30 min, **spettacolare** ma \`scomodo\``],
+    ['an ordered marker', `1. [Ciolo](${url}) nota`],
+    ['a paragraph, not a list item', `[Ciolo](${url}) nota`],
+  ])('round-trips %s', async (_case, body) => {
+    await expect(roundTripBody(body).then(normalizeHarness)).resolves.toBe(
+      normalizeHarness(body)
+    );
+  });
+
+  it('round-trips a list of places with mixed shapes', async () => {
+    const body = [
+      '## Salento',
+      '',
+      `- [Ciolo](${url}) ~30 min. Fiordo, **spettacolare**`,
+      `- ${url}`,
+      `- [Otranto](${url}) centro storico`,
+    ].join('\n');
+    await expect(roundTripBody(body).then(normalizeHarness)).resolves.toBe(
+      normalizeHarness(body)
+    );
+  });
+});
+
+// The rule is positional and nothing else: a paragraph or list item that STARTS
+// with a Google Maps link is a place card, whatever the description that follows
+// contains. It used to depend on the description too — a token whose payload
+// still held markdown punctuation came back split across styled spans, the
+// promotion required a single span, and the reader was shown the raw ⟬…⟭ token
+// instead of the card.
+describe('what becomes a place card (ADR 0028 AC 3, ADR 0049)', () => {
+  const u = 'https://www.google.com/maps/search/Il+Ciolo';
+  const cardsIn = async (body) => {
+    const blocks = injectCustomBlocks(await bodyToBlocks(body));
+    return JSON.stringify(blocks);
+  };
+  const count = (json) => (json.match(/"mapcard"/g) || []).length;
+
+  it.each([
+    ['a bare link in a bullet', `- ${u}`],
+    ['an ordered item', `1. ${u}`],
+    ['a paragraph', `${u}`],
+    ['an autolink', `<${u}> desc`],
+    ['a `*` bullet marker', `* [C](${u}) desc`],
+    ['strong in the description', `- [C](${u}) a **b** c`],
+    ['emphasis in the description', `- [C](${u}) a *b* c`],
+    ['inline code in the description', '- [C](' + u + ') a `b` c'],
+    ['strikethrough in the description', `- [C](${u}) a ~~b~~ c`],
+    ['another link in the description', `- [C](${u}) see [x](https://e.com)`],
+    ['an underscore in the description', `- [C](${u}) snake_case_x`],
+    ['a place nested under a plain item', `- outer\n  - [C](${u}) **b**`],
+  ])('promotes %s', async (_case, body) => {
+    const json = await cardsIn(body);
+    expect(count(json)).toBe(1);
+    // The failure this guards is a token shown as text, so assert it directly.
+    expect(json).not.toContain('⟬');
+  });
+
+  it('promotes every item of a list of places', async () => {
+    const json = await cardsIn(`- [A](${u}) **x**\n- [B](${u}) *y*\n- ${u}`);
+    expect(count(json)).toBe(3);
+  });
+
+  // "Only if it STARTS the block" — a link buried in prose stays a plain link.
+  it.each([
+    ['a link mid-sentence', `Meet at ${u} later`],
+    ['a bullet whose text starts before the link', `- go to ${u}`],
+    ['a heading', `## ${u}`],
+  ])('leaves %s alone', async (_case, body) => {
+    expect(count(await cardsIn(body))).toBe(0);
+  });
+
+  it.each([
+    ['strong', `- [C](${u}) a **b** c`],
+    ['emphasis', `- [C](${u}) a *b* c`],
+    ['strikethrough', `- [C](${u}) a ~~b~~ c`],
+    ['a link', `- [C](${u}) see [x](https://e.com)`],
+    ['an underscore', `- [C](${u}) snake_case_x`],
+    ['an exclamation mark', `- [C](${u}) wow!`],
+    ['a place nested under a plain item', `- outer\n  - [C](${u}) **b**`],
+  ])('round-trips a description containing %s', async (_case, body) => {
+    await expect(roundTripBody(body).then(normalizeHarness)).resolves.toBe(
+      normalizeHarness(body)
+    );
+  });
+});
+
+// The parser consumes `**`/`*`/`` ` ``/`~~` into a span's `styles` on the way
+// in, so a card promoted from several styled spans must have those markers
+// RE-EMITTED into its token. Without that the vault file still round-trips
+// correctly — the exporter re-applies the styles on the way out — but the card
+// renders from the token, so the emphasis the author wrote is silently flat on
+// screen and comes back only after a fresh keystroke. Reported against 0049 AC 7.
+describe("a place card's description keeps its markup (ADR 0049 AC 7)", () => {
+  const u = 'https://www.google.com/maps/search/Il+Ciolo';
+  const tokenOf = async (body) => {
+    const blocks = injectCustomBlocks(await bodyToBlocks(body));
+    const m = JSON.stringify(blocks).match(/"token":"([^"]*)"/);
+    return m ? decodeURIComponent(m[1]) : null;
+  };
+
+  it.each([
+    ['strong', 'a **b** c'],
+    ['emphasis', 'a *b* c'],
+    ['inline code', 'a `b` c'],
+    ['strikethrough', 'a ~~b~~ c'],
+    ['strong wrapping code', 'a **`b`** c'],
+    ['two runs', '**x** and **y**'],
+    ['markup at the start', '**x** rest'],
+    ['markup at the end', 'rest **x**'],
+  ])('carries %s through to the card', async (_case, desc) => {
+    const line = `- [C](${u}) ${desc}`;
+    expect(await tokenOf(line)).toBe(line);
+  });
+
+  it('renders the emphasis rather than showing it as text', async () => {
+    const token = await tokenOf(`- [C](${u}) a **b** c`);
+    const parsed = parseMapCardLine(token);
+    expect(parseInline(parsed.desc).map((t) => t.type)).toEqual(['text', 'strong', 'text']);
   });
 });
