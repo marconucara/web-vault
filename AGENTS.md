@@ -24,11 +24,12 @@ the source of truth for the decisions this system embodies.
 - `CONVENTIONS.md` — authoring rules (read before editing anything).
 - `plan/todo/NNNN-<slug>.md` — pending work, lower numbers run first.
 - `plan/done/<YYYY-MM-DD>-<slug>.md` — shipped work, chronological.
-- `_agent/` — single-agent coordination: `ROLES.md`, `WORKLOG.md`,
-  `CURRENT_FOCUS.md`, `HANDOFF.md`, `prompts/`.
 
 The web-vault application and build scripts live in `src/`, `scripts/`,
 `lib/`, `functions/`, `bin/`, and `index.html`.
+
+**The package stays vault-agnostic.** The consumer vault lives in its own
+repository; no vault identity is hardcoded here.
 
 ## Hard rules when editing ADRs
 
@@ -84,15 +85,29 @@ These come from `CONVENTIONS.md` and override default behaviour:
 - Regenerate `INDEX.md` from ADR metadata after any ADR status change or new
   ADR.
 
-## Multi-agent workflow
+## Where the record lives
 
-A single agent owns this repo. The `_agent/` directory tracks live state and
-history; LOCKS discipline is not in use.
+A single agent owns this repo; LOCKS discipline is not in use, and there are no
+status files to keep in step. The record is derived from what already moves with
+the work: `git log` for history, `plan/todo/` for what is queued, `plan/done/`
+for what shipped and why, `INDEX.md` and each ADR's Revision History for the
+decisions. Nothing restates them — a hand-maintained snapshot drifts from the
+files it summarises and then quietly misleads.
+
+To pick up this repo cold, read `AGENTS.md` and `CONVENTIONS.md` in full, then
+`plan/README.md`, then `INDEX.md`; then the lowest-numbered item in
+`plan/todo/` and the ADR(s) it names, both in full, before implementing.
+
+Stop and surface the issue rather than guessing if: the verify gate fails; the
+queue is empty; a `plan/todo/` item names an ADR whose status is not Accepted;
+or an ADR's acceptance criteria are ambiguous or untestable as written.
 
 ## Plan folder
 
 - A pending item gets a `plan/todo/NNNN-<slug>.md` file BEFORE work starts,
   naming the owning ADR(s), scope, and exit criteria.
+- **Numbers are reused once an item ships.** A new item takes the lowest free
+  number, not the next unused one — the number is queue position, not identity.
 - The completion event is: the change is fast-forwarded onto `main` and pushed,
   with the verify gate green. On completion, `git mv` the file to
   `plan/done/<YYYY-MM-DD>-<slug>.md` with a footer naming the HEAD SHA and any
@@ -106,7 +121,7 @@ history; LOCKS discipline is not in use.
 - Mandatory `Rationale:` footer on any commit touching an ADR.
 - Signed commits: yes.
 - ADR-revision tags `adr-NNNN-rN`: no.
-- Co-Authored-By trailer: no.
+- Agent-attribution trailers (`Co-Authored-By`, `Claude-Session`): no.
 - Cross-references between ADRs use relative paths (`adr/NNNN-*.md`).
 - **Integration:** direct-to-main, **fast-forward only**. No merge commits on
   `main`. The verify gate is `yarn verify` (`yarn typecheck` + `yarn test`); it
@@ -143,7 +158,7 @@ The declared `version` and the tag name must match at the tagged commit — that
 is what makes a version *published*. This has drifted before: at `v0.5.0` the
 `SETUP.md` pin still said `v0.3.0`, two releases behind, and was caught by
 chance rather than by any check. Grep `v[0-9]` across the repo before tagging;
-treat any hit outside `_agent/` history as a place to update.
+treat every hit as a place to update.
 
 ### Tag last, and only after `main` is pushed
 

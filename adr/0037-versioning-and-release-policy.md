@@ -138,6 +138,7 @@ obligation created here.
 | 2026-08-06 | r2 | marco | Dropped GitHub Releases and the `1.0.0` commitment; git tags are the sole publication surface. Added the semver policy inline (incl. the 0.x rule) and the requirement to bake the framework version into the build. |
 | 2026-08-06 | r3 | marco | Brought the status-bar version indicator into scope (new AC5), sitting beside the vault build chip and distinguishable from it. Added AC3: every version reference in the repo moves with the tag, with the procedure documented in `AGENTS.md`. |
 | 2026-08-06 | r4 | marco | Accepted and Implemented: framework version baked into the build and shown in the status bar; release procedure documented. |
+| 2026-08-17 | r5 | marco | Recorded the implementation trap AC3 depends on, which had lived only in a working note: `frameworkVersion` must be read from `PACKAGE_DIR`, this package's own root, never `PROJECT_DIR`. `PROJECT_DIR` is the consumer's `.web`, so reading it bakes the adopter's shell version into the build — and the error is **invisible from this repo**, where the two paths coincide in a single checkout. That is why it was verified against a throwaway consumer linked with `portal:` rather than from this root, and why the test drives `paths.mjs` from a foreign cwd. Editorial as to the decision; the criteria are unchanged. |
 
 ## Approvals
 

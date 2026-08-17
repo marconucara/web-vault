@@ -80,8 +80,8 @@ Allowed references:
 - Inline code comments tying a non-obvious choice to its ADR
   (`// see adr/0018-edit-commit-via-pages-function.md`).
 - Commit messages and PR descriptions.
-- Internal documents: `AGENTS.md`, `INDEX.md`, the `plan/` queue, `_agent/`
-  files, internal runbooks.
+- Internal documents: `AGENTS.md`, `INDEX.md`, the `plan/` queue, internal
+  runbooks.
 
 Rule of thumb: if a non-builder could ever read the string, the ADR reference
 comes out. Refer to the behaviour by its product-level name instead.
@@ -127,8 +127,9 @@ still paints an empty bubble. `aria-label` is unaffected in either state.
 
 ## Multi-Agent Rules
 
-A single agent owns this repo. The `_agent/` directory tracks live state and
-history; no LOCKS discipline.
+A single agent owns this repo; no LOCKS discipline, and no status files. The
+record is derived from git, the `plan/` queue, `INDEX.md` and each ADR's
+Revision History — see `AGENTS.md` § Where the record lives.
 
 ## Plan Folder
 
