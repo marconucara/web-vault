@@ -14,15 +14,55 @@ If status files and git disagree, git is authoritative; correct this file.
   surface it rather than invent work. Candidates live in `INDEX.md` as ADRs that
   are Proposed rather than Implemented — `adr/0048-*.md` (offline availability)
   is the newest, proposed 2026-08-16 and not yet queued.
-- **Last shipped:** `done/2026-08-16-a-wikilink-target-can-carry-an-anchor`,
-  released as `v0.11.4`.
+- **Last shipped:** `done/2026-08-17-place-card-title-and-description` and
+  `done/2026-08-16-map-sidebar-toggle-mispositioned`, released as `v0.12.0`.
 - **Blockers:** none.
 - **Uncommitted work:** none.
-- **Unreleased on `main`:** nothing. `v0.11.4` is the tip.
+- **Unreleased on `main`:** nothing. `v0.12.0` is the tip.
 
 ## Release state
 
-- **Current tag: `v0.11.4`** — `adr/0044` r6: a wikilink target can carry a
+- **Current tag: `v0.12.0`** — `adr/0049`: a place card's title and description
+  are the author's to write. The link text titles the card, the text after it
+  describes the place, both optional and independent.
+  - **A minor, not a patch, and not a `1.0.0`.** Behaviour on existing vaults
+    changes — a card written `[Ciolo](…url…) ~30 min.` was titled with Google's
+    name and is now titled *Ciolo* — but the adopter-facing contract does not
+    move (same CLI, shell config, vault layout, deploy substrate), and no vault
+    file is rewritten: only how a line is READ changed. Freezing the contract at
+    `1.0.0` remains the future decision `adr/0037` parked (its lines 68-71),
+    untouched by this.
+  - **`adr/0028` is revised (r4), NOT superseded.** 0049 revises one aspect of
+    it; the keyless build-time resolver, the encrypted cross-build cache, the
+    rule for what becomes a card, and the map view are all still governed there.
+    Marking it superseded would have retired the only documentation those have.
+  - **The old rule's real defect was that authored text changed meaning based on
+    a network fetch.** `note = desc || (info.title ? label : null)` — the link
+    text was the title when Google failed and the description when it answered,
+    so a `429` renamed the author's places and there was never a way to write
+    both. The rule is now unconditional, in one exported helper (`placeText`)
+    shared by the card and the map popup so the two cannot drift.
+  - **Two defects surfaced only because the description became worth writing
+    markup in**, and neither was visible to a round-trip test — the vault file
+    was correct throughout, the CARD was not. Block tokens are percent-encoded,
+    but the encoding leaves markdown punctuation alone (`*`, `_`, `~`, `!`, `[`
+    are unreserved URI characters), so a description carrying emphasis reached
+    the parser live, came back split across styled spans, and the promotion —
+    which required a single span — failed, showing the reader the raw `⟬…⟭`
+    token. Joining the spans then exposed the second half: the parser *consumes*
+    the markers into `styles`, so the joined text was `a b c` where the author
+    wrote `a **b** c`. Markers are now re-emitted from the styles. Recorded as
+    criteria 8 and 9 because both are properties a reader would assume.
+  - **Escaping the markdown characters was rejected** as the fix: it is a list
+    to keep in sync with a markdown dialect, and the next uncovered character
+    brings the bug back. What a block IS now depends on its text alone.
+  - Also carried: the sidebar toggle's corner (a `.tt { position: relative }`
+    cascade collision, the same one `.scope-toggle.tt` already corrects), and a
+    pre-existing round-trip defect where a place nested under a plain list item
+    came back with a blank line inserted — so merely opening a note changed it.
+  - 537 → 609 tests. Every new suite confirmed to fail against the unmodified
+    tree. Verified in the running app by the owner before the commit.
+- **Previous tag: `v0.11.4`** — `adr/0044` r6: a wikilink target can carry a
   heading anchor. `[[folder/nota#heading]]` was not merely imperfect, it was
   invisible — a dead grey span, because the whole string went into the
   `titleIndex` lookup with `#heading` still attached.
