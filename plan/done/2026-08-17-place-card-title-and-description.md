@@ -132,4 +132,4 @@ Independent of `plan/todo/0001-*.md`.
 
 ---
 
-Shipped: `6f7d56c`.
+Shipped: `7211a19`.
