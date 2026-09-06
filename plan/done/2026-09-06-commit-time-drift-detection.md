@@ -148,4 +148,4 @@ shows both versions, and the resolution saves against the base it was shown.
 
 ---
 
-Shipped: PENDING.
+Shipped: `29f07fa`.
