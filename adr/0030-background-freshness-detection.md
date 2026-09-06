@@ -33,8 +33,9 @@ moved by having a commit rejected.
 
 This is a read-side decision with no data-loss risk. The one collision it must
 not cause — a background update clobbering an edit in progress — is deliberately
-excluded here and handed to the edit-time drift-policy decision
-(`adr/0031-edit-time-drift-policy.md`).
+excluded here and handed to the commit-time drift decision
+(`adr/0050-commit-time-drift-detection-and-conflict-resolution.md`), which also
+carries the per-note base identity this ADR's exemption is judged against.
 
 ## Capability statement
 
@@ -45,7 +46,7 @@ updates its in-memory application state in place — no full page reload. Read-o
 surfaces (note list, saved views, and a viewed note with no unsaved draft) reflect
 the newer content automatically. A note that has an active or dirty draft is
 **exempted**: the re-fetched content is not applied to it and its working copy is
-preserved; that case is governed by the drift-policy decision.
+preserved; that case is governed by the commit-time drift decision.
 
 ## User stories / scenarios
 
@@ -67,15 +68,24 @@ preserved; that case is governed by the drift-policy decision.
 3. After a soft re-fetch, read-only surfaces (note list, saved views, and a viewed
    note without an unsaved draft) reflect the newer content.
 4. A note with an active or dirty draft does not have re-fetched content applied to
-   it; its working copy / draft is preserved. The collision is surfaced to the
-   edit-time drift-policy decision rather than resolved here.
+   it; its working copy / draft is preserved. The collision is handed to the
+   commit-time drift decision (`adr/0050-*.md`), whose conflict resolution this
+   surface reuses rather than defining its own.
 5. When the polled SHA equals the loaded one, no re-fetch and no visible change
    occur.
 
 ## Out of scope
 
-- What to do when the changed content collides with a note being edited — warning,
-  discard, or merge — belongs to `adr/0031-edit-time-drift-policy.md`.
+- What to do when the changed content collides with a note being edited — the
+  comparison and its resolution — belongs to
+  `adr/0050-commit-time-drift-detection-and-conflict-resolution.md`. That decision
+  is independent of this one and does not wait for it: the commit is where drift
+  cannot be bypassed, since polling always leaves a window (a client edited
+  offline, then committed).
+- Serving `content.json` as a runtime-fetchable asset. It is imported into the
+  bundle today (`src/App.jsx`), so this capability cannot be implemented without
+  first extracting it — a change to the build pipeline, its caching headers and
+  first load, and a prerequisite of this ADR rather than a detail of it.
 - Note-level change granularity (a per-path content manifest/hash). v1 uses the
   coarse build SHA only; finer granularity, if ever needed, would supersede this
   ADR.
@@ -113,13 +123,14 @@ release.
 - adr/0021-draft-state-optimistic-ui.md
 - adr/0018-edit-commit-via-pages-function.md
 - adr/0019-atomic-commit-git-data-api.md
-- adr/0031-edit-time-drift-policy.md
+- adr/0050-commit-time-drift-detection-and-conflict-resolution.md
 
 ## Revision History
 
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
+| 2026-09-06 | r2 | marco | Retarget the draft-collision hand-off from adr/0031 (superseded) to adr/0050; record the fetchable-content prerequisite. |
 
 ## Approvals
 

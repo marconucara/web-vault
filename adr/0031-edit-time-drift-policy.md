@@ -1,11 +1,11 @@
 ---
 adr: 0031
 title: Edit-time drift policy — warn on a stale base, no auto-merge
-status: Proposed
+status: Superseded
 date: 2026-07-30
 owner: marco
 supersedes:
-superseded-by:
+superseded-by: [0050]
 depends-on: [0030, 0021, 0019]
 tags: [sync, editor, ux, conflict]
 ---
@@ -96,6 +96,7 @@ remains the authoritative backstop and is surfaced as a clear, recoverable error
 | Date | Revision | Author | Change |
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
+| 2026-09-06 | r2 | marco | Superseded by adr/0050-commit-time-drift-detection-and-conflict-resolution.md: the 409 fast-forward this policy relies on guards only the intra-request race, not an edit begun on a base that has since moved. |
 
 ## Approvals
 

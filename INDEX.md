@@ -35,7 +35,7 @@ hand-edit rows out of sync with the ADR files.
 | [0028](adr/0028-google-maps-places.md) | Google Maps places — keyless build-time resolution, place cards, and map view | Implemented | 2026-07-29 |
 | [0029](adr/0029-cli-setup-and-distribution.md) | Delivery — wv CLI, agent-driven setup, and git-repo distribution | Implemented | 2026-07-29 |
 | [0030](adr/0030-background-freshness-detection.md) | Background freshness detection and soft content re-fetch | Proposed | 2026-07-30 |
-| [0031](adr/0031-edit-time-drift-policy.md) | Edit-time drift policy — warn on a stale base, no auto-merge | Proposed | 2026-07-30 |
+| [0031](adr/0031-edit-time-drift-policy.md) | Edit-time drift policy — warn on a stale base, no auto-merge | Superseded | 2026-07-30 |
 | [0032](adr/0032-dual-format-views-base-yml.md) | Dual-format saved views — Obsidian .base and Tolaria .yml with dedup | Proposed | 2026-07-30 |
 | [0033](adr/0033-builtin-sidebar-views.md) | Built-in vault-independent sidebar views — All notes, Inbox, Shared | Implemented | 2026-07-30 |
 | [0034](adr/0034-client-settings-modal.md) | Client preferences modal — language, formatting, Inbox, and a commit-disabled notice | Implemented | 2026-07-30 |
@@ -54,3 +54,4 @@ hand-edit rows out of sync with the ADR files.
 | [0047](adr/0047-ui-language-i18n-layer.md) | UI language — i18n layer and locale selection | Implemented | 2026-08-11 |
 | [0048](adr/0048-offline-availability.md) | Offline availability — precached shell and snapshot, editing preserved, commit awaits the network | Proposed | 2026-08-13 |
 | [0049](adr/0049-place-card-title-and-description.md) | A place card's title and description are the author's to write | Implemented | 2026-08-16 |
+| [0050](adr/0050-commit-time-drift-detection-and-conflict-resolution.md) | Commit-time drift detection and conflict resolution | Accepted | 2026-09-06 |
