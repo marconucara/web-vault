@@ -96,3 +96,56 @@ Adjacent and deliberately excluded: `applyOps` preserves the remote frontmatter
 verbatim while replacing the body wholesale (`functions/commit.js:126`). That
 asymmetry is a defect in its own right and wants its own item — this one makes
 drift visible, it does not change how a non-drifted write is composed.
+
+## What implementation changed about the design
+
+**The base is the hash of the content, not the SHA in HEAD.** The item was
+written around `git ls-tree -r HEAD`, on the reasoning that the base should name
+the last version shared with the remote. Three things broke that:
+
+- A dev write creates no commit (`adr/0036-*.md`), so HEAD sits still while the
+  file changes underneath it — the drift the check exists for would never be
+  seen locally, and the mechanism would only ever engage in production.
+- An untracked note has no HEAD entry, so it carried no base and was exempt from
+  the check entirely. A note created in the client is exactly the one someone is
+  working on, and it was the case that first showed the bug.
+- `git hash-object` needs no repository, so a vault that is not a git repo still
+  gets bases.
+
+`scripts/commit-dev.mjs` compares against the same thing, which is what makes
+the two sides of the comparison mean the same. That reads git without changing
+it, so `adr/0036-*.md` had its git out-of-scope narrowed to repository-changing
+operations.
+
+**The commit hands back the new base.** Not in the original scope, and the
+implementation does not work without it: after a successful commit the client's
+copy of a note had no base — `markCreated` builds the optimistic note field by
+field — so the NEXT commit on that note skipped the check and overwrote. The
+Function computes the blob SHA of what it wrote (`sha1("blob <n>\0" + content)`,
+pinned against `git hash-object` in the tests) and returns it per path;
+`StatusBar` records it on both the created and the edited paths.
+
+**The refusal reports a body, not a file.** `applyOps` preserves the remote
+frontmatter and replaces the body, and the client only ever holds the body — so
+returning the whole file put lines on one side of the comparison that could not
+exist on the other, each one a difference to resolve for nothing.
+
+**The resolution surface uses `@codemirror/merge`** (a new dependency, ~180 KiB;
+`state`, `view` and `language` were already in the tree via the source editor).
+Two columns, the left editable and the right read-only, with revert controls
+that apply a hunk right-to-left — keeping your own version needs no action, and
+a server-side deletion is a hunk with an empty right side rather than a special
+case. What the library is there for is not the colours: it re-derives its hunks
+as the editable pane changes, which is the part a hand-written diff gets wrong.
+Its own strings go through CodeMirror's `phrase` mechanism and are translated in
+both catalogues.
+
+## Exit criteria
+
+All met. `yarn verify` green at 642 tests / 45 files. Verified in the running app
+by Marco with two browsers on one note: the second commit is refused, the diff
+shows both versions, and the resolution saves against the base it was shown.
+
+---
+
+Shipped: PENDING.

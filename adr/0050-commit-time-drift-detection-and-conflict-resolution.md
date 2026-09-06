@@ -1,7 +1,7 @@
 ---
 adr: 0050
 title: Commit-time drift detection and conflict resolution
-status: Accepted
+status: Implemented
 date: 2026-09-06
 owner: marco
 supersedes: [0031]
@@ -142,6 +142,7 @@ commit carrying no drift proceeds unchanged.
 |------|----------|--------|--------|
 | 2026-09-06 | r1 | marco | Initial draft. |
 | 2026-09-06 | r2 | marco | Accepted; implementation authorised. |
+| 2026-09-06 | r3 | marco | Implemented. The base is the hash of the content the build read, not the SHA in HEAD: a dev write creates no commit, so a HEAD-anchored base would never move, and an untracked note would carry none and be exempt from the check entirely. |
 
 ## Approvals
 

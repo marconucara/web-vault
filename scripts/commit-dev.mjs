@@ -10,8 +10,25 @@
 // See adr/0036-local-dev-edit-write-to-disk.md.
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { isSafeNotePath, applyOps } from '../functions/commit.js';
+import { execFileSync } from 'node:child_process';
+import { isSafeNotePath, applyOps, bodyOf } from '../functions/commit.js';
 import { VAULT_DIR } from './paths.mjs';
+
+// The dev counterpart of the `contents` read the Function does against the
+// branch (adr/0050-*.md): the identity the note has right now.
+//
+// Here the vault on disk IS the store, so "right now" is the file's own hash —
+// the same thing `content.json` recorded when it was generated, which is what
+// makes the comparison meaningful. A dev write creates no git commit, so
+// anything anchored to HEAD would sit still while the file moved underneath it
+// and no drift would ever be seen.
+function diskSha(abs) {
+  try {
+    return execFileSync('git', ['hash-object', abs], { encoding: 'utf8' }).trim();
+  } catch {
+    return null; // no git: nothing to compare against, so nothing is refused
+  }
+}
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -50,15 +67,41 @@ export function commitDev() {
           if (!isSafeNotePath(f?.path)) return sendJson(res, 400, { error: `invalid path: ${f?.path}` });
         }
 
+        // Drift preflight, before anything is written: one changed note refuses
+        // the whole batch, so a refused commit leaves the vault untouched.
+        const drifted = [];
+        for (const f of files) {
+          if (!f?.baseSha || f.isNew || f.delete) continue;
+          const abs = join(VAULT_DIR, f.path);
+          if (!existsSync(abs)) continue;
+          const sha = diskSha(abs);
+          if (sha && sha !== f.baseSha) {
+            // The body only: the client edits and sends the body, so the two
+            // sides of the comparison have to be the same thing.
+            drifted.push({ path: f.path, remote: bodyOf(readFileSync(abs, 'utf8')), remoteSha: sha });
+          }
+        }
+        if (drifted.length) {
+          return sendJson(res, 409, {
+            reason: 'drift',
+            error: 'some notes changed elsewhere since you started editing',
+            drifted,
+          });
+        }
+
         const committed = [];
+        // path -> blob SHA after the write, so the client's next edit on this
+        // note starts from a base again (adr/0050-*.md).
+        const newBases = {};
         try {
           for (const f of files) {
             const abs = join(VAULT_DIR, f.path);
             if (f.isNew) {
               // Creation: must not clobber an existing note (matches the Function's 409).
-              if (existsSync(abs)) return sendJson(res, 409, { error: `a note already exists at ${f.path}` });
+              if (existsSync(abs)) return sendJson(res, 409, { reason: 'exists', error: `a note already exists at ${f.path}` });
               mkdirSync(dirname(abs), { recursive: true });
               writeFileSync(abs, String(f.content ?? ''), 'utf8');
+              newBases[f.path] = diskSha(abs);
               committed.push(f.path);
               continue;
             }
@@ -73,6 +116,7 @@ export function commitDev() {
             const newContent = applyOps(rawCurrent, f);
             if (newContent === rawCurrent) continue; // no real change
             writeFileSync(abs, newContent, 'utf8');
+            newBases[f.path] = diskSha(abs);
             committed.push(f.path);
           }
         } catch (e) {
@@ -80,7 +124,7 @@ export function commitDev() {
         }
 
         if (!committed.length) return sendJson(res, 200, { sha: 'dev-noop', committed: [], noop: true });
-        return sendJson(res, 200, { sha: `dev-${Date.now().toString(16)}`, committed });
+        return sendJson(res, 200, { sha: `dev-${Date.now().toString(16)}`, committed, bases: newBases });
       });
     },
   };

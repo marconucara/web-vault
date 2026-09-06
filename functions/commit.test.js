@@ -9,6 +9,7 @@ import {
   retypeLine,
   setFrontmatterKey,
   setH1,
+  makeCommitHandler,
 } from './commit.js';
 
 const FM = (...lines) => `---\n${lines.join('\n')}\n---\n`;
@@ -170,5 +171,164 @@ describe('type visibility frontmatter (ADR 0046, criterion 7)', () => {
     const hidden = applyOps(raw, { frontmatter: { visible: false } });
     const shown = applyOps(hidden, { frontmatter: { visible: null } });
     expect(shown).toBe(raw);
+  });
+});
+
+// --- the drift preflight (ADR 0050) -----------------------------------------
+//
+// These exercise the handler itself rather than the pure helpers above, so the
+// GitHub API is faked: a small in-memory repo plus a recording of every call the
+// handler makes. What matters is not only the status it returns but WHICH calls
+// it made — a refused commit must not have created a tree or a commit object.
+
+/**
+ * A fake GitHub. `files` maps path -> { sha, content }.
+ * Returns the handler's `fetch` plus the log of calls it received.
+ */
+function fakeGitHub({ files = {}, tipSha = 'tip0', treeSha = 'tree0' } = {}) {
+  const calls = [];
+  const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
+  const fetch = async (url, init = {}) => {
+    const method = init.method || 'GET';
+    const path = String(url).replace('https://api.github.com', '').split('?')[0];
+    calls.push(`${method} ${path}`);
+    const res = (body, status = 200) => ({
+      ok: status < 400,
+      status,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    });
+    if (path.startsWith('/repos/o/r/git/ref/heads/')) return res({ object: { sha: tipSha } });
+    if (path.startsWith(`/repos/o/r/git/commits/${tipSha}`)) return res({ tree: { sha: treeSha } });
+    if (path.startsWith('/repos/o/r/contents/')) {
+      const p = decodeURIComponent(path.slice('/repos/o/r/contents/'.length));
+      const f = files[p];
+      if (!f) return res({ message: 'Not Found' }, 404);
+      return res({ sha: f.sha, content: b64(f.content) });
+    }
+    if (method === 'POST' && path === '/repos/o/r/git/trees') return res({ sha: 'newtree' });
+    if (method === 'POST' && path === '/repos/o/r/git/commits') return res({ sha: 'newcommit' });
+    if (method === 'PATCH' && path.startsWith('/repos/o/r/git/refs/heads/')) return res({});
+    return res({ message: `unexpected ${method} ${path}` }, 500);
+  };
+  return { fetch, calls };
+}
+
+async function runCommit(files, gh) {
+  const prev = globalThis.fetch;
+  globalThis.fetch = gh.fetch;
+  try {
+    const handler = makeCommitHandler({ repo: 'o/r', buildBranch: 'main' });
+    const res = await handler({
+      request: { json: async () => ({ message: 'm', files }) },
+      env: { GITHUB_TOKEN: 't' },
+    });
+    return { status: res.status, body: JSON.parse(await res.text()) };
+  } finally {
+    globalThis.fetch = prev;
+  }
+}
+
+describe('commit-time drift detection (ADR 0050)', () => {
+  const note = { sha: 'blobA', content: `${FM('type: Note')}\n# N\n\nremote body\n` };
+
+  it('commits when the note still holds the content the edit started from', () => {
+    const gh = fakeGitHub({ files: { 'n.md': note } });
+    return runCommit([{ path: 'n.md', body: '\n# N\n\nmine\n', baseSha: 'blobA' }], gh).then((r) => {
+      expect(r.status).toBe(200);
+      expect(r.body.committed).toEqual(['n.md']);
+    });
+  });
+
+  it('refuses when the note changed elsewhere, and returns the remote content', async () => {
+    const gh = fakeGitHub({ files: { 'n.md': note } });
+    // The edit began at blobOLD; the branch now holds blobA.
+    const r = await runCommit([{ path: 'n.md', body: '\n# N\n\nmine\n', baseSha: 'blobOLD' }], gh);
+    expect(r.status).toBe(409);
+    expect(r.body.reason).toBe('drift');
+    expect(r.body.drifted).toHaveLength(1);
+    expect(r.body.drifted[0].path).toBe('n.md');
+    expect(r.body.drifted[0].remote).toContain('remote body');
+    expect(r.body.drifted[0].remoteSha).toBe('blobA');
+  });
+
+  it('reports the drifted note as a body, not as the whole file', async () => {
+    // The client only ever holds the body, so returning the frontmatter would
+    // put lines on one side of the comparison that cannot exist on the other —
+    // every one of them a difference the user is asked to resolve for nothing.
+    const gh = fakeGitHub({ files: { 'n.md': note } });
+    const r = await runCommit([{ path: 'n.md', body: '\n# N\n\nmine\n', baseSha: 'blobOLD' }], gh);
+    expect(r.body.drifted[0].remote).toContain('remote body');
+    expect(r.body.drifted[0].remote).not.toContain('type: Note');
+    expect(r.body.drifted[0].remote.startsWith('---')).toBe(false);
+  });
+
+  it('writes nothing at all when it refuses', async () => {
+    const gh = fakeGitHub({ files: { 'n.md': note } });
+    await runCommit([{ path: 'n.md', body: '\n# N\n\nmine\n', baseSha: 'blobOLD' }], gh);
+    // The refusal happens before anything is built: no tree, no commit, no ref move.
+    expect(gh.calls).not.toContain('POST /repos/o/r/git/trees');
+    expect(gh.calls).not.toContain('POST /repos/o/r/git/commits');
+    expect(gh.calls.some((c) => c.startsWith('PATCH'))).toBe(false);
+  });
+
+  it('refuses the whole batch when a single note drifted', async () => {
+    const gh = fakeGitHub({
+      files: { 'a.md': { sha: 'blobA', content: '# A\n' }, 'b.md': { sha: 'blobB', content: '# B\n' } },
+    });
+    const r = await runCommit(
+      [
+        { path: 'a.md', body: '# A edited\n', baseSha: 'blobA' }, // clean
+        { path: 'b.md', body: '# B edited\n', baseSha: 'blobSTALE' }, // drifted
+      ],
+      gh
+    );
+    expect(r.status).toBe(409);
+    expect(r.body.drifted.map((d) => d.path)).toEqual(['b.md']);
+    // The clean file is not committed either: the batch is atomic (adr/0019).
+    expect(gh.calls).not.toContain('POST /repos/o/r/git/trees');
+  });
+
+  it('does not check an edit that carries no base', async () => {
+    const gh = fakeGitHub({ files: { 'n.md': note } });
+    // A draft older than this mechanism, or an untracked note: nothing to
+    // compare against, so it behaves exactly as it did before.
+    const r = await runCommit([{ path: 'n.md', body: '\n# N\n\nmine\n' }], gh);
+    expect(r.status).toBe(200);
+    expect(r.body.committed).toEqual(['n.md']);
+  });
+
+  it('hands back the identity of what it wrote', async () => {
+    // The bug this exists to prevent: without a fresh base the client's copy of
+    // the note has none, and the NEXT commit on it skips the drift check —
+    // exactly the note someone is actively working on.
+    const gh = fakeGitHub({ files: { 'n.md': note } });
+    const r = await runCommit(
+      [{ path: 'n.md', body: '\n# N\n\nmine\n', baseSha: 'blobA' }],
+      gh
+    );
+    expect(r.status).toBe(200);
+    expect(r.body.bases['n.md']).toMatch(/^[0-9a-f]{40}$/);
+    // It is git's own blob hash of the content that was written, so the next
+    // commit can be compared against the branch without a round trip.
+    expect(r.body.bases['n.md']).not.toBe('blobA');
+  });
+
+  it('computes a blob sha git would agree with', async () => {
+    // Pinned against a known value: `printf '' | git hash-object --stdin` and
+    // `printf 'hello' | git hash-object --stdin`.
+    const gh = fakeGitHub({ files: { 'n.md': { sha: 'blobA', content: 'x' } } });
+    const r = await runCommit([{ path: 'n.md', body: 'hello', baseSha: 'blobA' }], gh);
+    // applyOps on a file with no frontmatter yields the body verbatim.
+    expect(r.body.bases['n.md']).toBe('b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0');
+  });
+
+  it('tags its refusals so the client can tell them apart', async () => {
+    const gh = fakeGitHub({ files: { 'n.md': note } });
+    // A new note colliding with an existing path is a different problem with a
+    // different answer, and must not be mistaken for drift.
+    const r = await runCommit([{ path: 'n.md', content: '# fresh\n', isNew: true }], gh);
+    expect(r.status).toBe(409);
+    expect(r.body.reason).toBe('exists');
   });
 });

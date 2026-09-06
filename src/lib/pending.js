@@ -55,6 +55,12 @@ function getSnapshot() {
 
 // Records/updates a note's draft. If the body becomes equal to the original
 // (base = note.body bundled at build time) the entry is removed: no delta.
+//
+// The entry also keeps `baseSha`: the identity of the content the edit started
+// from, sent back on commit so a note changed elsewhere meanwhile is refused
+// rather than overwritten (adr/0050-*.md). It is null for an untracked note, and
+// missing entirely on entries written before this existed — both mean "no base",
+// which the commit treats as "do not check" rather than as a failure.
 export function setEdit(note, body) {
   if (body === note.body) {
     if (state[note.path]) {
@@ -68,7 +74,16 @@ export function setEdit(note, body) {
   if (prev && prev.body === body) return;
   state = {
     ...state,
-    [note.path]: { path: note.path, id: note.id, title: note.title, body },
+    [note.path]: {
+      path: note.path,
+      id: note.id,
+      title: note.title,
+      body,
+      // Pinned on the FIRST edit and kept across later keystrokes: the base is
+      // where this draft started, and a rebuild landing under an open draft must
+      // not silently re-point it at newer content.
+      baseSha: prev ? (prev.baseSha ?? null) : (note.baseSha ?? null),
+    },
   };
   emit();
 }

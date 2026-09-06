@@ -4,9 +4,10 @@ import Icon from './Icon.jsx';
 import VersionIndicator from './VersionIndicator.jsx';
 import { discard, discardAll, discardMany } from '../lib/pending.js';
 import { useDrafts, discardDraft, discardDrafts } from '../lib/drafts.js';
-import { useLocalNotes, markCreated } from '../lib/localNotes.js';
+import { useLocalNotes, markCreated, applyLocalEdit } from '../lib/localNotes.js';
 import { deriveTitle, draftPath, draftFileContent } from '../lib/noteFile.js';
 import { commitFiles } from '../lib/commit.js';
+import ConflictResolver from './ConflictResolver.jsx';
 import { clockTime, numericDate, useFormatLocale } from '../lib/formats.js';
 import { build, notes } from '../content.js';
 
@@ -36,6 +37,9 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
   const [toast, setToast] = useState(null);
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState(null);
+  // Set when a commit was refused because notes changed elsewhere: holds what
+  // the server sent back plus the message to retry with (adr/0050-*.md).
+  const [conflict, setConflict] = useState(null);
   const ref = useRef(null);
   const { t } = useTranslation();
   const formatLocale = useFormatLocale();
@@ -59,6 +63,7 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
     title: it.title,
     path: it.path,
     body: it.body,
+    baseSha: it.baseSha ?? null,
   }));
   /** @type {any[]} */
   const items = [...draftItems, ...editItems];
@@ -105,7 +110,9 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
     const newOnes = []; // { draftId, path, draft }
     for (const it of selected) {
       if (it.kind === 'edit') {
-        files.push({ path: it.path, body: it.body });
+        // `baseSha`: what this edit started from, so the Function can refuse to
+        // overwrite a note changed elsewhere meanwhile (adr/0050-*.md).
+        files.push({ path: it.path, body: it.body, baseSha: it.baseSha ?? null });
         editPaths.push(it.path);
       } else {
         const path = draftPath(it.draft, taken);
@@ -115,31 +122,83 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
       }
     }
     try {
-      await commitFiles({ message: message.trim(), files });
-      // Optimistic: drop the committed body edits (their base content reappears
-      // on the next build). New notes instead become optimistic "created" notes
-      // kept locally (real id/path) until the build catches up, so they don't
-      // vanish; the open draft URL is redirected to the real one by App.
-      discardMany(editPaths);
-      const now = Date.now();
-      for (const o of newOnes) {
-        markCreated({
-          id: o.path.replace(/\.md$/, ''),
-          path: o.path,
-          fromDraftId: o.draftId,
-          title: deriveTitle(o.draft.body) || t('common.untitled'),
-          type: o.draft.type || null,
-          frontmatter: o.draft.frontmatter || (o.draft.type ? { type: o.draft.type } : {}),
-          body: o.draft.body,
-          mtime: now,
-          ctime: now,
-        });
-      }
-      discardDrafts(newOnes.map((o) => o.draftId));
-      setMessage('');
-      setToast(t('statusBar.committed', { count: files.length }));
-      setTimeout(() => setToast(null), 3000);
+      const result = await commitFiles({ message: message.trim(), files });
+      onCommitted(files, editPaths, newOnes, result?.bases || {});
     } catch (e) {
+      // Drifted notes are not an error to read: they are a choice to make, with
+      // every draft still intact because nothing was written.
+      if (e.reason === 'drift' && e.drifted?.length) {
+        setConflict({
+          drifted: e.drifted,
+          local: Object.fromEntries(files.filter((f) => f.body != null).map((f) => [f.path, f.body])),
+          message: message.trim(),
+          editPaths,
+          newOnes,
+          files,
+        });
+      } else {
+        setError(e.message || t('statusBar.commitFailed'));
+      }
+    } finally {
+      setCommitting(false);
+    }
+  };
+
+  // What a successful commit settles, whether it went through first time or
+  // after a resolution.
+  const onCommitted = (files, editPaths, newOnes, bases = {}) => {
+    // Optimistic: drop the committed body edits (their base content reappears
+    // on the next build). New notes instead become optimistic "created" notes
+    // kept locally (real id/path) until the build catches up, so they don't
+    // vanish; the open draft URL is redirected to the real one by App.
+    discardMany(editPaths);
+    // An edited note keeps no optimistic copy — the build's body is correct
+    // again once the write lands. Its BASE is not: the bundle still names the
+    // content from before this commit, so the next edit would start from a stale
+    // base and be refused as drift against the user's own change. Record the new
+    // one (adr/0050-*.md); it heals on the next build like any other local entry.
+    for (const path of editPaths) {
+      const sha = bases[path];
+      if (!sha) continue;
+      const note = notes.find((n) => n.path === path);
+      if (note) applyLocalEdit(note, { baseSha: sha });
+    }
+    const now = Date.now();
+    for (const o of newOnes) {
+      markCreated({
+        id: o.path.replace(/\.md$/, ''),
+        path: o.path,
+        fromDraftId: o.draftId,
+        title: deriveTitle(o.draft.body) || t('common.untitled'),
+        type: o.draft.type || null,
+        frontmatter: o.draft.frontmatter || (o.draft.type ? { type: o.draft.type } : {}),
+        body: o.draft.body,
+        // The identity of what was just written: without it this note's next
+        // edit would commit unchecked (adr/0050-*.md).
+        baseSha: bases[o.path] ?? null,
+        mtime: now,
+        ctime: now,
+      });
+    }
+    discardDrafts(newOnes.map((o) => o.draftId));
+    setMessage('');
+    setToast(t('statusBar.committed', { count: files.length }));
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // Commit again with the text the user settled on, against the SHAs they were
+  // shown. Only the drifted notes are re-sent: the rest of the batch never got
+  // written, so it stays pending and is committed on the next pass.
+  const commitResolved = async (resolved) => {
+    if (!conflict) return;
+    setCommitting(true);
+    setError(null);
+    try {
+      const result = await commitFiles({ message: conflict.message, files: resolved });
+      setConflict(null);
+      onCommitted(resolved, resolved.map((r) => r.path), [], result?.bases || {});
+    } catch (e) {
+      setConflict(null);
       setError(e.message || t('statusBar.commitFailed'));
     } finally {
       setCommitting(false);
@@ -148,6 +207,14 @@ export default function StatusBar({ pending, onOpen, onOpenPreferences = null })
 
   return (
     <div className="statusbar" ref={ref}>
+      {conflict && (
+        <ConflictResolver
+          drifted={conflict.drifted}
+          local={conflict.local}
+          onResolve={commitResolved}
+          onCancel={() => setConflict(null)}
+        />
+      )}
       {open && !inSync && (
         <div className="statuspanel">
           <div className="sp-head">

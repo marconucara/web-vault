@@ -54,4 +54,4 @@ hand-edit rows out of sync with the ADR files.
 | [0047](adr/0047-ui-language-i18n-layer.md) | UI language — i18n layer and locale selection | Implemented | 2026-08-11 |
 | [0048](adr/0048-offline-availability.md) | Offline availability — precached shell and snapshot, editing preserved, commit awaits the network | Proposed | 2026-08-13 |
 | [0049](adr/0049-place-card-title-and-description.md) | A place card's title and description are the author's to write | Implemented | 2026-08-16 |
-| [0050](adr/0050-commit-time-drift-detection-and-conflict-resolution.md) | Commit-time drift detection and conflict resolution | Accepted | 2026-09-06 |
+| [0050](adr/0050-commit-time-drift-detection-and-conflict-resolution.md) | Commit-time drift detection and conflict resolution | Implemented | 2026-09-06 |

@@ -40,6 +40,17 @@ export function reconstructFile(rawCurrent, newBody) {
   return fm + newBody;
 }
 
+// The body alone — the half the editor owns and sends back.
+//
+// A drifted note is reported as a body, not as the whole file: the client has
+// only ever held the body, so returning the frontmatter too would put lines on
+// one side of the comparison that cannot exist on the other, and every one of
+// them would read as a difference the user has to resolve (adr/0050-*.md).
+// The frontmatter is preserved by applyOps on the way back in, untouched.
+export function bodyOf(raw) {
+  return raw.slice(((raw.match(FRONTMATTER) || [''])[0]).length);
+}
+
 // Inserts `share_id: <token>` into the frontmatter block without touching the
 // rest (no YAML re-serialization). If the frontmatter is missing, it creates a
 // minimal one. If share_id is already there, it leaves it unchanged.
@@ -126,6 +137,27 @@ export function applyOps(rawCurrent, op) {
   }
   if (typeof op.h1 === 'string' && op.h1) body = setH1(body, op.h1);
   return fm + body;
+}
+
+// The git blob SHA of a string: `sha1("blob <bytes>\0" + content)`.
+//
+// The client needs the identity of what was just written, to use as the base for
+// its next edit (adr/0050-*.md). Without it the note it holds after a commit has
+// no base, and the NEXT commit on that note skips the drift check entirely —
+// which is the very case the check exists for, since a note edited twice is a
+// note someone is working on.
+//
+// Computed rather than read back: GitHub returns blob SHAs for the tree it
+// built, but only for the entries it created, and a second round trip to fetch
+// them would cost a request per file for something derivable from the bytes.
+async function blobSha(content) {
+  const body = new TextEncoder().encode(content);
+  const header = new TextEncoder().encode(`blob ${body.length}\0`);
+  const bytes = new Uint8Array(header.length + body.length);
+  bytes.set(header);
+  bytes.set(body, header.length);
+  const digest = await crypto.subtle.digest('SHA-1', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function json(data, status = 200) {
@@ -248,17 +280,28 @@ export function makeCommitHandler(config = {}) {
 
     // 3. For each file: re-read the current one (for the frontmatter), compute the
     //    new content, and skip no-ops.
+    //
+    //    This is also where drift is caught (adr/0050-*.md): a file whose blob
+    //    SHA no longer matches the base the edit started from was changed
+    //    elsewhere — a second client, a desktop session — and overwriting it
+    //    would lose that change silently. Collected here and rejected below,
+    //    BEFORE any tree or commit object exists, so a refused commit leaves
+    //    nothing behind on the remote.
     const treeEntries = [];
     const committed = [];
+    // path -> blob SHA after this commit, so the client's next edit has a base.
+    const newBases = {};
+    const drifted = [];
     for (const f of files) {
       if (f.isNew) {
         // New note: the file must NOT already exist (avoid clobbering). 404 is the
         // expected, happy path; a 200 means a filename collision the client didn't
         // foresee (e.g. a note created from the desktop app since the last build).
         const curRes = await gh(env, `/repos/${repo}/contents/${encPath(f.path)}?ref=${encodeURIComponent(branch)}`);
-        if (curRes.ok) return json({ error: `a note already exists at ${f.path}` }, 409);
+        if (curRes.ok) return json({ reason: 'exists', error: `a note already exists at ${f.path}` }, 409);
         if (curRes.status !== 404) return json({ error: `read failed: ${f.path}`, detail: await safeText(curRes) }, 502);
         treeEntries.push({ path: f.path, mode: '100644', type: 'blob', content: f.content });
+        newBases[f.path] = await blobSha(f.content);
         committed.push(f.path);
         continue;
       }
@@ -277,10 +320,30 @@ export function makeCommitHandler(config = {}) {
       if (!curRes.ok) return json({ error: `read failed: ${f.path}`, detail: await safeText(curRes) }, 502);
       const cur = await curRes.json();
       const rawCurrent = decodeBase64Utf8(cur.content);
+      // No base sent (an untracked note, or a draft older than this mechanism):
+      // nothing to compare against, so the write proceeds as it did before.
+      if (f.baseSha && cur.sha !== f.baseSha) {
+        drifted.push({ path: f.path, remote: bodyOf(rawCurrent), remoteSha: cur.sha });
+        continue;
+      }
       const newContent = applyOps(rawCurrent, f);
       if (newContent === rawCurrent) continue; // no real change
       treeEntries.push({ path: f.path, mode: '100644', type: 'blob', content: newContent });
+      newBases[f.path] = await blobSha(newContent);
       committed.push(f.path);
+    }
+    // The batch is atomic (adr/0019-*.md), so one drifted file refuses all of
+    //    it: committing the rest would split a single intent across two commits
+    //    and leave the user reasoning about a half-applied save.
+    if (drifted.length) {
+      return json(
+        {
+          reason: 'drift',
+          error: 'some notes changed elsewhere since you started editing',
+          drifted,
+        },
+        409
+      );
     }
     if (!treeEntries.length) {
       return json({ sha: baseCommitSha, committed: [], noop: true });
@@ -311,11 +374,15 @@ export function makeCommitHandler(config = {}) {
     });
     if (!updRes.ok) {
       return json(
-        { error: 'the repo changed in the meantime: reload and try again', detail: await safeText(updRes) },
+        {
+          reason: 'moved',
+          error: 'the repo changed in the meantime: reload and try again',
+          detail: await safeText(updRes),
+        },
         409
       );
     }
 
-    return json({ sha: newCommitSha, committed });
+    return json({ sha: newCommitSha, committed, bases: newBases });
   };
 }

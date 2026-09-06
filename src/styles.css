@@ -1885,3 +1885,181 @@ a:hover { text-decoration: underline; }
 .ip-cell.sel { background: var(--bg-active); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .ip-more { align-self: flex-start; border: none; background: none; color: var(--accent); font-size: 12px; padding: 0; }
 .ip-empty { margin: 0; font-size: 12px; color: var(--text-dim); }
+
+/* Conflict resolution (adr/0050-*.md).
+   Fullscreen, and deliberately so: the work here IS two columns of markdown, so
+   every pixel spent framing the page is taken from the thing being read, and
+   there is nothing behind worth seeing. It also removes the backdrop, which on a
+   surface holding unsaved decisions is an invitation to dismiss it by accident.
+   The note list keeps the app sidebar's own 240px, which lines up with the
+   layout underneath now that the modal covers it edge to edge. */
+.conflict-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.conflict-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.conflict-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.conflict-title .icon { opacity: 0.8; }
+.conflict-main { flex: 1 1 auto; display: grid; grid-template-columns: 240px 1fr; min-height: 0; }
+.conflict-side {
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-alt);
+  border-right: 1px solid var(--border);
+}
+.conflict-lead {
+  flex: none;
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+/* The answer to "am I about to lose my work?", which an action label is too
+   small to carry honestly. */
+.conflict-reassure { display: block; margin-top: 6px; }
+/* The column scrolls as ONE thing. The explanation and the notes are a single
+   run of content, so the scroller sits on the panel rather than on the list —
+   two independently scrolling areas in a 240px column is one too many. */
+.conflict-list { list-style: none; margin: 0; padding: 0 8px 12px; }
+.conflict-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.conflict-item:hover { background: var(--bg-active); }
+.conflict-item.is-open { background: var(--bg-active); font-weight: 600; }
+.conflict-item .icon { flex: none; opacity: 0.7; }
+/* Truncation reveal: the full path lives in the native `title`, which a
+   nowrap bubble would only re-clip. See CONVENTIONS.md, Tooltips. */
+.conflict-item-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conflict-body { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 12px 16px 4px; }
+.conflict-panes { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+/* The two headings sit above the merge view rather than inside each pane: the
+   library owns the panes' internals, so the labels ride on top and line up with
+   the columns below (the revert gutter is the gap between them). */
+.conflict-pane-heads {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  padding-bottom: 6px;
+}
+.conflict-pane-head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+/* Each column states its role, so "which one am I typing into" is answered by
+   the heading rather than by trial. */
+.conflict-pane-head em {
+  margin-left: 6px;
+  font-style: normal;
+  font-weight: 400;
+  opacity: 0.75;
+}
+/* The library scrolls the OUTER element: it forces the two inner scrollers to
+   `height:auto; overflow-y:visible` and aligns the columns with spacer widgets,
+   so there is one scroller for both and the panes are in step by construction.
+   Constraining the inner editors instead — the obvious thing to try — clips the
+   content the moment a collapsed section is expanded and it grows past the
+   original height. */
+.conflict-merge {
+  flex: 1 1 auto;
+  /* A definite height, not just a flex hint: `min-height: 100%` on the view
+     inside resolves against this, and would collapse to nothing otherwise. */
+  height: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-alt);
+}
+/* The view sizes itself to its content, which on a short note leaves the panes
+   floating above an empty box. `min-height: 100%` stretches them to the frame
+   without constraining a long one — the wrapper still scrolls when the content
+   outgrows it. */
+.conflict-merge .cm-mergeView {
+  overflow: visible;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* `.cm-mergeViewEditors` holds two `.cm-mergeViewEditor` wrappers, and that
+   middle level is the one that breaks the chain: the library gives it
+   `flex-grow` but no height, so a percentage below it has nothing to resolve
+   against. Growing it with flex, rather than with a percentage, keeps the whole
+   column stretched on a short note. */
+.conflict-merge .cm-mergeViewEditors { flex: 1 1 auto; align-items: stretch; }
+.conflict-merge .cm-mergeViewEditor { display: flex; flex-direction: column; }
+/* The library sets `height: auto !important` on the editors so they size to
+   their content; `flex: 1` grows them past that without fighting the rule. */
+.conflict-merge .cm-mergeViewEditor .cm-editor { flex: 1 1 auto; }
+.conflict-merge .cm-mergeViewEditor .cm-scroller { flex: 1 1 auto; }
+.conflict-merge .cm-scroller { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.conflict-merge .cm-editor { background: transparent; }
+.conflict-merge .cm-gutters { background: transparent; border: none; }
+.conflict-merge .cm-editor.cm-focused { outline: none; }
+
+/* The revert gutter: the library gives it width and position but no colour, so
+   it lands as a bare strip between two dark panes. */
+.conflict-merge .cm-merge-revert {
+  background: var(--bg);
+  border-inline: 1px solid var(--border);
+}
+.conflict-merge .cm-merge-revert button {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+}
+.conflict-merge .cm-merge-revert button:hover { color: var(--accent); }
+
+/* Collapsed unchanged sections. The library paints these with a hardcoded
+   #f3f3f3 / #222 gradient that belongs to neither theme; replaced with a flat
+   band in the app's own tokens, since its job is to read as "there is more
+   here", not to draw attention. */
+.conflict-merge .cm-collapsedLines {
+  background: var(--bg-active) !important;
+  color: var(--text-dim) !important;
+  border-block: 1px solid var(--border);
+  font-size: 11.5px;
+}
+.conflict-merge .cm-collapsedLines:hover { color: var(--text) !important; }
+
+.conflict-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.conflict-actions .spacer { flex: 1; }
+
+/* Narrow screens: the panes stack, and the list becomes a short strip above
+   them rather than a 240px column that would leave nothing for the text. */
+@media (max-width: 860px) {
+  .conflict-main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .conflict-side { border-right: none; border-bottom: 1px solid var(--border); max-height: 30vh; }
+  .conflict-panes { grid-template-columns: 1fr; }
+}

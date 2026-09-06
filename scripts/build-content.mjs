@@ -84,6 +84,48 @@ function gitDateMaps(vault) {
   return { modified, created, lastCommit };
 }
 
+// Blob SHA per path: the identity of the content this build actually read.
+// The client sends it back on commit and the write path compares it against what
+// the store holds now, so a note changed elsewhere is refused instead of
+// overwritten (see adr/0050-*.md).
+//
+// It hashes the WORKING TREE, not HEAD, and the two differ in ways that matter:
+//
+// - On a hosted build the checkout is clean, so they coincide.
+// - Under `wv dev` the vault on disk IS the store being written to, and a dev
+//   write (adr/0036-*.md) never creates a git commit — HEAD would sit still
+//   while the file changed underneath it, which is precisely the drift this is
+//   meant to catch. It also lets an untracked note carry a base, so a note
+//   created here is protected like any other rather than silently exempt.
+// - On a local build of a dirty vault it names what was built, which is the
+//   honest answer: that content is what the client is reading.
+//
+// `git hash-object` is the blob SHA of a file's bytes; it needs no repository,
+// so a vault that is not a git repo at all still gets bases. The whole set is
+// hashed in one call rather than one per note.
+function gitBlobShas(vault, paths) {
+  const shas = {};
+  if (!paths.length) return shas;
+  try {
+    const out = execFileSync('git', ['hash-object', '--stdin-paths'], {
+      cwd: vault,
+      input: paths.join('\n') + '\n',
+      encoding: 'utf8',
+      maxBuffer: 128 * 1024 * 1024,
+    });
+    const lines = out.trim().split('\n');
+    // One sha per input line, in order.
+    if (lines.length === paths.length) {
+      paths.forEach((p, i) => { shas[p] = lines[i]; });
+    }
+  } catch (e) {
+    // No git on PATH: every note goes without a base, which degrades to the
+    // pre-0050 behaviour (no drift check) rather than failing the build.
+    console.warn('[gen] git unavailable, notes carry no edit base:', e.message);
+  }
+  return shas;
+}
+
 function makeSnippet(body) {
   const lines = body.split('\n');
   const kept = [];
@@ -111,7 +153,13 @@ const idTitle = {};
 
 const { modified: gitModified, created: gitCreated, lastCommit: gitLastCommit } = gitDateMaps(VAULT);
 
-for (const file of walk(VAULT)) {
+const noteFiles = walk(VAULT);
+const gitBase = gitBlobShas(
+  VAULT,
+  noteFiles.map((f) => relative(VAULT, f).split(sep).join('/'))
+);
+
+for (const file of noteFiles) {
   const rel = relative(VAULT, file).split(sep).join('/');
   const id = rel.replace(/\.md$/, '');
   const raw = readFileSync(file, 'utf8');
@@ -132,6 +180,8 @@ for (const file of walk(VAULT)) {
     words,
     bytes: Buffer.byteLength(raw, 'utf8'),
     lastCommit: gitLastCommit[rel] || null,
+    // Identity of the content this note was built from.
+    baseSha: gitBase[rel] || null,
     // Dates from git (seconds → ms); fallback to filesystem mtime/ctime.
     mtime: gitModified[rel] != null ? gitModified[rel] * 1000 : st.mtimeMs,
     ctime: gitCreated[rel] != null ? gitCreated[rel] * 1000 : st.ctimeMs,

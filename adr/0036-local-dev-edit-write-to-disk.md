@@ -63,8 +63,12 @@ testing, so a developer sees how editing behaves before deploying.
 
 ## Out of scope
 
-- Any git operation locally (commit, branch, push) — local persistence is a plain
-  file write, not a version-control action.
+- Any git operation that CHANGES the repository (commit, branch, push) — local
+  persistence is a plain file write, not a version-control action. Reading is a
+  separate matter: the drift check (`adr/0050-*.md`) hashes a note's bytes with
+  `git hash-object` to tell whether it changed since the edit began. That reads
+  nothing from the repository and writes nothing to it, and a vault without git
+  simply goes unchecked rather than failing.
 - Publishing share pages locally beyond what a build produces — sharing still needs
   a build to generate `/shared/<id>/` pages (`adr/0025-public-share-pages.md`); the
   dev write only updates the note's frontmatter (`share_id`).
@@ -93,6 +97,7 @@ testing, so a developer sees how editing behaves before deploying.
 |------|----------|--------|--------|
 | 2026-07-30 | r1 | marco | Initial draft. |
 | 2026-07-30 | r2 | marco | Approved and implemented: dev-only /api/commit middleware writes .md to disk (commitDev in scripts/commit-dev.mjs). Status Proposed → Implemented. |
+| 2026-09-06 | r3 | marco | Narrow the git out-of-scope to repository-changing operations: the drift check reads a note's hash (adr/0050-*.md). |
 
 ## Approvals
 

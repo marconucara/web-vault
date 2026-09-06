@@ -214,5 +214,19 @@
     "pinUpdated": "The pin is updated. Reinstall to pick it up.",
     "stillBuilding": "Still building. It will be live shortly.",
     "upgradeFailed": "The upgrade could not be started."
+  },
+  "conflict": {
+    "title": "Some notes changed elsewhere",
+    "lead_one": "This note was changed somewhere else while you were editing it.",
+    "lead_other": "{{count}} notes were changed somewhere else while you were editing them.",
+    "reassure": "Decide which changes to keep.",
+    "mine": "What will be saved",
+    "mineHint": "editable",
+    "theirs": "Currently on the server",
+    "theirsHint": "read-only",
+    "cancel": "Don't save now",
+    "commitResolved": "Save these notes",
+    "unchangedLines": "$ unchanged lines",
+    "revertChunk": "Take this change"
   }
 }

@@ -214,5 +214,19 @@
     "pinUpdated": "Il pin è aggiornato. Reinstalla per applicarlo.",
     "stillBuilding": "Build ancora in corso. Sarà online a breve.",
     "upgradeFailed": "Non è stato possibile avviare l'aggiornamento."
+  },
+  "conflict": {
+    "title": "Alcune note sono cambiate altrove",
+    "lead_one": "Questa nota è stata modificata altrove mentre la stavi scrivendo.",
+    "lead_other": "{{count}} note sono state modificate altrove mentre le stavi scrivendo.",
+    "reassure": "Decidi quali modifiche tenere.",
+    "mine": "Cosa verrà salvato",
+    "mineHint": "modificabile",
+    "theirs": "Adesso sul server",
+    "theirsHint": "sola lettura",
+    "cancel": "Non salvare adesso",
+    "commitResolved": "Salva queste note",
+    "unchangedLines": "$ righe non modificate",
+    "revertChunk": "Prendi questa modifica"
   }
 }
