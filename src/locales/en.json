@@ -224,9 +224,9 @@
     "mineHint": "editable",
     "theirs": "Currently on the server",
     "theirsHint": "read-only",
-    "cancel": "Don't save now",
-    "commitResolved": "Save these notes",
+    "cancel": "Don't commit now",
     "unchangedLines": "$ unchanged lines",
-    "revertChunk": "Take this change"
+    "revertChunk": "Take this change",
+    "commitResolved": "Commit resolved ({{count}})"
   }
 }

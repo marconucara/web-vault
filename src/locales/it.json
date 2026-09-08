@@ -224,9 +224,9 @@
     "mineHint": "modificabile",
     "theirs": "Adesso sul server",
     "theirsHint": "sola lettura",
-    "cancel": "Non salvare adesso",
-    "commitResolved": "Salva queste note",
+    "cancel": "Non fare il commit adesso",
     "unchangedLines": "$ righe non modificate",
-    "revertChunk": "Prendi questa modifica"
+    "revertChunk": "Prendi questa modifica",
+    "commitResolved": "Commit risolti ({{count}})"
   }
 }

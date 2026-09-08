@@ -122,8 +122,14 @@ export default function ConflictResolver({ drifted, local, onResolve, onCancel }
             {t('conflict.cancel')}
           </button>
           <span className="spacer" />
+          {/* Still "commit" — the same action through the same endpoint, so a
+              different verb here would read as a different operation, and
+              "merge" in particular would promise a resolution the model
+              deliberately does not do. "Resolved" is what separates this from
+              the button that was just refused: same act, on the notes the user
+              has now settled, and the count drops to that subset. */}
           <button className="sp-commit" onClick={commit} disabled={!allReviewed}>
-            {t('conflict.commitResolved')}
+            {t('conflict.commitResolved', { count: drifted.length })}
           </button>
         </footer>
     </div>
